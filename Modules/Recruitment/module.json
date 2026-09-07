@@ -1,0 +1,11 @@
+{
+    "name": "Recruitment",
+    "alias": "recruitment",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Recruitment\\Providers\\RecruitmentServiceProvider"
+    ],
+    "files": []
+}

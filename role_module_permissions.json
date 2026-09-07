@@ -1,0 +1,42 @@
+{
+  "Super Admin": {
+    "Employee": true,
+    "Leave": true,
+    "Approvals": true,
+    "Analytics": true,
+    "Attendance": true,
+    "Payroll": true,
+    "Recruitment": true,
+    "Performance": true
+  },
+  "HR Lead": {
+    "Employee": true,
+    "Leave": true,
+    "Approvals": true,
+    "Analytics": true,
+    "Attendance": true,
+    "Payroll": true,
+    "Recruitment": true,
+    "Performance": true
+  },
+  "Manager": {
+    "Employee": true,
+    "Leave": true,
+    "Approvals": true,
+    "Analytics": false,
+    "Attendance": true,
+    "Payroll": false,
+    "Recruitment": false,
+    "Performance": true
+  },
+  "Employee": {
+    "Employee": false,
+    "Leave": true,
+    "Approvals": false,
+    "Analytics": false,
+    "Attendance": true,
+    "Payroll": false,
+    "Recruitment": false,
+    "Performance": true
+  }
+}

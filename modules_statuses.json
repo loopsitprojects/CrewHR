@@ -1,0 +1,11 @@
+{
+    "Employee": true,
+    "Leave": true,
+    "Approvals": true,
+    "Analytics": true,
+    "Attendance": true,
+    "Payroll": true,
+    "Recruitment": true,
+    "Performance": true,
+    "Organization": true
+}
