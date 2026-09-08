@@ -12,10 +12,10 @@ class LeaveType extends Model
 
     protected $guarded = [];
 
-    // protected $fillable = [];
-
-    // protected static function newFactory(): LeaveTypeFactory
-    // {
-    //     // return LeaveTypeFactory::new();
-    // }
+    protected $casts = [
+        'is_active' => 'boolean',
+        'is_paid' => 'boolean',
+        'days' => 'integer',
+        'default_quota' => 'integer',
+    ];
 }

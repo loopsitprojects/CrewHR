@@ -6,11 +6,55 @@ use Modules\Employee\Models\Employee;
 use Modules\Leave\Models\LeaveType;
 use Modules\Leave\Models\EmployeeLeaveBalance;
 use Modules\Leave\Models\LeaveRequest;
+use Modules\Leave\Models\Holiday;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 
 class LeavePolicyService
 {
+    /**
+     * Calculate net working days excluding weekends (Saturday/Sunday configurable)
+     * and official public/gazette/company holidays in the date range.
+     */
+    public function calculateWorkingDays(string $startDateStr, string $endDateStr): float
+    {
+        $startDate = Carbon::parse($startDateStr, 'Asia/Colombo');
+        $endDate = Carbon::parse($endDateStr, 'Asia/Colombo');
+
+        if ($startDate->gt($endDate)) {
+            return 0.0;
+        }
+
+        // Fetch all Holidays (Gazette, Public, Mercantile, Bank, and Company) in the range
+        $holidays = Holiday::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->toDateString())
+            ->toArray();
+
+        // Check configured weekend days off (defaults to Sat & Sun off)
+        $satOff = DB::table('settings')->where('key', 'weekend_saturday_off')->value('value') ?? '1';
+        $sunOff = DB::table('settings')->where('key', 'weekend_sunday_off')->value('value') ?? '1';
+
+        $workingDays = 0.0;
+        $curr = $startDate->copy();
+
+        while ($curr->lte($endDate)) {
+            $isSat = $curr->isSaturday();
+            $isSun = $curr->isSunday();
+            $isWeekendDayOff = ($isSat && $satOff === '1') || ($isSun && $sunOff === '1');
+            $isHoliday = in_array($curr->toDateString(), $holidays);
+
+            // Exclude both weekends and public / gazette / company holidays
+            if (!$isWeekendDayOff && !$isHoliday) {
+                $workingDays += 1.0;
+            }
+            $curr->addDay();
+        }
+
+        return $workingDays;
+    }
+
     /**
      * Calculate Annual Leave Quota based on joining year pro-rata rules
      */
@@ -102,11 +146,12 @@ class LeavePolicyService
         }
 
         // 4. Short Leave Rule: Max two Short Leaves per month
-        if ($typeCode === 'SHORT') {
+        if ($typeCode === 'SHORT' || !empty($data['is_short_leave'])) {
             $startCarbon = Carbon::parse($data['start_date']);
             $shortCount = LeaveRequest::where('employee_id', $employee->id)
-                ->whereHas('leaveType', function ($q) {
-                    $q->where('code', 'SHORT');
+                ->where(function ($q) {
+                    $q->where('is_short_leave', true)
+                      ->orWhereHas('leaveType', fn($t) => $t->where('code', 'SHORT'));
                 })
                 ->whereMonth('start_date', $startCarbon->month)
                 ->whereYear('start_date', $startCarbon->year)
@@ -115,7 +160,7 @@ class LeavePolicyService
 
             if ($shortCount >= 2) {
                 throw ValidationException::withMessages([
-                    'leave_type_id' => 'You can only take up to two Short Leaves per month.'
+                    'leave_type_id' => 'You can only take up to two Short Leaves per calendar month. You have already reached the limit for this month.'
                 ]);
             }
         }
@@ -139,13 +184,16 @@ class LeavePolicyService
             return;
         }
 
-        $balance = EmployeeLeaveBalance::where('employee_id', $request->employee_id)
-            ->where('leave_type_id', $request->leave_type_id)
-            ->first();
+        $typeCode = strtoupper($request->leaveType?->code ?? '');
+        if (!in_array($typeCode, ['SHORT', 'DUTY']) && !$request->is_short_leave) {
+            $balance = EmployeeLeaveBalance::where('employee_id', $request->employee_id)
+                ->where('leave_type_id', $request->leave_type_id)
+                ->first();
 
-        if ($balance) {
-            $newUsed = max(0, $balance->used - $request->duration);
-            $balance->update(['used' => $newUsed]);
+            if ($balance) {
+                $newUsed = max(0, $balance->used - $request->duration);
+                $balance->update(['used' => $newUsed]);
+            }
         }
 
         $request->update(['is_refunded' => true]);

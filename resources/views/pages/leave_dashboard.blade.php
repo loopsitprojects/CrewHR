@@ -1,6 +1,15 @@
 @extends('layouts.app', ['title' => 'LOOPS HR - Leave Management Dashboard', 'breadcrumb' => 'Dashboard'])
 
 @section('content')
+@php
+    $leaveTypeMap = collect($leaveBalances ?? [])->mapWithKeys(function($b) {
+        return [strtoupper($b->leaveType->code ?? '') => $b->leave_type_id];
+    })->toArray();
+    $leaveCodeMap = collect($leaveBalances ?? [])->mapWithKeys(function($b) {
+        return [$b->leave_type_id => strtoupper($b->leaveType->code ?? '')];
+    })->toArray();
+@endphp
+
 <div class="flex-1 flex flex-col min-h-0 space-y-4 h-full overflow-hidden" 
      x-data="{ 
          applyLeaveModal: false, 
@@ -9,16 +18,64 @@
          quotaModalOpen: false,
          selectedQuota: null,
          allMyHistory: {{ json_encode($myLeaveHistory) }},
+         leaveTypesMap: {{ json_encode($leaveTypeMap) }},
+         leaveCodeMap: {{ json_encode($leaveCodeMap) }},
+         selectedLeaveTypeId: '{{ $leaveTypeMap['ANNUAL'] ?? ($leaveBalances->first()->leave_type_id ?? '') }}',
+         selectedLeaveTypeCode: 'ANNUAL',
          selectedDay: {{ json_encode($todayCell) }}, 
          viewMode: 'grid', 
          targetStartDate: '{{ \Carbon\Carbon::now('Asia/Colombo')->toDateString() }}', 
          targetEndDate: '{{ \Carbon\Carbon::now('Asia/Colombo')->toDateString() }}',
-         selectedLeaveTypeCode: 'ANNUAL',
          isHalfDay: false,
          isShortLeave: false,
+         allHolidays: {{ json_encode($allHolidaysList ?? []) }},
+         calculateDuration() {
+             if (this.selectedLeaveTypeCode === 'SHORT') return '0.2 (Short Leave)';
+             if (this.isHalfDay) return '0.5 (Half Day)';
+             if (!this.targetStartDate || !this.targetEndDate) return '0';
+             
+             let start = new Date(this.targetStartDate + 'T00:00:00');
+             let end = new Date(this.targetEndDate + 'T00:00:00');
+             if (start > end) return '0';
+
+             let count = 0;
+             let curr = new Date(start);
+             while (curr <= end) {
+                 let dayOfWeek = curr.getDay(); // 0 = Sun, 6 = Sat
+                 let isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                 let y = curr.getFullYear();
+                 let m = String(curr.getMonth() + 1).padStart(2, '0');
+                 let d = String(curr.getDate()).padStart(2, '0');
+                 let dateStr = `${y}-${m}-${d}`;
+                 let isHoliday = this.allHolidays.includes(dateStr);
+
+                 if (!isWeekend && !isHoliday) {
+                     count++;
+                 }
+                 curr.setDate(curr.getDate() + 1);
+             }
+             return count;
+         },
+         openApplyModal(code) {
+             let targetCode = (code || 'ANNUAL').toUpperCase();
+             this.selectedLeaveTypeCode = targetCode;
+             if (this.leaveTypesMap[targetCode]) {
+                 this.selectedLeaveTypeId = this.leaveTypesMap[targetCode];
+             }
+             if (targetCode === 'SHORT') {
+                 this.isHalfDay = false;
+                 this.isShortLeave = true;
+                 this.targetEndDate = this.targetStartDate;
+             } else {
+                 this.isShortLeave = false;
+             }
+             this.applyLeaveModal = true;
+             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+         },
          openQuotaModal(code, name, icon, color, total, used, available, carryForward, unit) {
+             let targetCode = (code || '').toUpperCase();
              this.selectedQuota = {
-                 code: code,
+                 code: targetCode,
                  name: name,
                  icon: icon,
                  color: color,
@@ -27,7 +84,7 @@
                  available: available,
                  carryForward: carryForward,
                  unit: unit,
-                 records: this.allMyHistory.filter(r => (r.leave_type?.code || '').toUpperCase() === code)
+                 records: this.allMyHistory.filter(r => (r.leave_type?.code || '').toUpperCase() === targetCode || (targetCode === 'SHORT' && (r.is_short_leave || (r.leave_type?.code || '').toUpperCase() === 'SHORT')))
              };
              this.quotaModalOpen = true;
              this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
@@ -35,11 +92,59 @@
      }">
 
 
+@php
+    $balancesByCode = collect($leaveBalances ?? [])->keyBy(function($b) {
+        return strtoupper($b->leaveType->code ?? '');
+    });
+
+    $getQuotaData = function($code, $defaultAllocated = 0, $defaultUnit = 'days') use ($balancesByCode) {
+        $bal = $balancesByCode->get(strtoupper($code));
+        $allocated = (float)($bal->allocated ?? $defaultAllocated);
+        $cf = (float)($bal->carried_forward ?? 0);
+        $total = $allocated + $cf;
+        $used = (float)($bal->used ?? 0);
+        $available = max(0, $total - $used);
+        $pct = $total > 0 ? min(100, round(($available / $total) * 100)) : 100;
+        
+        return [
+            'total' => $total,
+            'allocated' => $allocated,
+            'cf' => $cf,
+            'used' => $used,
+            'available' => $available,
+            'pct' => $pct,
+            'unit' => $defaultUnit
+        ];
+    };
+
+    $annualData = $getQuotaData('ANNUAL', 14, 'days');
+    $casualData = $getQuotaData('CASUAL', 7, 'days');
+    $medicalData = $getQuotaData('MEDICAL', 7, 'days');
+
+    // Short Leave Quota (2 per calendar month, reset monthly)
+    $shortTotal = 2;
+    $shortUsed = (int)($monthlyShortLeavesUsed ?? 0);
+    $shortAvailable = max(0, $shortTotal - $shortUsed);
+    $shortPct = min(100, round(($shortAvailable / $shortTotal) * 100));
+    $shortData = [
+        'total' => $shortTotal,
+        'allocated' => $shortTotal,
+        'cf' => 0,
+        'used' => $shortUsed,
+        'available' => $shortAvailable,
+        'pct' => $shortPct,
+        'unit' => 'per month'
+    ];
+
+    $dutyData = $getQuotaData('DUTY', 30, 'days');
+    $lieuData = $getQuotaData('LIEU', 2, 'days');
+@endphp
+
     <!-- Top Leave Summary Cards (6 Quotas - Clickable Popups - Full Width Title Header Layout) -->
     <div class="shrink-0 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
         
         <!-- 1. Annual Leave -->
-        <div @click="openQuotaModal('ANNUAL', 'Annual Leave', 'plane', 'blue', 14, 0, 9, 2, 'days')"
+        <div @click="openQuotaModal('ANNUAL', 'Annual Leave', 'plane', 'blue', {{ $annualData['total'] }}, {{ $annualData['used'] }}, {{ $annualData['available'] }}, {{ $annualData['cf'] }}, 'days')"
              class="bg-white dark:bg-[#161b22] p-3 rounded-2xl border border-slate-200 dark:border-[#30363d] shadow-sm hover:shadow-md hover:shadow-blue-500/10 hover:border-blue-300 dark:hover:border-blue-500 flex flex-col justify-between transition-all cursor-pointer hover:-translate-y-0.5 min-h-[112px]">
             <!-- Top Header: Icon + Full Title + Carry Forward Badge -->
             <div class="flex items-center justify-between gap-1 shrink-0 pb-1.5 border-b border-slate-100 dark:border-[#21262d]">
@@ -47,7 +152,9 @@
                     <i data-lucide="plane" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0"></i>
                     <span class="text-xs font-black text-slate-900 dark:text-slate-100 whitespace-nowrap">Annual Leave</span>
                 </div>
-                <span class="text-[9px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950 px-1.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 shrink-0 leading-none" title="2 Carry Forward Days Allocated">+2 CF</span>
+                @if($annualData['cf'] > 0)
+                    <span class="text-[9px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950 px-1.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 shrink-0 leading-none" title="{{ $annualData['cf'] }} Carry Forward Days Allocated">+{{ $annualData['cf'] }} CF</span>
+                @endif
             </div>
 
             <!-- Content: Available Count + Donut Ring -->
@@ -55,7 +162,7 @@
                 <div>
                     <span class="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 tracking-wider uppercase block leading-none">AVAILABLE</span>
                     <div class="flex items-baseline gap-1 mt-1">
-                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">9</span>
+                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">{{ $annualData['available'] }}</span>
                         <span class="text-xs font-bold text-slate-600 dark:text-slate-400">days</span>
                     </div>
                 </div>
@@ -63,15 +170,15 @@
                 <div class="relative w-12 h-12 flex items-center justify-center shrink-0">
                     <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
                         <path class="text-slate-200 dark:text-[#21262d]" stroke-width="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="text-blue-600 dark:text-blue-400" stroke-dasharray="64, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="text-blue-600 dark:text-blue-400" stroke-dasharray="{{ $annualData['pct'] }}, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     </svg>
-                    <span class="absolute text-[10px] font-black text-slate-900 dark:text-slate-100">9/14</span>
+                    <span class="absolute text-[10px] font-black text-slate-900 dark:text-slate-100">{{ $annualData['available'] }}/{{ $annualData['total'] }}</span>
                 </div>
             </div>
         </div>
 
         <!-- 2. Casual Leave -->
-        <div @click="openQuotaModal('CASUAL', 'Casual Leave', 'calendar-check', 'purple', 7, 2, 5, 0, 'days')"
+        <div @click="openQuotaModal('CASUAL', 'Casual Leave', 'calendar-check', 'purple', {{ $casualData['total'] }}, {{ $casualData['used'] }}, {{ $casualData['available'] }}, {{ $casualData['cf'] }}, 'days')"
              class="bg-white dark:bg-[#161b22] p-3 rounded-2xl border border-slate-200 dark:border-[#30363d] shadow-sm hover:shadow-md hover:shadow-purple-500/10 hover:border-purple-300 dark:hover:border-purple-500 flex flex-col justify-between transition-all cursor-pointer hover:-translate-y-0.5 min-h-[112px]">
             <!-- Top Header: Icon + Full Title -->
             <div class="flex items-center gap-1.5 shrink-0 pb-1.5 border-b border-slate-100 dark:border-[#21262d]">
@@ -84,7 +191,7 @@
                 <div>
                     <span class="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 tracking-wider uppercase block leading-none">AVAILABLE</span>
                     <div class="flex items-baseline gap-1 mt-1">
-                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">5</span>
+                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">{{ $casualData['available'] }}</span>
                         <span class="text-xs font-bold text-slate-600 dark:text-slate-400">days</span>
                     </div>
                 </div>
@@ -92,15 +199,15 @@
                 <div class="relative w-12 h-12 flex items-center justify-center shrink-0">
                     <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
                         <path class="text-slate-200 dark:text-[#21262d]" stroke-width="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="text-purple-600 dark:text-purple-400" stroke-dasharray="71, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="text-purple-600 dark:text-purple-400" stroke-dasharray="{{ $casualData['pct'] }}, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     </svg>
-                    <span class="absolute text-[10px] font-black text-slate-900 dark:text-slate-100">5/7</span>
+                    <span class="absolute text-[10px] font-black text-slate-900 dark:text-slate-100">{{ $casualData['available'] }}/{{ $casualData['total'] }}</span>
                 </div>
             </div>
         </div>
 
         <!-- 3. Medical Leave -->
-        <div @click="openQuotaModal('MEDICAL', 'Medical Leave', 'activity', 'emerald', 7, 1, 6, 0, 'days')"
+        <div @click="openQuotaModal('MEDICAL', 'Medical Leave', 'activity', 'emerald', {{ $medicalData['total'] }}, {{ $medicalData['used'] }}, {{ $medicalData['available'] }}, {{ $medicalData['cf'] }}, 'days')"
              class="bg-white dark:bg-[#161b22] p-3 rounded-2xl border border-slate-200 dark:border-[#30363d] shadow-sm hover:shadow-md hover:shadow-emerald-500/10 hover:border-emerald-300 dark:hover:border-emerald-500 flex flex-col justify-between transition-all cursor-pointer hover:-translate-y-0.5 min-h-[112px]">
             <!-- Top Header: Icon + Full Title -->
             <div class="flex items-center gap-1.5 shrink-0 pb-1.5 border-b border-slate-100 dark:border-[#21262d]">
@@ -113,7 +220,7 @@
                 <div>
                     <span class="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 tracking-wider uppercase block leading-none">AVAILABLE</span>
                     <div class="flex items-baseline gap-1 mt-1">
-                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">6</span>
+                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">{{ $medicalData['available'] }}</span>
                         <span class="text-xs font-bold text-slate-600 dark:text-slate-400">days</span>
                     </div>
                 </div>
@@ -121,15 +228,15 @@
                 <div class="relative w-12 h-12 flex items-center justify-center shrink-0">
                     <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
                         <path class="text-slate-200 dark:text-[#21262d]" stroke-width="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="text-emerald-600 dark:text-emerald-400" stroke-dasharray="86, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="text-emerald-600 dark:text-emerald-400" stroke-dasharray="{{ $medicalData['pct'] }}, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     </svg>
-                    <span class="absolute text-[10px] font-black text-slate-900 dark:text-slate-100">6/7</span>
+                    <span class="absolute text-[10px] font-black text-slate-900 dark:text-slate-100">{{ $medicalData['available'] }}/{{ $medicalData['total'] }}</span>
                 </div>
             </div>
         </div>
 
         <!-- 4. Short Leave -->
-        <div @click="openQuotaModal('SHORT', 'Short Leave', 'clock', 'amber', 2, 0, 2, 0, 'per month')"
+        <div @click="openQuotaModal('SHORT', 'Short Leave', 'clock', 'amber', {{ $shortData['total'] }}, {{ $shortData['used'] }}, {{ $shortData['available'] }}, {{ $shortData['cf'] }}, 'per month')"
              class="bg-white dark:bg-[#161b22] p-3 rounded-2xl border border-slate-200 dark:border-[#30363d] shadow-sm hover:shadow-md hover:shadow-amber-500/10 hover:border-amber-300 dark:hover:border-amber-500 flex flex-col justify-between transition-all cursor-pointer hover:-translate-y-0.5 min-h-[112px]">
             <!-- Top Header: Icon + Full Title -->
             <div class="flex items-center gap-1.5 shrink-0 pb-1.5 border-b border-slate-100 dark:border-[#21262d]">
@@ -142,7 +249,7 @@
                 <div>
                     <span class="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 tracking-wider uppercase block leading-none">AVAILABLE</span>
                     <div class="flex items-baseline gap-1 mt-1">
-                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">2</span>
+                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">{{ $shortData['available'] }}</span>
                         <span class="text-xs font-bold text-slate-600 dark:text-slate-400">/ month</span>
                     </div>
                 </div>
@@ -150,15 +257,15 @@
                 <div class="relative w-12 h-12 flex items-center justify-center shrink-0">
                     <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
                         <path class="text-slate-200 dark:text-[#21262d]" stroke-width="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="text-amber-500 dark:text-amber-400" stroke-dasharray="100, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="text-amber-500 dark:text-amber-400" stroke-dasharray="{{ $shortData['pct'] }}, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     </svg>
-                    <span class="absolute text-[10px] font-black text-slate-900 dark:text-slate-100">2/2</span>
+                    <span class="absolute text-[10px] font-black text-slate-900 dark:text-slate-100">{{ $shortData['available'] }}/{{ $shortData['total'] }}</span>
                 </div>
             </div>
         </div>
 
         <!-- 5. Duty Leave -->
-        <div @click="openQuotaModal('DUTY', 'Duty Leave', 'briefcase', 'rose', 30, 0, 30, 0, 'days')"
+        <div @click="openQuotaModal('DUTY', 'Duty Leave', 'briefcase', 'rose', {{ $dutyData['total'] }}, {{ $dutyData['used'] }}, {{ $dutyData['available'] }}, {{ $dutyData['cf'] }}, 'days')"
              class="bg-white dark:bg-[#161b22] p-3 rounded-2xl border border-slate-200 dark:border-[#30363d] shadow-sm hover:shadow-md hover:shadow-rose-500/10 hover:border-rose-400 dark:hover:border-rose-500 flex flex-col justify-between transition-all cursor-pointer hover:-translate-y-0.5 min-h-[112px]">
             <!-- Top Header: Icon + Full Title -->
             <div class="flex items-center gap-1.5 shrink-0 pb-1.5 border-b border-slate-100 dark:border-[#21262d]">
@@ -171,7 +278,7 @@
                 <div>
                     <span class="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 tracking-wider uppercase block leading-none">AVAILABLE</span>
                     <div class="flex items-baseline gap-1 mt-1">
-                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">30</span>
+                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">{{ $dutyData['available'] }}</span>
                         <span class="text-xs font-bold text-slate-600 dark:text-slate-400">days</span>
                     </div>
                 </div>
@@ -179,15 +286,15 @@
                 <div class="relative w-12 h-12 flex items-center justify-center shrink-0">
                     <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
                         <path class="text-slate-200 dark:text-[#21262d]" stroke-width="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="text-rose-600 dark:text-rose-400" stroke-dasharray="100, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="text-rose-600 dark:text-rose-400" stroke-dasharray="{{ $dutyData['pct'] }}, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     </svg>
-                    <span class="absolute text-[9px] font-black text-slate-900 dark:text-slate-100">30/30</span>
+                    <span class="absolute text-[9px] font-black text-slate-900 dark:text-slate-100">{{ $dutyData['available'] }}/{{ $dutyData['total'] }}</span>
                 </div>
             </div>
         </div>
 
         <!-- 6. Lieu Leave -->
-        <div @click="openQuotaModal('LIEU', 'Lieu Leave', 'refresh-cw', 'teal', 2, 0, 2, 0, 'days')"
+        <div @click="openQuotaModal('LIEU', 'Lieu Leave', 'refresh-cw', 'teal', {{ $lieuData['total'] }}, {{ $lieuData['used'] }}, {{ $lieuData['available'] }}, {{ $lieuData['cf'] }}, 'days')"
              class="bg-white dark:bg-[#161b22] p-3 rounded-2xl border border-slate-200 dark:border-[#30363d] shadow-sm hover:shadow-md hover:shadow-teal-500/10 hover:border-teal-300 dark:hover:border-teal-500 flex flex-col justify-between transition-all cursor-pointer hover:-translate-y-0.5 min-h-[112px]">
             <!-- Top Header: Icon + Full Title -->
             <div class="flex items-center gap-1.5 shrink-0 pb-1.5 border-b border-slate-100 dark:border-[#21262d]">
@@ -200,7 +307,7 @@
                 <div>
                     <span class="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 tracking-wider uppercase block leading-none">AVAILABLE</span>
                     <div class="flex items-baseline gap-1 mt-1">
-                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">2</span>
+                        <span class="text-2xl font-black text-slate-900 dark:text-slate-100 leading-none">{{ $lieuData['available'] }}</span>
                         <span class="text-xs font-bold text-slate-600 dark:text-slate-400">days</span>
                     </div>
                 </div>
@@ -208,9 +315,9 @@
                 <div class="relative w-12 h-12 flex items-center justify-center shrink-0">
                     <svg class="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
                         <path class="text-slate-200 dark:text-[#21262d]" stroke-width="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="text-teal-600 dark:text-teal-400" stroke-dasharray="100, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="text-teal-600 dark:text-teal-400" stroke-dasharray="{{ $lieuData['pct'] }}, 100" stroke-width="3.8" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                     </svg>
-                    <span class="absolute text-[10px] font-black text-slate-900 dark:text-slate-100">2/2</span>
+                    <span class="absolute text-[10px] font-black text-slate-900 dark:text-slate-100">{{ $lieuData['available'] }}/{{ $lieuData['total'] }}</span>
                 </div>
             </div>
         </div>
@@ -694,15 +801,26 @@
                 <div>
                     <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Select Leave Type *</label>
                     <select name="leave_type_id" 
+                            x-model="selectedLeaveTypeId"
                             x-on:change="
-                                const opt = $event.target.options[$event.target.selectedIndex];
-                                selectedLeaveTypeCode = opt.getAttribute('data-code');
+                                selectedLeaveTypeCode = leaveCodeMap[selectedLeaveTypeId] || 'ANNUAL';
+                                if (selectedLeaveTypeCode === 'SHORT') {
+                                    isHalfDay = false;
+                                    isShortLeave = true;
+                                    targetEndDate = targetStartDate;
+                                } else {
+                                    isShortLeave = false;
+                                }
                             "
                             class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:ring-2 focus:ring-blue-500/30 focus:outline-none">
                         @foreach($leaveBalances as $lb)
                             @if(!in_array(strtolower($lb->leaveType->name ?? ''), ['half day leave', 'half day', 'maternity leave', 'maternity', 'paternity leave', 'paternity']) && !in_array(strtoupper($lb->leaveType->code ?? ''), ['HALF', 'MATERNITY', 'PATERNITY', 'MAT', 'PAT']))
+                            @php
+                                $isShort = strtoupper($lb->leaveType->code) === 'SHORT';
+                                $availText = $isShort ? ($shortData['available'] . ' / 2 available this month') : (max(0, ($lb->allocated + $lb->carried_forward) - $lb->used) . ' days available');
+                            @endphp
                             <option value="{{ $lb->leave_type_id }}" data-code="{{ strtoupper($lb->leaveType->code) }}" class="bg-white dark:bg-[#1c2128] text-slate-900 dark:text-slate-200">
-                                {{ $lb->leaveType->name }} (Avail: {{ max(0, ($lb->allocated + $lb->carried_forward) - $lb->used) }} days)
+                                {{ $lb->leaveType->name }} ({{ $availText }})
                             </option>
                             @endif
                         @endforeach
@@ -713,16 +831,29 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Start Date *</label>
-                        <input type="date" name="start_date" x-model="targetStartDate" class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+                        <input type="date" name="start_date" x-model="targetStartDate" 
+                               @change="if (selectedLeaveTypeCode === 'SHORT') targetEndDate = targetStartDate"
+                               class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
                     </div>
                     <div>
                         <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">End Date *</label>
-                        <input type="date" name="end_date" x-model="targetEndDate" class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+                        <input type="date" name="end_date" x-model="targetEndDate" 
+                               :disabled="selectedLeaveTypeCode === 'SHORT'"
+                               class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60">
                     </div>
                 </div>
 
-                <!-- Half Day Toggle & Slot Selector -->
-                <div class="p-3 bg-slate-50 dark:bg-[#21262d] rounded-xl border border-slate-200 dark:border-[#30363d] space-y-2">
+                <!-- Live Duration Preview Notice (Weekends & Holidays Excluded) -->
+                <div class="p-2.5 bg-blue-50/70 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900/60 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="ph ph-calendar-blank text-blue-600 dark:text-blue-400 text-sm"></i>
+                        <span class="text-[11px] text-slate-600 dark:text-slate-400 font-semibold">Total Leave Days:</span>
+                    </div>
+                    <span class="text-xs font-black text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded-lg" x-text="calculateDuration() + (selectedLeaveTypeCode === 'SHORT' ? '' : ' Day(s)')"></span>
+                </div>
+
+                <!-- Half Day Toggle & Slot Selector (Disabled for Short Leave) -->
+                <div x-show="selectedLeaveTypeCode !== 'SHORT'" class="p-3 bg-slate-50 dark:bg-[#21262d] rounded-xl border border-slate-200 dark:border-[#30363d] space-y-2">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" name="is_half_day" value="1" x-model="isHalfDay" class="rounded text-blue-600 focus:ring-blue-500">
                         <span class="font-bold text-slate-800 dark:text-slate-200">Apply as Half Day Leave (0.5 Days)</span>
@@ -885,7 +1016,7 @@
                         <span class="text-xl font-black text-amber-950 dark:text-amber-100" x-text="selectedQuota?.used"></span>
                         <span class="text-xs font-black text-amber-900 dark:text-amber-300" x-text="selectedQuota?.unit"></span>
                     </div>
-                    <span class="text-[8px] font-extrabold text-amber-800 dark:text-amber-400 mt-1" x-text="Math.round((selectedQuota?.used / selectedQuota?.total) * 100) + '% Consumed'"></span>
+                    <span class="text-[8px] font-extrabold text-amber-800 dark:text-amber-400 mt-1" x-text="(selectedQuota?.total > 0 ? Math.round((selectedQuota?.used / selectedQuota?.total) * 100) : 0) + '% Consumed'"></span>
                 </div>
 
                 <!-- Card 3: Available Balance -->
@@ -907,7 +1038,7 @@
                 </div>
                 <div class="w-full h-2.5 bg-slate-200 dark:bg-[#21262d] rounded-full overflow-hidden border border-slate-300 dark:border-[#30363d]">
                     <div class="h-full bg-blue-500 dark:bg-blue-500 transition-all duration-500 rounded-full"
-                         :style="'width: ' + Math.min(100, Math.round(((selectedQuota?.used || 0) / (selectedQuota?.total || 1)) * 100)) + '%'"></div>
+                         :style="'width: ' + (selectedQuota?.total > 0 ? Math.min(100, Math.round(((selectedQuota?.used || 0) / selectedQuota?.total) * 100)) : 0) + '%'"></div>
                 </div>
             </div>
 
@@ -925,8 +1056,9 @@
                         <div class="p-3 bg-white dark:bg-[#1c2128] rounded-xl border border-slate-200 dark:border-[#30363d] hover:border-blue-300 dark:hover:border-blue-500 transition-all flex items-center justify-between text-xs">
                             <div class="space-y-0.5">
                                 <div class="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                                    <span x-text="rec.start_date + ' to ' + rec.end_date"></span>
-                                    <span class="text-[10px] font-black bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-900" x-text="rec.duration + ' Days'"></span>
+                                    <span x-text="rec.start_date === rec.end_date ? rec.start_date : (rec.start_date + ' to ' + rec.end_date)"></span>
+                                    <span class="text-[10px] font-black bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-900" 
+                                          x-text="rec.is_short_leave || ((rec.leave_type?.code || '').toUpperCase() === 'SHORT') ? ('Short Leave' + (rec.short_leave_slot ? ' (' + rec.short_leave_slot + ')' : '')) : (rec.is_half_day ? ('Half Day (' + (rec.half_day_slot || '0.5d') + ')') : rec.duration + ' Days')"></span>
                                 </div>
                                 <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold" x-text="rec.reason"></div>
                             </div>
@@ -957,7 +1089,7 @@
                 <button @click="quotaModalOpen = false" class="px-4 py-2 bg-slate-100 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#2d333b] font-black text-xs rounded-xl transition-all border border-slate-200 dark:border-[#30363d]">
                     Close
                 </button>
-                <button @click="quotaModalOpen = false; selectedLeaveTypeCode = selectedQuota?.code; applyLeaveModal = true" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 font-black text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5">
+                <button @click="quotaModalOpen = false; openApplyModal(selectedQuota?.code)" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 font-black text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5">
                     <i data-lucide="plus" class="w-4 h-4"></i> Apply for <span x-text="selectedQuota?.name"></span>
                 </button>
             </div>

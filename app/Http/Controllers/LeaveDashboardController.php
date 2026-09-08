@@ -45,12 +45,26 @@ class LeaveDashboardController extends Controller
 
         $leaveBalances = EmployeeLeaveBalance::with('leaveType')
             ->where('employee_id', $employee->id ?? 1)
+            ->whereHas('leaveType', function($q) {
+                $q->where('is_active', true);
+            })
             ->get();
 
         $myLeaveHistory = LeaveRequest::with(['leaveType', 'coveringEmployee.user'])
             ->where('employee_id', $employee->id ?? 1)
             ->latest()
             ->get();
+
+        // Calculate short leaves used in the selected calendar month (2 slots/month)
+        $monthlyShortLeavesUsed = LeaveRequest::where('employee_id', $employee->id ?? 1)
+            ->where(function($q) {
+                $q->where('is_short_leave', true)
+                  ->orWhereHas('leaveType', fn($t) => $t->where('code', 'SHORT'));
+            })
+            ->whereYear('start_date', $year)
+            ->whereMonth('start_date', $month)
+            ->whereNotIn('status', ['Rejected', 'Canceled'])
+            ->count();
 
         $activeRole = $this->getActiveRole();
         $activeEmpId = $employee?->id;
@@ -262,10 +276,14 @@ class LeaveDashboardController extends Controller
 
         $todayCell = collect($calendarDays)->firstWhere('is_today', true) ?? collect($calendarDays)->firstWhere('is_current_month', true);
 
+        // List all holidays as Y-m-d strings for front-end dynamic net working days calculation
+        $allHolidaysList = Holiday::pluck('date')->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))->unique()->values()->toArray();
+
         return view('pages.leave_dashboard', compact(
             'employee', 
             'leaveBalances', 
             'myLeaveHistory',
+            'monthlyShortLeavesUsed',
             'pendingRequests', 
             'todaysActiveLeaves',
             'monthHolidays', 
@@ -281,7 +299,8 @@ class LeaveDashboardController extends Controller
             'monthsList',
             'yearsList',
             'allEmployees',
-            'upcomingBirthdays'
+            'upcomingBirthdays',
+            'allHolidaysList'
         ));
     }
 
@@ -315,55 +334,34 @@ class LeaveDashboardController extends Controller
 
         // Calculate Days & Duration
         $isHalfDay = (bool)$request->input('is_half_day', false);
-        $isShortLeave = ($typeCode === 'SHORT');
+        $isShortLeave = ($typeCode === 'SHORT' || (bool)$request->input('is_short_leave', false));
 
         if ($isHalfDay) {
             $workingDays = 0.5;
         } elseif ($isShortLeave) {
             $workingDays = 0.2; // 1.5 hour break
         } else {
-            $startDate = Carbon::parse($request->start_date, 'Asia/Colombo');
-            $endDate = Carbon::parse($request->end_date, 'Asia/Colombo');
+            // Calculate net working days (excluding weekends and public/gazette/company holidays)
+            $workingDays = $this->leavePolicyService->calculateWorkingDays($request->start_date, $request->end_date);
 
-            // Fetch Sri Lanka Gazette Holidays in date range
-            $gazetteHolidays = Holiday::where('type', 'Gazette')
-                ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
-                ->pluck('date')
-                ->toArray();
-
-            // Calculate net working days (excl. configured weekend day offs & Sri Lanka Gazette holidays)
-            $satOff = DB::table('settings')->where('key', 'weekend_saturday_off')->value('value') ?? '1';
-            $sunOff = DB::table('settings')->where('key', 'weekend_sunday_off')->value('value') ?? '1';
-
-            $workingDays = 0;
-            $curr = $startDate->copy();
-
-            while ($curr->lte($endDate)) {
-                $isSat = $curr->isSaturday();
-                $isSun = $curr->isSunday();
-                $isDayOff = ($isSat && $satOff === '1') || ($isSun && $sunOff === '1');
-                $isGazetteHoliday = in_array($curr->toDateString(), $gazetteHolidays);
-
-                if (!$isDayOff && !$isGazetteHoliday) {
-                    $workingDays++;
-                }
-                $curr->addDay();
+            if ($workingDays <= 0) {
+                return redirect()->back()->withErrors([
+                    'start_date' => 'The selected date range only falls on weekends or public holidays. No working days need to be deducted.'
+                ]);
             }
-
-            if ($workingDays === 0) $workingDays = 1;
         }
 
         // Validate against Leave Brief rules using LeavePolicyService
         $this->leavePolicyService->validateLeaveApplication($employee, $leaveType, $data, $workingDays);
 
-        // Check if employee has sufficient available balance
+        // Check if employee has sufficient available balance (Short Leave and Duty Leave are exempt from annual quota pool deductions)
         $balance = EmployeeLeaveBalance::firstOrCreate(
             ['employee_id' => $employee->id, 'leave_type_id' => $leaveType->id],
             ['allocated' => $leaveType->days, 'used' => 0, 'carried_forward' => 0]
         );
 
         $available = ($balance->allocated + $balance->carried_forward) - $balance->used;
-        if ($workingDays > $available && !in_array($typeCode, ['DUTY', 'LIEU'])) {
+        if ($workingDays > $available && !in_array($typeCode, ['DUTY', 'LIEU', 'SHORT'])) {
             return redirect()->back()->withErrors([
                 'leave_type_id' => "Insufficient leave balance. You have {$available} days available for {$leaveType->name}."
             ]);
@@ -384,7 +382,7 @@ class LeaveDashboardController extends Controller
 
         $initialStatus = 'Pending Manager Approval';
 
-        DB::transaction(function () use ($request, $employee, $leaveType, $workingDays, $certificatePath, $isHalfDay, $isShortLeave, $coveringId, $coveringStatus, $managerId, $initialStatus, $balance) {
+        DB::transaction(function () use ($request, $employee, $leaveType, $workingDays, $certificatePath, $isHalfDay, $isShortLeave, $coveringId, $coveringStatus, $managerId, $initialStatus, $balance, $typeCode) {
             $leaveReq = LeaveRequest::create([
                 'req_number' => 'REQ-' . rand(1100, 9999),
                 'employee_id' => $employee->id,
@@ -409,8 +407,10 @@ class LeaveDashboardController extends Controller
                 'is_refunded' => false,
             ]);
 
-            // Immediately deduct days from balance
-            $balance->increment('used', $workingDays);
+            // Immediately deduct days from balance only for standard quota-deductible leaves
+            if (!in_array($typeCode, ['SHORT', 'DUTY'])) {
+                $balance->increment('used', $workingDays);
+            }
 
             // Dispatch HR Notifications
             \App\Services\NotificationService::notifyLeaveApplied($leaveReq);

@@ -81,7 +81,12 @@ class ApprovalController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->whereHas('employee.user', function ($uq) use ($search) {
                     $uq->where('name', 'like', "%{$search}%");
-                })->orWhere('req_number', 'like', "%{$search}%");
+                })->orWhere('req_number', 'like', "%{$search}%")
+                  ->orWhere('reason', 'like', "%{$search}%")
+                  ->orWhereHas('leaveType', function ($tq) use ($search) {
+                      $tq->where('name', 'like', "%{$search}%")
+                         ->orWhere('code', 'like', "%{$search}%");
+                  });
             });
         }
 

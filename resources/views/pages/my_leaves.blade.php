@@ -76,29 +76,21 @@
         <div class="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-3 border-b border-slate-100">
             <!-- Status Tabs -->
             <div class="flex items-center gap-1 bg-slate-100/90 p-1 rounded-full text-xs font-bold overflow-x-auto">
-                <a href="{{ route('my-leaves.index', ['status' => 'all', 'search' => $search, 'leave_type_id' => $leaveTypeId, 'year' => $year]) }}" 
+                <a href="{{ route('my-leaves.index', ['status' => 'all', 'search' => $search, 'leave_type_id' => $leaveTypeId, 'year' => $year, 'month' => $month]) }}" 
                    class="px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap {{ $status === 'all' ? 'bg-white text-blue-600 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900' }}">
                     All ({{ $counts['all'] }})
                 </a>
-                <a href="{{ route('my-leaves.index', ['status' => 'pending', 'search' => $search, 'leave_type_id' => $leaveTypeId, 'year' => $year]) }}" 
+                <a href="{{ route('my-leaves.index', ['status' => 'pending', 'search' => $search, 'leave_type_id' => $leaveTypeId, 'year' => $year, 'month' => $month]) }}" 
                    class="px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap {{ $status === 'pending' ? 'bg-white text-amber-600 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900' }}">
                     Pending ({{ $counts['pending'] }})
                 </a>
-                <a href="{{ route('my-leaves.index', ['status' => 'approved', 'search' => $search, 'leave_type_id' => $leaveTypeId, 'year' => $year]) }}" 
+                <a href="{{ route('my-leaves.index', ['status' => 'approved', 'search' => $search, 'leave_type_id' => $leaveTypeId, 'year' => $year, 'month' => $month]) }}" 
                    class="px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap {{ $status === 'approved' ? 'bg-white text-emerald-600 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900' }}">
                     Approved ({{ $counts['approved'] }})
                 </a>
-                <a href="{{ route('my-leaves.index', ['status' => 'rejected', 'search' => $search, 'leave_type_id' => $leaveTypeId, 'year' => $year]) }}" 
+                <a href="{{ route('my-leaves.index', ['status' => 'rejected', 'search' => $search, 'leave_type_id' => $leaveTypeId, 'year' => $year, 'month' => $month]) }}" 
                    class="px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap {{ $status === 'rejected' ? 'bg-white text-rose-600 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900' }}">
                     Rejected/Canceled ({{ $counts['rejected'] }})
-                </a>
-                <a href="{{ route('my-leaves.index', ['status' => 'half_day', 'search' => $search, 'leave_type_id' => $leaveTypeId, 'year' => $year]) }}" 
-                   class="px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap {{ $status === 'half_day' ? 'bg-white text-purple-600 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900' }}">
-                    Half Day ({{ $counts['half_day'] }})
-                </a>
-                <a href="{{ route('my-leaves.index', ['status' => 'short_leave', 'search' => $search, 'leave_type_id' => $leaveTypeId, 'year' => $year]) }}" 
-                   class="px-3.5 py-1.5 rounded-full transition-all whitespace-nowrap {{ $status === 'short_leave' ? 'bg-white text-indigo-600 shadow-xs font-black' : 'text-slate-600 hover:text-slate-900' }}">
-                    Short Leave ({{ $counts['short_leave'] }})
                 </a>
             </div>
 
@@ -107,8 +99,8 @@
                 <input type="hidden" name="status" value="{{ $status }}">
                 
                 <div class="relative">
-                    <input type="text" name="search" value="{{ $search }}" placeholder="Search REQ#, reason..." 
-                           class="w-48 border-slate-200 bg-slate-50 rounded-full text-xs font-bold py-1.5 pl-8 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                    <input type="text" name="search" value="{{ $search }}" placeholder="Search leave type, REQ#, reason..." 
+                           class="w-56 border-slate-200 bg-slate-50 rounded-full text-xs font-bold py-1.5 pl-8 pr-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5"></i>
                 </div>
 
@@ -119,6 +111,16 @@
                             @if(!in_array(strtolower($lt->name ?? ''), ['half day leave', 'half day', 'maternity leave', 'maternity', 'paternity leave', 'paternity']) && !in_array(strtoupper($lt->code ?? ''), ['HALF', 'MATERNITY', 'PATERNITY', 'MAT', 'PAT']))
                             <option value="{{ $lt->id }}" {{ $leaveTypeId == $lt->id ? 'selected' : '' }}>{{ $lt->name }}</option>
                             @endif
+                        @endforeach
+                    </select>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+                </div>
+
+                <div class="relative">
+                    <select name="month" onchange="this.form.submit()" class="appearance-none bg-slate-50 border border-slate-200 rounded-full text-xs font-bold text-slate-800 py-1.5 pl-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer">
+                        <option value="">All Months</option>
+                        @foreach($monthsList as $mNum => $mName)
+                            <option value="{{ $mNum }}" {{ (string)$month === (string)$mNum ? 'selected' : '' }}>{{ $mName }}</option>
                         @endforeach
                     </select>
                     <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>

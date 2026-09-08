@@ -5,19 +5,34 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Modules\Employee\Models\Department;
 use Modules\Leave\Models\Holiday;
+use Modules\Leave\Models\LeaveType;
 use Illuminate\Support\Facades\DB;
 
 class SettingsController extends Controller
 {
-    public function index()
+    public function index(Request $request, $module = null)
     {
         $user = auth()->user() ?? \App\Models\User::first();
         $employee = $user ? \Modules\Employee\Models\Employee::where('user_id', $user->id)->first() : null;
+        $userRole = session('current_role', $employee->system_role ?? 'Employee');
+        $isAdminOrHr = in_array($userRole, ['HR Lead', 'Super (Admin)', 'Super Admin']);
+
+        $validModules = ['general', 'leave', 'organization', 'roles', 'attendance', 'payroll', 'recruitment', 'performance', 'system', 'profile'];
+        
+        $activeModule = $module ?? $request->query('module', ($isAdminOrHr ? 'general' : 'profile'));
+        if (!in_array($activeModule, $validModules)) {
+            $activeModule = $isAdminOrHr ? 'general' : 'profile';
+        }
+        
+        if (!$isAdminOrHr && $activeModule !== 'profile') {
+            $activeModule = 'profile';
+        }
 
         $settingsRaw = DB::table('settings')->get()->pluck('value', 'key')->toArray();
 
         $departments = Department::all();
         $customHolidays = Holiday::where('type', 'Company')->get();
+        $leaveTypes = LeaveType::orderBy('id')->get();
 
         $statusesPath = base_path('modules_statuses.json');
         $moduleStatuses = file_exists($statusesPath) ? json_decode(file_get_contents($statusesPath), true) : [
@@ -38,7 +53,108 @@ class SettingsController extends Controller
             'Employee' => ['Employee' => false, 'Leave' => true, 'Approvals' => false, 'Analytics' => false, 'Attendance' => true, 'Payroll' => false, 'Recruitment' => false, 'Performance' => true],
         ];
 
-        return view('pages.settings', compact('user', 'employee', 'settingsRaw', 'departments', 'customHolidays', 'moduleStatuses', 'rolePermissions'));
+        // Modular Settings Configuration Registry
+        $modulesList = [
+            'general' => [
+                'title' => 'General Organization',
+                'desc' => 'Company profile, timezone, currency, fiscal year & official holidays',
+                'icon' => 'ph-buildings',
+                'color' => 'text-blue-600 dark:text-blue-400',
+                'badge' => 'Core'
+            ],
+            'leave' => [
+                'title' => 'Leave Management',
+                'desc' => 'Sri Lanka S&O Act Quotas, Short Leave (2/mo), Half-days & Weekends',
+                'icon' => 'ph-calendar-check',
+                'color' => 'text-emerald-600 dark:text-emerald-400',
+                'badge' => 'Policy'
+            ],
+            'organization' => [
+                'title' => 'Departments & Structure',
+                'desc' => 'Company departments, department codes, HOD leadership',
+                'icon' => 'ph-tree-structure',
+                'color' => 'text-indigo-600 dark:text-indigo-400',
+                'badge' => count($departments) . ' Depts'
+            ],
+            'roles' => [
+                'title' => 'Roles & Access Control',
+                'desc' => 'RBAC Matrix, permission privileges, module registries',
+                'icon' => 'ph-shield-check',
+                'color' => 'text-purple-600 dark:text-purple-400',
+                'badge' => 'RBAC'
+            ],
+            'attendance' => [
+                'title' => 'Attendance & Shifts',
+                'desc' => 'Standard working hours, grace period, overtime policies & clock-in',
+                'icon' => 'ph-clock-countdown',
+                'color' => 'text-cyan-600 dark:text-cyan-400',
+                'badge' => 'Shifts'
+            ],
+            'payroll' => [
+                'title' => 'Payroll & Statutory Tax',
+                'desc' => 'EPF (8%/12%), ETF (3%), APIT Tax brackets, salary cutoff cycles',
+                'icon' => 'ph-money',
+                'color' => 'text-amber-600 dark:text-amber-400',
+                'badge' => 'EPF/ETF'
+            ],
+            'recruitment' => [
+                'title' => 'Recruitment & ATS',
+                'desc' => 'Candidate hiring pipeline stages, portal visibility & auto-emails',
+                'icon' => 'ph-briefcase',
+                'color' => 'text-pink-600 dark:text-pink-400',
+                'badge' => 'ATS'
+            ],
+            'performance' => [
+                'title' => 'Performance & Appraisal',
+                'desc' => 'Appraisal cycles, evaluation rating scales, self-appraisals',
+                'icon' => 'ph-award',
+                'color' => 'text-orange-600 dark:text-orange-400',
+                'badge' => 'KPIs'
+            ],
+            'system' => [
+                'title' => 'System & Developer Engine',
+                'desc' => 'Developer mode, debug logging, cache flush & health diagnostics',
+                'icon' => 'ph-cpu',
+                'color' => 'text-slate-600 dark:text-slate-400',
+                'badge' => 'Engine'
+            ],
+            'profile' => [
+                'title' => 'My Account & Security',
+                'desc' => 'Personal details, emergency contact, qualifications & password',
+                'icon' => 'ph-user-gear',
+                'color' => 'text-rose-600 dark:text-rose-400',
+                'badge' => 'Personal'
+            ]
+        ];
+
+        // Overlay custom module metadata overrides if saved in settings table
+        foreach ($modulesList as $mKey => &$mInfo) {
+            if (!empty($settingsRaw['module_title_' . $mKey])) {
+                $mInfo['title'] = $settingsRaw['module_title_' . $mKey];
+            }
+            if (!empty($settingsRaw['module_desc_' . $mKey])) {
+                $mInfo['desc'] = $settingsRaw['module_desc_' . $mKey];
+            }
+            if (!empty($settingsRaw['module_badge_' . $mKey])) {
+                $mInfo['badge'] = $settingsRaw['module_badge_' . $mKey];
+            }
+        }
+        unset($mInfo);
+
+        return view('pages.settings', compact(
+            'user', 
+            'employee', 
+            'settingsRaw', 
+            'departments', 
+            'customHolidays', 
+            'leaveTypes',
+            'moduleStatuses', 
+            'rolePermissions', 
+            'activeModule', 
+            'modulesList', 
+            'isAdminOrHr', 
+            'userRole'
+        ));
     }
 
     public function updateProfile(Request $request)
@@ -79,7 +195,7 @@ class SettingsController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Personal profile, bank details & qualifications updated successfully!');
+        return redirect()->route('settings.index', ['module' => 'profile'])->with('success', 'Personal profile, bank details & qualifications updated successfully!');
     }
 
     public function updatePassword(Request $request)
@@ -100,7 +216,17 @@ class SettingsController extends Controller
             'password' => \Illuminate\Support\Facades\Hash::make($request->password),
         ]);
 
-        return redirect()->back()->with('success', 'Password updated successfully!');
+        return redirect()->route('settings.index', ['module' => 'profile'])->with('success', 'Password updated successfully!');
+    }
+
+    public function clearCache()
+    {
+        $this->authorizeAdminOrHr();
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        \Illuminate\Support\Facades\Artisan::call('view:clear');
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+
+        return redirect()->route('settings.index', ['module' => 'system'])->with('success', 'Application cache and compiled views cleared successfully!');
     }
 
     public function save(Request $request)
@@ -109,14 +235,27 @@ class SettingsController extends Controller
         $activeEmp = $user ? \Modules\Employee\Models\Employee::where('user_id', $user->id)->first() : null;
         $userRole = session('current_role', $activeEmp->system_role ?? 'Employee');
         
-        if (!in_array($userRole, ['HR Lead', 'Super (Admin)'])) {
+        if (!in_array($userRole, ['HR Lead', 'Super (Admin)', 'Super Admin'])) {
             return redirect()->back()->with('error', 'Access Denied: Administrative system settings are restricted to HR Leads and Super Admins.');
         }
 
+        $activeModule = $request->input('active_module', 'general');
+
         $textKeys = [
-            'company_name', 'timezone', 'base_currency', 'fiscal_year_start',
-            'annual_leave_max', 'casual_leave_max', 'medical_leave_max', 'short_leave_max',
-            'duty_leave_max', 'lieu_leave_max'
+            // General
+            'company_name', 'timezone', 'base_currency', 'fiscal_year_start', 'company_address', 'contact_email', 'contact_phone',
+            // Leave
+            'annual_leave_max', 'casual_leave_max', 'medical_leave_max', 'short_leave_max', 'duty_leave_max', 'lieu_leave_max',
+            // Attendance
+            'standard_work_hours', 'shift_start_time', 'shift_end_time', 'grace_period_minutes', 'overtime_rate_multiplier',
+            // Payroll
+            'epf_employee_rate', 'epf_employer_rate', 'etf_employer_rate', 'apit_tax_threshold', 'salary_cutoff_day', 'pay_frequency',
+            // Recruitment
+            'recruitment_auto_email', 'interview_feedback_deadline_days',
+            // Performance
+            'appraisal_frequency', 'rating_scale_max', 'min_rating_for_increment',
+            // System
+            'developer_mode', 'maintenance_mode'
         ];
 
         foreach ($textKeys as $k) {
@@ -125,65 +264,91 @@ class SettingsController extends Controller
             }
         }
 
-        // Save Role Access Control Permissions Matrix
-        $roles = ['Super Admin', 'HR Lead', 'Manager', 'Employee'];
-        $modules = ['Employee', 'Leave', 'Approvals', 'Analytics', 'Attendance', 'Payroll', 'Recruitment', 'Performance'];
-
-        $newPermissions = [];
-        foreach ($roles as $rKey) {
-            foreach ($modules as $mKey) {
-                $inputName = 'perm_' . str_replace([' ', '(', ')'], '_', $rKey) . '_' . $mKey;
-                $newPermissions[$rKey][$mKey] = $request->has($inputName);
+        if (in_array($activeModule, ['leave', 'general'])) {
+            foreach (['auto_sync_holidays', 'allow_half_day', 'weekend_saturday_off', 'weekend_sunday_off'] as $cbKey) {
+                if ($request->has('submitted_' . $cbKey) || $request->has($cbKey)) {
+                    $val = $request->has($cbKey) ? '1' : '0';
+                    DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
+                }
             }
         }
 
-        $permissionsPath = base_path('role_module_permissions.json');
-        file_put_contents($permissionsPath, json_encode($newPermissions, JSON_PRETTY_PRINT));
-        DB::table('settings')->updateOrInsert(['key' => 'role_permissions'], ['value' => json_encode($newPermissions), 'updated_at' => now()]);
-
-        if ($userRole === 'HR Lead') {
-            foreach (['auto_sync_holidays', 'allow_half_day', 'weekend_saturday_off', 'weekend_sunday_off'] as $cbKey) {
+        if ($activeModule === 'attendance') {
+            foreach (['allow_remote_clock_in', 'require_geolocation', 'auto_overtime_calculation'] as $cbKey) {
                 $val = $request->has($cbKey) ? '1' : '0';
                 DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
             }
-            return redirect()->back()->with('success', 'HR Admin settings and role permissions saved successfully!');
         }
 
-        $checkboxKeys = [
-            'auto_sync_holidays', 'allow_half_day', 'weekend_saturday_off', 'weekend_sunday_off',
-            'leave_management_enabled', 'appraisal_system_enabled', 'developer_mode',
-            'module_employee_enabled', 'module_leave_enabled', 'module_approvals_enabled', 'module_analytics_enabled',
-            'module_attendance_enabled', 'module_payroll_enabled', 'module_recruitment_enabled', 'module_performance_enabled',
-            'module_organization_enabled'
-        ];
-
-        foreach ($checkboxKeys as $cbKey) {
-            $val = $request->has($cbKey) ? '1' : '0';
-            DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
+        if ($activeModule === 'payroll') {
+            foreach (['auto_deduct_nopay', 'generate_payslip_pdf'] as $cbKey) {
+                $val = $request->has($cbKey) ? '1' : '0';
+                DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
+            }
         }
 
-        // Sync modules_statuses.json
-        $moduleMap = [
-            'Employee' => 'module_employee_enabled',
-            'Leave' => 'module_leave_enabled',
-            'Approvals' => 'module_approvals_enabled',
-            'Analytics' => 'module_analytics_enabled',
-            'Attendance' => 'module_attendance_enabled',
-            'Payroll' => 'module_payroll_enabled',
-            'Recruitment' => 'module_recruitment_enabled',
-            'Performance' => 'module_performance_enabled',
-            'Organization' => 'module_organization_enabled',
-        ];
-
-        $statuses = [];
-        foreach ($moduleMap as $modName => $reqKey) {
-            $statuses[$modName] = $request->has($reqKey);
+        if ($activeModule === 'recruitment') {
+            foreach (['career_portal_public', 'send_rejection_emails'] as $cbKey) {
+                $val = $request->has($cbKey) ? '1' : '0';
+                DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
+            }
         }
 
-        $statusesPath = base_path('modules_statuses.json');
-        file_put_contents($statusesPath, json_encode($statuses, JSON_PRETTY_PRINT));
+        if ($activeModule === 'performance') {
+            foreach (['self_appraisal_enabled', 'peer_reviews_enabled'] as $cbKey) {
+                $val = $request->has($cbKey) ? '1' : '0';
+                DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
+            }
+        }
 
-        return redirect()->back()->with('success', 'System settings, module toggles & role access matrix saved successfully!');
+        if ($activeModule === 'system') {
+            foreach (['developer_mode', 'debug_logging_enabled'] as $cbKey) {
+                $val = $request->has($cbKey) ? '1' : '0';
+                DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
+            }
+        }
+
+        if ($activeModule === 'roles') {
+            $roles = ['Super Admin', 'HR Lead', 'Manager', 'Employee'];
+            $modules = ['Employee', 'Leave', 'Approvals', 'Analytics', 'Attendance', 'Payroll', 'Recruitment', 'Performance'];
+
+            $newPermissions = [];
+            foreach ($roles as $rKey) {
+                foreach ($modules as $mKey) {
+                    $inputName = 'perm_' . str_replace([' ', '(', ')'], '_', $rKey) . '_' . $mKey;
+                    $newPermissions[$rKey][$mKey] = $request->has($inputName);
+                }
+            }
+
+            $permissionsPath = base_path('role_module_permissions.json');
+            file_put_contents($permissionsPath, json_encode($newPermissions, JSON_PRETTY_PRINT));
+            DB::table('settings')->updateOrInsert(['key' => 'role_permissions'], ['value' => json_encode($newPermissions), 'updated_at' => now()]);
+
+            $moduleMap = [
+                'Employee' => 'module_employee_enabled',
+                'Leave' => 'module_leave_enabled',
+                'Approvals' => 'module_approvals_enabled',
+                'Analytics' => 'module_analytics_enabled',
+                'Attendance' => 'module_attendance_enabled',
+                'Payroll' => 'module_payroll_enabled',
+                'Recruitment' => 'module_recruitment_enabled',
+                'Performance' => 'module_performance_enabled',
+                'Organization' => 'module_organization_enabled',
+            ];
+
+            $statuses = [];
+            foreach ($moduleMap as $modName => $reqKey) {
+                $statuses[$modName] = $request->has($reqKey);
+                $val = $request->has($reqKey) ? '1' : '0';
+                DB::table('settings')->updateOrInsert(['key' => $reqKey], ['value' => $val, 'updated_at' => now()]);
+            }
+
+            $statusesPath = base_path('modules_statuses.json');
+            file_put_contents($statusesPath, json_encode($statuses, JSON_PRETTY_PRINT));
+        }
+
+        $moduleTitle = ucfirst($activeModule);
+        return redirect()->route('settings.index', ['module' => $activeModule])->with('success', "{$moduleTitle} module configurations updated successfully!");
     }
 
     public function switchRole(Request $request)
@@ -293,5 +458,120 @@ class SettingsController extends Controller
         file_put_contents($permissionsPath, json_encode($permissions, JSON_PRETTY_PRINT));
 
         return redirect()->back()->with('success', "Module '{$modKey}' deleted successfully.");
+    }
+
+    public function updateModule(Request $request, $key)
+    {
+        $this->authorizeAdminOrHr();
+
+        $request->validate([
+            'module_title' => 'required|string|max:100',
+            'module_desc' => 'nullable|string|max:255',
+            'module_badge' => 'nullable|string|max:30',
+        ]);
+
+        DB::table('settings')->updateOrInsert(
+            ['key' => 'module_title_' . $key],
+            ['value' => $request->module_title, 'updated_at' => now()]
+        );
+
+        if ($request->filled('module_desc')) {
+            DB::table('settings')->updateOrInsert(
+                ['key' => 'module_desc_' . $key],
+                ['value' => $request->module_desc, 'updated_at' => now()]
+            );
+        }
+
+        if ($request->filled('module_badge')) {
+            DB::table('settings')->updateOrInsert(
+                ['key' => 'module_badge_' . $key],
+                ['value' => $request->module_badge, 'updated_at' => now()]
+            );
+        }
+
+        return redirect()->back()->with('success', "Module '{$request->module_title}' updated successfully!");
+    }
+
+    public function storeLeaveType(Request $request)
+    {
+        $this->authorizeAdminOrHr();
+
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'code' => 'required|string|max:30|unique:leave_types,code',
+            'days' => 'required|numeric|min:0',
+            'is_paid' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $leaveType = LeaveType::create([
+            'name' => $request->name,
+            'code' => strtoupper($request->code),
+            'days' => (int) $request->days,
+            'default_quota' => (int) $request->days,
+            'is_paid' => $request->has('is_paid') ? (bool) $request->is_paid : true,
+            'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
+            'description' => $request->description,
+        ]);
+
+        return redirect()->back()->with('success', "Leave type '{$leaveType->name}' created successfully!");
+    }
+
+    public function updateLeaveType(Request $request, $id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $leaveType = LeaveType::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'code' => 'required|string|max:30|unique:leave_types,code,' . $leaveType->id,
+            'days' => 'required|numeric|min:0',
+            'is_paid' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $leaveType->update([
+            'name' => $request->name,
+            'code' => strtoupper($request->code),
+            'days' => (int) $request->days,
+            'default_quota' => (int) $request->days,
+            'is_paid' => $request->boolean('is_paid'),
+            'is_active' => $request->boolean('is_active'),
+            'description' => $request->description,
+        ]);
+
+        return redirect()->back()->with('success', "Leave type '{$leaveType->name}' updated successfully!");
+    }
+
+    public function toggleLeaveType($id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $leaveType = LeaveType::findOrFail($id);
+        $leaveType->is_active = !$leaveType->is_active;
+        $leaveType->save();
+
+        $statusStr = $leaveType->is_active ? 'activated' : 'deactivated';
+        return redirect()->back()->with('success', "Leave type '{$leaveType->name}' {$statusStr} successfully!");
+    }
+
+    public function destroyLeaveType($id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $leaveType = LeaveType::findOrFail($id);
+        
+        // Prevent deleting core statutory leave types
+        if (in_array(strtoupper($leaveType->code), ['ANNUAL', 'CASUAL', 'SHORT', 'MEDICAL'])) {
+            return redirect()->back()->with('error', "Core statutory leave type '{$leaveType->name}' cannot be deleted. You can deactivate it instead.");
+        }
+
+        $typeName = $leaveType->name;
+        $leaveType->delete();
+
+        return redirect()->back()->with('success', "Leave type '{$typeName}' deleted successfully.");
     }
 }

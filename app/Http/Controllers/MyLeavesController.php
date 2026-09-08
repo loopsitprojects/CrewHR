@@ -37,7 +37,11 @@ class MyLeavesController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('req_number', 'like', "%{$search}%")
                   ->orWhere('reason', 'like', "%{$search}%")
-                  ->orWhere('project_client_name', 'like', "%{$search}%");
+                  ->orWhere('project_client_name', 'like', "%{$search}%")
+                  ->orWhereHas('leaveType', function ($tq) use ($search) {
+                      $tq->where('name', 'like', "%{$search}%")
+                         ->orWhere('code', 'like', "%{$search}%");
+                  });
             });
         }
 
@@ -74,7 +78,7 @@ class MyLeavesController extends Controller
             ->get();
 
         // KPI Counts
-        $allRequests = LeaveRequest::where('employee_id', $employee->id ?? 1)->get();
+        $allRequests = LeaveRequest::with('leaveType')->where('employee_id', $employee->id ?? 1)->get();
         $counts = [
             'all' => $allRequests->count(),
             'pending' => $allRequests->whereIn('status', ['Pending', 'Pending Covering Approval', 'Manager Approved (Pending HR)', 'Step 2: Pending HR Admin'])->count(),
@@ -82,7 +86,7 @@ class MyLeavesController extends Controller
             'rejected' => $allRequests->whereIn('status', ['Rejected', 'Canceled'])->count(),
             'half_day' => $allRequests->where('is_half_day', true)->count(),
             'short_leave' => $allRequests->where('is_short_leave', true)->count(),
-            'total_days_used' => $allRequests->where('status', 'Approved')->sum('duration'),
+            'total_days_used' => $allRequests->where('status', 'Approved')->filter(fn($r) => !$r->is_short_leave && strtoupper($r->leaveType?->code ?? '') !== 'SHORT')->sum('duration'),
         ];
 
         $leaveTypes = LeaveType::all();

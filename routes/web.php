@@ -62,18 +62,25 @@ Route::get('/recruitments', [RecruitmentController::class, 'index'])->name('recr
 Route::get('/approvals', [ApprovalController::class, 'index'])->name('approvals.index');
 Route::post('/approvals/{id}/action', [ApprovalController::class, 'action'])->name('approvals.action');
 
-// Analytics
+// Analytics & Reports
 Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
 
 // System Settings
-Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+Route::get('/settings/{module?}', [SettingsController::class, 'index'])->name('settings.index');
 Route::post('/settings/save', [SettingsController::class, 'save'])->name('settings.save');
+Route::post('/settings/cache-clear', [SettingsController::class, 'clearCache'])->name('settings.cache.clear');
 Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile.update');
 Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
+Route::post('/settings/leave-type', [SettingsController::class, 'storeLeaveType'])->name('settings.leave_type.store');
+Route::put('/settings/leave-type/{id}', [SettingsController::class, 'updateLeaveType'])->name('settings.leave_type.update');
+Route::post('/settings/leave-type/{id}/toggle', [SettingsController::class, 'toggleLeaveType'])->name('settings.leave_type.toggle');
+Route::delete('/settings/leave-type/{id}', [SettingsController::class, 'destroyLeaveType'])->name('settings.leave_type.destroy');
 Route::post('/settings/department', [SettingsController::class, 'storeDepartment'])->name('settings.department.store');
 Route::put('/settings/department/{id}', [SettingsController::class, 'updateDepartment'])->name('settings.department.update');
 Route::delete('/settings/department/{id}', [SettingsController::class, 'destroyDepartment'])->name('settings.department.destroy');
 Route::post('/settings/module', [SettingsController::class, 'storeModule'])->name('settings.module.store');
+Route::put('/settings/module/{key}', [SettingsController::class, 'updateModule'])->name('settings.module.update');
 Route::delete('/settings/module/{key}', [SettingsController::class, 'destroyModule'])->name('settings.module.destroy');
 Route::post('/role/switch', [SettingsController::class, 'switchRole'])->name('role.switch');
 
