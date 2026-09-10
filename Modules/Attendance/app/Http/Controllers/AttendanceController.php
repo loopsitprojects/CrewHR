@@ -18,13 +18,28 @@ class AttendanceController extends Controller
 {
     private function getActiveRole()
     {
-        return session('active_role') ?? auth()->user()->role ?? 'HR Admin';
+        $sessionRole = session('current_role') ?? session('active_role');
+        if ($sessionRole) {
+            return $sessionRole;
+        }
+        $user = auth()->user();
+        $activeEmp = $user ? Employee::where('user_id', $user->id)->first() : null;
+        return $activeEmp->system_role ?? 'Employee';
+    }
+
+    private function isEmployeeOnly()
+    {
+        $role = $this->getActiveRole();
+        return in_array($role, ['Employee', 'Staff / Employee']);
     }
 
     private function authorizeAdminOrHr()
     {
+        if ($this->isEmployeeOnly()) {
+            abort(403, 'Unauthorized access: Employees are only permitted to perform clock-in/out and view personal attendance.');
+        }
         $role = $this->getActiveRole();
-        if (!in_array($role, ['Super Admin', 'HR Admin', 'HR Manager', 'Department Head', 'Line Manager'])) {
+        if (!in_array($role, ['Super Admin', 'Super (Admin)', 'HR Admin', 'HR Manager', 'HR Lead', 'Department Head', 'Line Manager', 'Manager'])) {
             abort(403, 'Unauthorized access to attendance management operations');
         }
     }
@@ -46,7 +61,14 @@ class AttendanceController extends Controller
         $user = auth()->user();
         $activeEmp = $user ? Employee::where('user_id', $user->id)->first() : Employee::first();
         $role = $this->getActiveRole();
-        $tab = $request->get('tab', 'daily');
+        $isEmployee = $this->isEmployeeOnly();
+
+        if ($isEmployee) {
+            $requestedTab = $request->get('tab', 'my_attendance');
+            $tab = in_array($requestedTab, ['my_attendance', 'adjustments']) ? $requestedTab : 'my_attendance';
+        } else {
+            $tab = $request->get('tab', 'daily');
+        }
 
         $departments = Department::all();
         $totalEmployeesCount = Employee::count();
@@ -241,9 +263,14 @@ class AttendanceController extends Controller
 
         // 4. Regularization Adjustments Data
         $adjustmentsQuery = AttendanceAdjustment::with(['employee.user', 'employee.department', 'reviewer'])
+            ->when($deptFilter, function ($q) use ($deptFilter) {
+                $q->whereHas('employee', function ($sub) use ($deptFilter) {
+                    $sub->where('department_id', $deptFilter);
+                });
+            })
             ->orderBy('created_at', 'desc');
 
-        if (!in_array($role, ['Super Admin', 'HR Admin', 'HR Manager'])) {
+        if (!in_array($role, ['Super Admin', 'Super (Admin)', 'HR Admin', 'HR Manager', 'HR Lead', 'Department Head', 'Line Manager', 'Manager'])) {
             if ($myEmp) {
                 $adjustmentsQuery->where('employee_id', $myEmp->id);
             }
@@ -596,7 +623,15 @@ class AttendanceController extends Controller
         $user = auth()->user();
         $activeEmp = $user ? Employee::where('user_id', $user->id)->first() : null;
 
-        $employeeId = $request->employee_id ?: ($activeEmp->id ?? null);
+        if ($this->isEmployeeOnly()) {
+            if (!$activeEmp) {
+                return redirect()->back()->with('error', 'Employee record not found.');
+            }
+            $employeeId = $activeEmp->id;
+        } else {
+            $employeeId = $request->employee_id ?: ($activeEmp->id ?? null);
+        }
+
         if (!$employeeId) {
             return redirect()->back()->with('error', 'Employee identity not found.');
         }
@@ -808,29 +843,36 @@ class AttendanceController extends Controller
     {
         $this->authorizeAdminOrHr();
         $format = $request->get('format', 'summary');
+        $month = (int) $request->get('month', Carbon::now('Asia/Colombo')->month);
+        $year = (int) $request->get('year', Carbon::now('Asia/Colombo')->year);
+        $monthPrefix = sprintf('%04d-%02d', $year, $month);
 
         $filename = $format === 'raw' 
-            ? 'biometric_raw_punches_template.csv' 
-            : 'attendance_machine_logs_template.csv';
+            ? "biometric_raw_punches_{$monthPrefix}_template.csv" 
+            : "attendance_machine_logs_{$monthPrefix}_template.csv";
 
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function () use ($format) {
+        $callback = function () use ($format, $monthPrefix) {
             $file = fopen('php://output', 'w');
             if ($format === 'raw') {
                 fputcsv($file, ['Employee_ID', 'Timestamp', 'Punch_Type', 'Device_Name']);
-                fputcsv($file, ['EMP-001', '2026-09-10 08:52:00', 'Check-In', 'Main Gate Biometric #1']);
-                fputcsv($file, ['EMP-001', '2026-09-10 17:08:00', 'Check-Out', 'Main Gate Biometric #1']);
-                fputcsv($file, ['EMP-002', '2026-09-10 09:25:00', 'Check-In', 'Turnstile RFID #2']);
-                fputcsv($file, ['EMP-002', '2026-09-10 17:15:00', 'Check-Out', 'Turnstile RFID #2']);
+                fputcsv($file, ['EMP-0100', "{$monthPrefix}-01 08:52:00", 'Check-In', 'Main Gate Biometric #1']);
+                fputcsv($file, ['EMP-0100', "{$monthPrefix}-01 17:08:00", 'Check-Out', 'Main Gate Biometric #1']);
+                fputcsv($file, ['EMP-0104', "{$monthPrefix}-01 09:25:00", 'Check-In', 'Turnstile RFID #2']);
+                fputcsv($file, ['EMP-0104', "{$monthPrefix}-01 18:15:00", 'Check-Out', 'Turnstile RFID #2']);
+                fputcsv($file, ['EMP-1002', "{$monthPrefix}-02 08:45:00", 'Check-In', 'Front Desk Terminal']);
+                fputcsv($file, ['EMP-1002', "{$monthPrefix}-02 17:00:00", 'Check-Out', 'Front Desk Terminal']);
             } else {
                 fputcsv($file, ['Employee_ID', 'Date', 'Clock_In', 'Clock_Out', 'Notes']);
-                fputcsv($file, ['EMP-001', '2026-09-10', '08:52', '17:08', 'Biometric Turnstile #1']);
-                fputcsv($file, ['EMP-002', '2026-09-10', '09:25', '17:15', 'Fingerprint Scanner #2']);
-                fputcsv($file, ['EMP-003', '2026-09-10', '08:45', '18:30', 'Face Recognition Terminal']);
+                fputcsv($file, ['EMP-0100', "{$monthPrefix}-01", '08:52', '17:08', 'Main Gate Scanner']);
+                fputcsv($file, ['EMP-0104', "{$monthPrefix}-01", '09:25', '18:15', 'Turnstile Gate #2']);
+                fputcsv($file, ['EMP-1002', "{$monthPrefix}-01", '08:45', '17:00', 'Front Desk Terminal']);
+                fputcsv($file, ['EMP-1092', "{$monthPrefix}-02", '09:00', '17:00', 'RFID Turnstile']);
+                fputcsv($file, ['REQ-1093', "{$monthPrefix}-02", '08:30', '19:00', 'Executive Terminal']);
             }
             fclose($file);
         };
@@ -843,21 +885,87 @@ class AttendanceController extends Controller
         $this->authorizeAdminOrHr();
 
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt',
+            'csv_file' => 'required|file|max:20480',
+            'target_month' => 'nullable|integer|between:1,12',
+            'target_year' => 'nullable|integer|between:2020,2035',
+            'target_month_year' => 'nullable|string',
         ]);
 
+        $targetMonth = (int) ($request->get('target_month') ?: Carbon::now('Asia/Colombo')->month);
+        $targetYear = (int) ($request->get('target_year') ?: Carbon::now('Asia/Colombo')->year);
+
+        if ($request->filled('target_month_year')) {
+            $parts = explode('-', $request->target_month_year);
+            if (count($parts) === 2) {
+                $targetYear = (int)$parts[0];
+                $targetMonth = (int)$parts[1];
+            }
+        }
+
         $file = $request->file('csv_file');
-        $handle = fopen($file->getRealPath(), 'r');
-        if (!$handle) {
-            return redirect()->back()->with('error', 'Unable to read the uploaded CSV file.');
+        $filePath = $file->getRealPath();
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        $rawRows = [];
+
+        // Check if Excel spreadsheet (.xlsx, .xls)
+        if (in_array($extension, ['xlsx', 'xls']) || in_array($file->getMimeType(), [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel',
+            'application/octet-stream'
+        ])) {
+            if (class_exists(\PhpOffice\PhpSpreadsheet\IOFactory::class)) {
+                try {
+                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+                    $worksheet = $spreadsheet->getActiveSheet();
+                    foreach ($worksheet->getRowIterator() as $row) {
+                        $cellIterator = $row->getCellIterator();
+                        $cellIterator->setIterateOnlyExistingCells(false);
+                        $rowData = [];
+                        foreach ($cellIterator as $cell) {
+                            $val = $cell->getFormattedValue();
+                            $rowData[] = $val !== null ? trim((string)$val) : '';
+                        }
+                        if (!empty(array_filter($rowData, fn($v) => $v !== ''))) {
+                            $rawRows[] = $rowData;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    // Fallback to text parsing
+                }
+            }
+        }
+
+        // If not Excel or Excel parsing produced no rows, parse as delimited text (CSV, TSV, DAT, LOG)
+        if (empty($rawRows)) {
+            $sample = file_get_contents($filePath, false, null, 0, 4096) ?: '';
+            $delimiters = [",", "\t", ";", "|"];
+            $bestDelimiter = ",";
+            $maxCount = 0;
+            foreach ($delimiters as $delim) {
+                $count = substr_count($sample, $delim);
+                if ($count > $maxCount) {
+                    $maxCount = $count;
+                    $bestDelimiter = $delim;
+                }
+            }
+
+            $handle = fopen($filePath, 'r');
+            if ($handle) {
+                while (($row = fgetcsv($handle, 0, $bestDelimiter)) !== false) {
+                    if (empty(array_filter($row, fn($v) => trim((string)$v) !== ''))) continue;
+                    $rawRows[] = array_map('trim', $row);
+                }
+                fclose($handle);
+            }
+        }
+
+        if (empty($rawRows)) {
+            return redirect()->back()->with('error', 'Uploaded attendance file is empty or could not be read.');
         }
 
         $settings = $this->getShiftSettings();
-        $firstLine = fgetcsv($handle);
-        if (!$firstLine) {
-            fclose($handle);
-            return redirect()->back()->with('error', 'Uploaded CSV file is empty.');
-        }
+        $firstLine = array_shift($rawRows);
 
         // Clean & analyze header row
         $cleanHeader = array_map(function ($col) {
@@ -900,20 +1008,12 @@ class AttendanceController extends Controller
 
         $rows = [];
         if ($hasHeader) {
-            while (($row = fgetcsv($handle)) !== false) {
-                if (empty(array_filter($row, fn($v) => trim((string)$v) !== ''))) continue;
-                $rows[] = $row;
-            }
+            $rows = $rawRows;
         } else {
             // First row was actually data
-            if (!empty(array_filter($firstLine, fn($v) => trim((string)$v) !== ''))) {
-                $rows[] = $firstLine;
-            }
-            while (($row = fgetcsv($handle)) !== false) {
-                if (empty(array_filter($row, fn($v) => trim((string)$v) !== ''))) continue;
-                $rows[] = $row;
-            }
-            // Default position mappings for headerless CSVs
+            $rows = array_merge([$firstLine], $rawRows);
+
+            // Default position mappings for headerless files
             $colEmp = 0;
             if (count($rows[0] ?? []) >= 4) {
                 $colDate = 1;
@@ -925,10 +1025,9 @@ class AttendanceController extends Controller
                 $colNotes = 2;
             }
         }
-        fclose($handle);
 
         if (empty($rows)) {
-            return redirect()->back()->with('error', 'No valid attendance data rows found in the CSV file.');
+            return redirect()->back()->with('error', 'No valid attendance data rows found in the CSV/Excel file.');
         }
 
         // Cache employee records for fast lookup
@@ -1005,7 +1104,12 @@ class AttendanceController extends Controller
                 }
 
                 try {
-                    $dateKey = Carbon::parse($dateVal, 'Asia/Colombo')->toDateString();
+                    // Check if dateVal is just day number (1-31)
+                    if (is_numeric($dateVal) && (int)$dateVal >= 1 && (int)$dateVal <= 31) {
+                        $dateKey = Carbon::createFromDate($targetYear, $targetMonth, (int)$dateVal, 'Asia/Colombo')->toDateString();
+                    } else {
+                        $dateKey = Carbon::parse($dateVal, 'Asia/Colombo')->toDateString();
+                    }
                 } catch (\Exception $e) {
                     $skippedCount++;
                     continue;
@@ -1174,8 +1278,11 @@ class AttendanceController extends Controller
             $msg .= " ({$skippedCount} row(s) skipped due to unmatched employee code or invalid date format).";
         }
 
-        return redirect()->route('attendance.index', ['tab' => 'daily'])
-            ->with('success', $msg);
+        return redirect()->route('attendance.index', [
+            'tab' => 'monthly',
+            'month' => $targetMonth,
+            'year' => $targetYear,
+        ])->with('success', $msg);
     }
 
     public function syncLeaves(Request $request)

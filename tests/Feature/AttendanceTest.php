@@ -177,7 +177,7 @@ test('admin can upload and process summary machine logs csv', function () {
             'csv_file' => $file,
         ]);
 
-    $response->assertRedirect(route('attendance.index', ['tab' => 'daily']));
+    $response->assertRedirect(route('attendance.index', ['tab' => 'monthly', 'month' => 9, 'year' => 2026]));
 
     $att = Attendance::where('employee_id', $this->regularEmployee->id)
         ->whereDate('date', '2026-09-08')
@@ -199,9 +199,11 @@ test('admin can upload and process raw punch dumps csv', function () {
         ->withSession(['active_role' => 'Super Admin'])
         ->post(route('attendance.import'), [
             'csv_file' => $file,
+            'target_month' => 9,
+            'target_year' => 2026,
         ]);
 
-    $response->assertRedirect(route('attendance.index', ['tab' => 'daily']));
+    $response->assertRedirect(route('attendance.index', ['tab' => 'monthly', 'month' => 9, 'year' => 2026]));
 
     $att = Attendance::where('employee_id', $this->regularEmployee->id)
         ->whereDate('date', '2026-09-09')
@@ -211,4 +213,84 @@ test('admin can upload and process raw punch dumps csv', function () {
     expect($att->clock_in)->not->toBeNull();
     expect($att->clock_out)->not->toBeNull();
     expect((float)$att->total_hours)->toBeGreaterThanOrEqual(8.5);
+});
+
+test('admin can upload and process excel spreadsheet (.xlsx) attendance file', function () {
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setCellValue('A1', 'Employee_ID');
+    $sheet->setCellValue('B1', 'Date');
+    $sheet->setCellValue('C1', 'Clock_In');
+    $sheet->setCellValue('D1', 'Clock_Out');
+    $sheet->setCellValue('E1', 'Notes');
+
+    $sheet->setCellValue('A2', 'EMP-TEST-02');
+    $sheet->setCellValue('B2', '2026-09-07');
+    $sheet->setCellValue('C2', '08:50');
+    $sheet->setCellValue('D2', '17:15');
+    $sheet->setCellValue('E2', 'From Excel timesheet');
+
+    $tempFile = tempnam(sys_get_temp_dir(), 'test_att_') . '.xlsx';
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    $writer->save($tempFile);
+
+    $uploadedFile = new \Illuminate\Http\UploadedFile($tempFile, 'Employee Timesheet (1).xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
+
+    $response = $this->actingAs($this->adminUser)
+        ->withSession(['active_role' => 'Super Admin'])
+        ->post(route('attendance.import'), [
+            'csv_file' => $uploadedFile,
+            'target_month' => 9,
+            'target_year' => 2026,
+        ]);
+
+    if (file_exists($tempFile)) {
+        @unlink($tempFile);
+    }
+
+    $response->assertRedirect(route('attendance.index', ['tab' => 'monthly', 'month' => 9, 'year' => 2026]));
+
+    $att = Attendance::where('employee_id', $this->regularEmployee->id)
+        ->whereDate('date', '2026-09-07')
+        ->first();
+
+    expect($att)->not->toBeNull();
+    expect($att->status)->toBe('Present');
+    expect((float)$att->total_hours)->toBeGreaterThanOrEqual(8.0);
+});
+
+test('employees can only see personal attendance and cannot access admin operations', function () {
+    $response = $this->actingAs($this->regularUser)
+        ->withSession(['active_role' => 'Employee'])
+        ->get(route('attendance.index'));
+
+    $response->assertStatus(200);
+    $response->assertSee('My Attendance');
+    $response->assertDontSee('Daily Roster');
+    $response->assertDontSee('Monthly Timesheet Matrix');
+    $response->assertDontSee('Biometric Import');
+    $response->assertDontSee('Upload Machine CSV');
+    $response->assertDontSee('Manual Entry');
+
+    // Attempting unauthorized manual entry should return 403
+    $unauthManual = $this->actingAs($this->regularUser)
+        ->withSession(['active_role' => 'Employee'])
+        ->post(route('attendance.manual_store'), [
+            'employee_id' => $this->regularEmployee->id,
+            'date' => '2026-09-01',
+            'clock_in' => '09:00',
+            'clock_out' => '17:00',
+        ]);
+
+    $unauthManual->assertStatus(403);
+
+    // Attempting unauthorized bulk import should return 403
+    $file = \Illuminate\Http\UploadedFile::fake()->create('unauth.csv', 10);
+    $unauthImport = $this->actingAs($this->regularUser)
+        ->withSession(['active_role' => 'Employee'])
+        ->post(route('attendance.import'), [
+            'csv_file' => $file,
+        ]);
+
+    $unauthImport->assertStatus(403);
 });

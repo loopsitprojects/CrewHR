@@ -303,7 +303,7 @@
                 <!-- Printable/Modal Header -->
                 <div class="flex items-center justify-between pb-2 border-b-2 border-slate-900 relative shrink-0">
                     <div class="flex items-center shrink-0">
-                        <img src="{{ asset('LoopsBlack.png') }}" alt="LOOPS Logo" class="h-7 sm:h-8 w-auto object-contain">
+                        <img src="{{ asset('crew.jpeg') }}" alt="Crew Logo" class="h-7 sm:h-8 w-auto object-contain rounded">
                     </div>
                     <div class="text-center flex-1 px-2">
                         <h2 class="text-xs sm:text-sm font-black tracking-wider uppercase text-slate-900 leading-tight">LOOPS DIGITAL (PVT) LTD</h2>

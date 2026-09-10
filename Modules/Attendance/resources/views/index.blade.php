@@ -83,6 +83,10 @@
     }
 }">
 
+    @php
+        $isEmployeeRole = in_array($role, ['Employee', 'Staff / Employee']);
+    @endphp
+
     <!-- Alert Banners -->
     @if(session('success'))
         <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center justify-between text-xs font-extrabold shadow-sm">
@@ -156,7 +160,7 @@
                     <span class="hidden sm:inline">Regularize</span>
                 </button>
 
-                @if(in_array($role, ['Super Admin', 'HR Admin', 'HR Manager']))
+                @if(!$isEmployeeRole)
                     <button @click="openManualCreate()" class="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 shadow-2xs flex items-center gap-1.5 transition-all">
                         <i class="ph ph-plus-circle text-base"></i>
                         <span class="hidden sm:inline">Manual Entry</span>
@@ -171,59 +175,22 @@
         </div>
     </div>
 
-    <!-- Quick Stats Cards (Daily Overview) -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Staff</div>
-            <div class="text-xl font-black text-slate-800 mt-1">{{ $totalEmployeesCount }}</div>
-            <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Active Workforce</div>
-        </div>
-
-        <div class="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200/80 shadow-2xs">
-            <div class="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Present Today</div>
-            <div class="text-xl font-black text-emerald-700 mt-1">{{ $presentTodayCount }}</div>
-            <div class="text-[10px] text-emerald-600 font-semibold mt-0.5">{{ $totalEmployeesCount > 0 ? round(($presentTodayCount / $totalEmployeesCount) * 100) : 0 }}% Attendance</div>
-        </div>
-
-        <div class="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/80 shadow-2xs">
-            <div class="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Late Arrivals</div>
-            <div class="text-xl font-black text-amber-700 mt-1">{{ $lateArrivalsCount }}</div>
-            <div class="text-[10px] text-amber-600 font-semibold mt-0.5">After {{ date('h:i A', strtotime($shiftSettings['shift_start'] . ' +' . $shiftSettings['grace_period'] . ' minutes')) }}</div>
-        </div>
-
-        <div class="bg-purple-50/50 p-4 rounded-2xl border border-purple-200/80 shadow-2xs">
-            <div class="text-[11px] font-bold text-purple-600 uppercase tracking-wider">On Leave</div>
-            <div class="text-xl font-black text-purple-700 mt-1">{{ $onLeaveTodayCount }}</div>
-            <div class="text-[10px] text-purple-600 font-semibold mt-0.5">Approved Leaves</div>
-        </div>
-
-        <div class="bg-blue-50/50 p-4 rounded-2xl border border-blue-200/80 shadow-2xs">
-            <div class="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Total Work Hours</div>
-            <div class="text-xl font-black text-blue-700 mt-1">{{ round($totalWorkHoursToday, 1) }}h</div>
-            <div class="text-[10px] text-blue-600 font-semibold mt-0.5">Logged Hours</div>
-        </div>
-
-        <div class="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-200/80 shadow-2xs">
-            <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Overtime Hours</div>
-            <div class="text-xl font-black text-indigo-700 mt-1">{{ round($totalOtHoursToday, 1) }}h</div>
-            <div class="text-[10px] text-indigo-600 font-semibold mt-0.5">Early & Late OT</div>
-        </div>
-    </div>
-
     <!-- Multi-View Navigation Tabs -->
     <div class="flex flex-wrap items-center justify-between border-b border-slate-200 gap-2">
         <div class="flex items-center gap-1">
-            <a href="{{ route('attendance.index', ['tab' => 'daily', 'date' => $date, 'department_id' => $deptFilter]) }}" 
-                class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all flex items-center gap-2 border-b-2 {{ $tab === 'daily' ? 'border-blue-600 text-blue-600 bg-white font-black' : 'border-transparent text-slate-500 hover:text-slate-800' }}">
-                <i class="ph ph-calendar-check text-base"></i>
-                <span>Daily Roster</span>
-            </a>
+            @if(!$isEmployeeRole)
+                <a href="{{ route('attendance.index', ['tab' => 'daily', 'date' => $date, 'department_id' => $deptFilter]) }}" 
+                    class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all flex items-center gap-2 border-b-2 {{ $tab === 'daily' ? 'border-blue-600 text-blue-600 bg-white font-black' : 'border-transparent text-slate-500 hover:text-slate-800' }}">
+                    <i class="ph ph-calendar-check text-base"></i>
+                    <span>Daily Roster</span>
+                </a>
 
-            <a href="{{ route('attendance.index', ['tab' => 'monthly', 'month' => $month, 'year' => $year, 'department_id' => $deptFilter]) }}" 
-                class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all flex items-center gap-2 border-b-2 {{ $tab === 'monthly' ? 'border-blue-600 text-blue-600 bg-white font-black' : 'border-transparent text-slate-500 hover:text-slate-800' }}">
-                <i class="ph ph-grid-four text-base"></i>
-                <span>Monthly Timesheet Matrix</span>
-            </a>
+                <a href="{{ route('attendance.index', ['tab' => 'monthly', 'month' => $month, 'year' => $year, 'department_id' => $deptFilter]) }}" 
+                    class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all flex items-center gap-2 border-b-2 {{ $tab === 'monthly' ? 'border-blue-600 text-blue-600 bg-white font-black' : 'border-transparent text-slate-500 hover:text-slate-800' }}">
+                    <i class="ph ph-grid-four text-base"></i>
+                    <span>Monthly Timesheet Matrix</span>
+                </a>
+            @endif
 
             <a href="{{ route('attendance.index', ['tab' => 'my_attendance', 'month' => $month, 'year' => $year]) }}" 
                 class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all flex items-center gap-2 border-b-2 {{ $tab === 'my_attendance' ? 'border-blue-600 text-blue-600 bg-white font-black' : 'border-transparent text-slate-500 hover:text-slate-800' }}">
@@ -235,12 +202,12 @@
                 class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all flex items-center gap-2 border-b-2 {{ $tab === 'adjustments' ? 'border-blue-600 text-blue-600 bg-white font-black' : 'border-transparent text-slate-500 hover:text-slate-800' }}">
                 <i class="ph ph-arrows-counter-clockwise text-base"></i>
                 <span>Regularizations</span>
-                @if($pendingAdjustmentsCount > 0)
+                @if(!$isEmployeeRole && $pendingAdjustmentsCount > 0)
                     <span class="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">{{ $pendingAdjustmentsCount }}</span>
                 @endif
             </a>
 
-            @if(in_array($role, ['Super Admin', 'HR Admin', 'HR Manager']))
+            @if(!$isEmployeeRole)
                 <a href="{{ route('attendance.index', ['tab' => 'import']) }}" 
                     class="px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all flex items-center gap-2 border-b-2 {{ $tab === 'import' ? 'border-blue-600 text-blue-600 bg-white font-black' : 'border-transparent text-slate-500 hover:text-slate-800' }}">
                     <i class="ph ph-upload-simple text-base"></i>
@@ -274,7 +241,7 @@
                     </div>
                 </form>
 
-                @if(in_array($role, ['Super Admin', 'HR Admin', 'HR Manager']))
+                @if(!$isEmployeeRole)
                     <div class="flex items-center gap-2">
                         <form action="{{ route('attendance.sync_leaves') }}" method="POST">
                             @csrf
@@ -303,7 +270,7 @@
                             <th class="p-3 text-center">Late OT</th>
                             <th class="p-3 text-center">Total OT</th>
                             <th class="p-3 text-center">Status</th>
-                            @if(in_array($role, ['Super Admin', 'HR Admin', 'HR Manager']))
+                            @if(!$isEmployeeRole)
                                 <th class="p-3 text-right">Actions</th>
                             @endif
                         </tr>
@@ -379,7 +346,7 @@
                                         </span>
                                     @endif
                                 </td>
-                                @if(in_array($role, ['Super Admin', 'HR Admin', 'HR Manager']))
+                                @if(!$isEmployeeRole)
                                     <td class="p-3 text-right">
                                         @if($att)
                                             <div class="flex items-center justify-end gap-1.5">
@@ -541,33 +508,6 @@
     <!-- TAB 3: MY ATTENDANCE (PERSONAL TIMESHEET) -->
     @if($tab === 'my_attendance')
         <div class="space-y-4">
-            <!-- Personal Monthly Stats -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-                    <div class="text-[11px] font-bold text-slate-400 uppercase">Days Present</div>
-                    <div class="text-xl font-black text-emerald-600 mt-1">{{ $myStats['present'] }}</div>
-                    <div class="text-[10px] text-slate-400 font-semibold mt-0.5">This Month</div>
-                </div>
-
-                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-                    <div class="text-[11px] font-bold text-slate-400 uppercase">Late Check-Ins</div>
-                    <div class="text-xl font-black text-amber-600 mt-1">{{ $myStats['late'] }}</div>
-                    <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Recorded Late</div>
-                </div>
-
-                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-                    <div class="text-[11px] font-bold text-slate-400 uppercase">Total Hours Worked</div>
-                    <div class="text-xl font-black text-blue-600 mt-1">{{ $myStats['hours'] }}h</div>
-                    <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Logged Time</div>
-                </div>
-
-                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-                    <div class="text-[11px] font-bold text-slate-400 uppercase">Overtime Accumulated</div>
-                    <div class="text-xl font-black text-indigo-600 mt-1">{{ $myStats['ot_hours'] }}h</div>
-                    <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Syncs to Payslip</div>
-                </div>
-            </div>
-
             <!-- Personal Logs Table -->
             <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-4">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -635,15 +575,31 @@
     <!-- TAB 4: REGULARIZATION REQUESTS -->
     @if($tab === 'adjustments')
         <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                 <div>
                     <h3 class="text-sm font-black text-slate-800">Attendance Regularization & Missed Punch Requests</h3>
                     <p class="text-xs text-slate-400">Employees can request corrections for missed clock-ins or clock-outs.</p>
                 </div>
-                <button @click="adjustmentModalOpen = true" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all">
-                    <i class="ph ph-plus text-sm"></i>
-                    <span>New Request</span>
-                </button>
+
+                <div class="flex items-center gap-2.5">
+                    @if(!$isEmployeeRole)
+                        <form method="GET" action="{{ route('attendance.index') }}" class="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                            <input type="hidden" name="tab" value="adjustments">
+                            <span class="text-slate-400 font-semibold hidden md:inline">Dept:</span>
+                            <select name="department_id" onchange="this.form.submit()" class="border-slate-200 rounded-xl text-xs font-extrabold bg-slate-50 py-1.5 px-3">
+                                <option value="">All Departments</option>
+                                @foreach($departments as $dept)
+                                    <option value="{{ $dept->id }}" {{ $deptFilter == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+                    @endif
+
+                    <button @click="adjustmentModalOpen = true" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all">
+                        <i class="ph ph-plus text-sm"></i>
+                        <span>New Request</span>
+                    </button>
+                </div>
             </div>
 
             <div class="overflow-x-auto border border-slate-200/80 rounded-xl">
@@ -694,7 +650,7 @@
                                     @endif
                                 </td>
                                 <td class="p-3 text-right">
-                                    @if($adj->status === 'Pending' && in_array($role, ['Super Admin', 'HR Admin', 'HR Manager', 'Department Head', 'Line Manager']))
+                                    @if($adj->status === 'Pending' && !$isEmployeeRole)
                                         <button @click="openReviewModal({{ json_encode($adj) }})" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1 rounded-lg text-xs font-bold transition-all">
                                             Review
                                         </button>
@@ -752,14 +708,35 @@
                     
                     <form action="{{ route('attendance.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                         @csrf
-                        <div class="border-2 border-dashed border-blue-200 hover:border-blue-500 rounded-2xl p-8 text-center bg-blue-50/20 transition-all">
-                            <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-3">
+                        
+                        <!-- Month & Year Selection for Import -->
+                        <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Target Month</label>
+                                <select name="target_month" class="w-full border-slate-200 rounded-xl text-xs font-bold bg-white p-2">
+                                    @foreach(['01'=>'January','02'=>'February','03'=>'March','04'=>'April','05'=>'May','06'=>'June','07'=>'July','08'=>'August','09'=>'September','10'=>'October','11'=>'November','12'=>'December'] as $mNum => $mName)
+                                        <option value="{{ (int)$mNum }}" {{ (int)$mNum === (int)$month ? 'selected' : '' }}>{{ $mName }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Target Year</label>
+                                <select name="target_year" class="w-full border-slate-200 rounded-xl text-xs font-bold bg-white p-2">
+                                    @for($y = 2024; $y <= 2030; $y++)
+                                        <option value="{{ $y }}" {{ $y === (int)$year ? 'selected' : '' }}>{{ $y }}</option>
+                                    @endfor
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="border-2 border-dashed border-blue-200 hover:border-blue-500 rounded-2xl p-6 text-center bg-blue-50/20 transition-all">
+                            <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-2">
                                 <i class="ph ph-file-csv text-2xl"></i>
                             </div>
-                            <div class="text-xs font-black text-slate-800">Select Machine CSV Log File</div>
-                            <div class="text-[11px] text-slate-400 mt-1">Supports standard CSV exports (.csv, .txt) with Daily Logs or Raw Timestamps</div>
+                            <div class="text-xs font-black text-slate-800">Select Machine CSV Log / Excel File</div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">Supports .xlsx, .xls, .csv, .txt, .dat, .log, .tsv (Up to 20MB)</div>
                             
-                            <input type="file" name="csv_file" required accept=".csv,.txt" class="mt-4 text-xs text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                            <input type="file" name="csv_file" required accept=".xlsx,.xls,.csv,.txt,.dat,.log,.tsv,text/*,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="mt-3 text-xs text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
                         </div>
 
                         <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1.5">
@@ -876,7 +853,7 @@
 
             <form action="{{ route('attendance.adjustments.store') }}" method="POST" class="space-y-3.5">
                 @csrf
-                @if(in_array($role, ['Super Admin', 'HR Admin', 'HR Manager']))
+                @if(!$isEmployeeRole)
                     <div>
                         <label class="block text-xs font-bold text-slate-700 mb-1">Employee</label>
                         <select name="employee_id" class="w-full border-slate-200 rounded-xl text-xs font-bold bg-slate-50 p-2.5">
@@ -992,11 +969,32 @@
 
             <form action="{{ route('attendance.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
+
+                <!-- Month & Year Selection for Import -->
+                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Target Month</label>
+                        <select name="target_month" class="w-full border-slate-200 rounded-xl text-xs font-bold bg-white p-2">
+                            @foreach(['01'=>'January','02'=>'February','03'=>'March','04'=>'April','05'=>'May','06'=>'June','07'=>'July','08'=>'August','09'=>'September','10'=>'October','11'=>'November','12'=>'December'] as $mNum => $mName)
+                                <option value="{{ (int)$mNum }}" {{ (int)$mNum === (int)$month ? 'selected' : '' }}>{{ $mName }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Target Year</label>
+                        <select name="target_year" class="w-full border-slate-200 rounded-xl text-xs font-bold bg-white p-2">
+                            @for($y = 2024; $y <= 2030; $y++)
+                                <option value="{{ $y }}" {{ $y === (int)$year ? 'selected' : '' }}>{{ $y }}</option>
+                            @endfor
+                        </select>
+                    </div>
+                </div>
+
                 <div class="border-2 border-dashed border-blue-200 hover:border-blue-500 rounded-2xl p-6 text-center bg-blue-50/20 transition-all">
                     <i class="ph ph-cloud-arrow-up text-3xl text-blue-600 mb-2"></i>
-                    <div class="text-xs font-bold text-slate-800">Choose CSV Log File</div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">Supports .csv or .txt files up to 10MB</div>
-                    <input type="file" name="csv_file" required accept=".csv,.txt" class="mt-3 text-xs text-slate-600 file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+                    <div class="text-xs font-bold text-slate-800">Choose CSV Log / Excel File</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Supports .xlsx, .xls, .csv, .txt, .dat, .log, .tsv up to 20MB</div>
+                    <input type="file" name="csv_file" required accept=".xlsx,.xls,.csv,.txt,.dat,.log,.tsv,text/*,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="mt-3 text-xs text-slate-600 file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
                 </div>
 
                 <div class="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1">

@@ -8,9 +8,8 @@
         <title>{{ config('app.name', 'LOOPS HR Portal') }}</title>
 
         <!-- Favicon & Icons -->
-        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-        <link rel="icon" type="image/png" href="{{ asset('loops-icon.png') }}">
-        <link rel="apple-touch-icon" href="{{ asset('loops-icon.png') }}">
+        <link rel="icon" type="image/jpeg" href="{{ asset('crew.jpeg') }}">
+        <link rel="apple-touch-icon" href="{{ asset('crew.jpeg') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -23,7 +22,7 @@
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
             <div>
                 <a href="/" class="flex flex-col items-center gap-2">
-                    <img src="{{ asset('LoopsBlack.png') }}" class="h-12 w-auto object-contain" alt="LOOPS HR Logo">
+                    <img src="{{ asset('crew.jpeg') }}" class="h-14 w-auto object-contain rounded-xl shadow-xs" alt="Crew HR Logo">
                 </a>
             </div>
 

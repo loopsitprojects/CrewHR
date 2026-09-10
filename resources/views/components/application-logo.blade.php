@@ -1,1 +1,1 @@
-<img src="{{ asset('LoopsBlack.png') }}" alt="LOOPS HR Logo" {{ $attributes->merge(['class' => 'h-10 w-auto object-contain']) }}>
+<img src="{{ asset('crew.jpeg') }}" alt="Crew HR Logo" {{ $attributes->merge(['class' => 'h-10 w-auto object-contain rounded-lg']) }}>

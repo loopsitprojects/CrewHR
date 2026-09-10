@@ -142,11 +142,11 @@
             <tr>
                 <td style="width: 160px; vertical-align: middle;">
                     @php
-                        $logoPath = public_path('LoopsBlack.png');
-                        $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
+                        $logoPath = public_path('crew.jpeg');
+                        $logoBase64 = file_exists($logoPath) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($logoPath)) : '';
                     @endphp
                     @if($logoBase64)
-                        <img src="{{ $logoBase64 }}" alt="Loops Logo" style="height: 38px; width: auto; object-fit: contain;">
+                        <img src="{{ $logoBase64 }}" alt="Crew Logo" style="height: 38px; width: auto; object-fit: contain;">
                     @else
                         <div class="company-name">LOOPS INTEGRATED</div>
                     @endif

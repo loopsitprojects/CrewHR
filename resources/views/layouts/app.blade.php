@@ -15,9 +15,8 @@
     </script>
 
     <!-- Favicon & Icons -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="icon" type="image/png" href="{{ asset('loops-icon.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('loops-icon.png') }}">
+    <link rel="icon" type="image/jpeg" href="{{ asset('crew.jpeg') }}">
+    <link rel="apple-touch-icon" href="{{ asset('crew.jpeg') }}">
 
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,10 +31,6 @@
 
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -89,19 +84,15 @@
                    title="Go to Home Dashboard">
                     <!-- Collapsed Mode: Icon Only -->
                     <img x-show="sidebarCollapsed" 
-                         src="{{ asset('loops-icon.png') }}" 
-                         class="w-9 h-9 object-contain shrink-0 group-hover:scale-105 transition-all" 
-                         alt="LOOPS HR Icon">
+                         src="{{ asset('crew.jpeg') }}" 
+                         class="w-9 h-9 object-cover rounded-xl shrink-0 group-hover:scale-105 transition-all shadow-xs" 
+                         alt="Crew HR Icon">
 
-                    <!-- Expanded Mode: Dark Logo in Light Mode, White Logo in Dark Mode -->
-                    <img x-show="!sidebarCollapsed && theme !== 'dark'" x-cloak 
-                         src="{{ asset('LoopsBlack.png') }}" 
-                         class="h-11 w-auto max-w-[210px] object-contain shrink-0 group-hover:scale-105 transition-all" 
-                         alt="LOOPS HR Logo">
-                    <img x-show="!sidebarCollapsed && theme === 'dark'" x-cloak 
-                         src="{{ asset('LoopsWhite.png') }}" 
-                         class="h-11 w-auto max-w-[210px] object-contain shrink-0 group-hover:scale-105 transition-all" 
-                         alt="LOOPS HR Logo">
+                    <!-- Expanded Mode -->
+                    <img x-show="!sidebarCollapsed" 
+                         src="{{ asset('crew.jpeg') }}" 
+                         class="h-10 w-auto max-w-[200px] object-contain rounded-lg shrink-0 group-hover:scale-105 transition-all bg-white px-2 py-0.5 shadow-2xs" 
+                         alt="Crew HR Logo">
                 </a>
             </div>
 
