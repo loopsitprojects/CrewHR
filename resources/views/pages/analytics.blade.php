@@ -38,44 +38,7 @@
         <!-- (Removed global header export pills as per request) -->
     </div>
 
-    <!-- KPI Summary Metrics -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- 1. Total Workforce -->
-        <div class="bg-white dark:bg-[#152038] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-            <span class="text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Workforce</span>
-            <div class="text-2xl font-black text-slate-900 dark:text-white">{{ $totalWorkforce }} <span class="text-xs font-bold text-slate-400">Staff</span></div>
-            <div class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                <i class="ph ph-users"></i> {{ count($departments) }} {{ Str::plural('Department', count($departments)) }} Active
-            </div>
-        </div>
 
-        <!-- 2. Currently On Leave Today -->
-        <div class="bg-white dark:bg-[#152038] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-            <span class="text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">On Leave Today</span>
-            <div class="text-2xl font-black text-blue-600 dark:text-blue-400">{{ $totalOnLeaveToday }} <span class="text-xs font-bold text-slate-400">Staff</span></div>
-            <div class="text-[11px] font-semibold text-slate-400">
-                {{ $totalWorkforce > 0 ? round(($totalOnLeaveToday / $totalWorkforce) * 100, 1) : 0 }}% Absenteeism Today
-            </div>
-        </div>
-
-        <!-- 3. Approved Leave Days Taken in Period -->
-        <div class="bg-white dark:bg-[#152038] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-            <span class="text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Days Taken</span>
-            <div class="text-2xl font-black text-slate-900 dark:text-white">{{ $totalLeavesPeriod }} <span class="text-xs font-bold text-slate-400">Days</span></div>
-            <div class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
-                In {{ $selectedMonth ? ($monthsList[$selectedMonth] ?? '') : 'Full Year' }} {{ $selectedYear }}
-            </div>
-        </div>
-
-        <!-- 4. Avg Days / Employee -->
-        <div class="bg-white dark:bg-[#152038] p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-            <span class="text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Avg Days / Employee</span>
-            <div class="text-2xl font-black text-slate-900 dark:text-white">{{ $avgDaysPerEmp }} <span class="text-xs font-bold text-slate-400">Days</span></div>
-            <div class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                Shop & Office Entitlement: 21d/yr
-            </div>
-        </div>
-    </div>
 
     <!-- Unified Department Leave Overview & Drilldown -->
     <div class="space-y-6">

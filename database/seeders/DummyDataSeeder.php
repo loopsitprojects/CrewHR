@@ -67,7 +67,7 @@ class DummyDataSeeder extends Seeder
         \Modules\Leave\Models\Holiday::firstOrCreate([
             'date' => "$year-$month-15",
             'title' => 'Poya Day',
-            'type' => 'Gazette'
+            'type' => 'Poya'
         ]);
 
         // 6. Create some Leaves

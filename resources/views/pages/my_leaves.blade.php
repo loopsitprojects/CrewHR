@@ -1,20 +1,17 @@
-@extends('layouts.app', ['title' => 'LOOPS HR - My Leaves Directory', 'breadcrumb' => 'My Leaves'])
+@extends('layouts.app', ['title' => 'LOOPS HR - Leave Record Directory', 'breadcrumb' => 'Leave Record Directory'])
 
 @section('content')
 <div class="flex-1 flex flex-col min-h-0 space-y-4 h-full overflow-hidden" 
      x-data="{ viewModalOpen: false, selectedRequest: null }">
 
     <!-- Top Header Bar & Action -->
-    <div class="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+    <div class="flex flex-wrap items-center justify-between gap-3 shrink-0 bg-white dark:bg-[#152038] p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-md shadow-blue-500/20">
                 <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
             </div>
             <div>
-                <h1 class="text-base font-black text-slate-900 tracking-tight">My Leave Records Directory</h1>
-                <p class="text-xs text-slate-500 font-semibold">
-                    Logged in as: <span class="text-blue-700 font-bold">{{ $employee->user->name ?? 'Employee' }}</span> ({{ $employee->employee_id_number }}) • {{ $employee->department->name ?? 'HR' }}
-                </p>
+                <h1 class="text-base font-black text-slate-900 dark:text-white tracking-tight">Leave Record Directory</h1>
             </div>
         </div>
 
@@ -26,51 +23,8 @@
         </div>
     </div>
 
-    <!-- KPI Summary Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Total Applied</span>
-                <span class="text-xl font-black text-slate-900 mt-0.5 block">{{ $counts['all'] }}</span>
-            </div>
-            <div class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-                <i data-lucide="layers" class="w-5 h-5"></i>
-            </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Approved Requests</span>
-                <span class="text-xl font-black text-emerald-600 mt-0.5 block">{{ $counts['approved'] }}</span>
-            </div>
-            <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
-            </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Pending Approvals</span>
-                <span class="text-xl font-black text-amber-600 mt-0.5 block">{{ $counts['pending'] }}</span>
-            </div>
-            <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                <i data-lucide="clock" class="w-5 h-5"></i>
-            </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-            <div>
-                <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Total Days Used</span>
-                <span class="text-xl font-black text-blue-600 mt-0.5 block">{{ number_format($counts['total_days_used'], 1) }} Days</span>
-            </div>
-            <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                <i data-lucide="calendar" class="w-5 h-5"></i>
-            </div>
-        </div>
-    </div>
-
     <!-- Main Content Box: Filters & Data Table -->
-    <div class="flex-1 bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm flex flex-col min-h-0 overflow-hidden space-y-3">
+    <div class="flex-1 bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-sm flex flex-col min-h-0 overflow-hidden space-y-3">
         
         <!-- Filter Tabs & Search Bar -->
         <div class="flex flex-wrap items-center justify-between gap-3 shrink-0 pb-3 border-b border-slate-100">

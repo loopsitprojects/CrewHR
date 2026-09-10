@@ -36,6 +36,23 @@ class EmployeeTest extends TestCase
             'code' => 'ANNUAL',
             'days' => 14
         ]);
+
+        $this->adminUser = User::create([
+            'name' => 'Admin User',
+            'email' => 'admin@loopshr.lk',
+            'password' => bcrypt('password'),
+        ]);
+
+        $this->adminEmployee = Employee::create([
+            'user_id' => $this->adminUser->id,
+            'employee_id_number' => 'EMP-ADMIN-001',
+            'department_id' => $this->department->id,
+            'designation_id' => $this->designation->id,
+            'system_role' => 'Super (Admin)',
+        ]);
+
+        $this->actingAs($this->adminUser);
+        session(['current_role' => 'Super (Admin)']);
     }
 
     public function test_can_view_employees_index_page()
@@ -178,7 +195,7 @@ class EmployeeTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
 
-    public function test_regular_employee_can_view_directory_and_profiles()
+    public function test_regular_employee_and_manager_directory_permissions()
     {
         $user = User::create([
             'name' => 'Regular Staff',
@@ -195,11 +212,18 @@ class EmployeeTest extends TestCase
         ]);
 
         $this->actingAs($user);
+        session(['current_role' => 'Employee']);
 
+        // Regular employee is redirected to dashboard
         $response = $this->get(route('employee.index'));
-        $response->assertStatus(200);
-        $response->assertSee('Employees Directory');
-        $response->assertSee('Regular Staff');
+        $response->assertRedirect(route('dashboard'));
+
+        // Manager can view directory and profile
+        session(['current_role' => 'Manager (Team Approvals)']);
+        $mgrResponse = $this->get(route('employee.index'));
+        $mgrResponse->assertStatus(200);
+        $mgrResponse->assertSee('Employees Directory');
+        $mgrResponse->assertSee('Regular Staff');
 
         $showResponse = $this->get(route('employee.show', $employee->id));
         $showResponse->assertStatus(200);
@@ -225,5 +249,82 @@ class EmployeeTest extends TestCase
         $response->assertRedirect(route('employee.index'));
         $this->assertDatabaseHas('designations', ['name' => 'Lead Data Scientist']);
         $this->assertDatabaseHas('employees', ['employee_id_number' => 'EMP-TEST-CUSTOM-01']);
+    }
+
+    public function test_can_create_and_update_employee_with_dynamic_allowances()
+    {
+        $travelType = \Modules\Payroll\Models\AllowanceType::create([
+            'name' => 'Travel Allowance',
+            'code' => 'TEST_TRAVEL',
+            'is_epf_liable' => false,
+            'default_amount' => 15000,
+            'status' => 'Active',
+        ]);
+
+        $specialType = \Modules\Payroll\Models\AllowanceType::create([
+            'name' => 'Special Duty Allowance',
+            'code' => 'TEST_SPECIAL',
+            'is_epf_liable' => true,
+            'default_amount' => 20000,
+            'status' => 'Active',
+        ]);
+
+        $payload = [
+            'title' => 'Mr.',
+            'full_name' => 'Allowance Test Employee',
+            'email' => 'allowance.test@loopshr.lk',
+            'employee_id_number' => 'EMP-TEST-ALLOW-01',
+            'department_id' => $this->department->id,
+            'designation_id' => $this->designation->id,
+            'basic_salary' => 100000,
+            'allowances' => [
+                ['allowance_type_id' => $travelType->id, 'amount' => 15000],
+                ['allowance_type_id' => $specialType->id, 'amount' => 25000],
+            ],
+        ];
+
+        $response = $this->post(route('employee.store'), $payload);
+        $response->assertRedirect(route('employee.index'));
+
+        $emp = Employee::where('employee_id_number', 'EMP-TEST-ALLOW-01')->first();
+        $this->assertNotNull($emp);
+        $this->assertDatabaseHas('employee_allowances', [
+            'employee_id' => $emp->id,
+            'allowance_type_id' => $travelType->id,
+            'amount' => 15000,
+        ]);
+        $this->assertDatabaseHas('employee_allowances', [
+            'employee_id' => $emp->id,
+            'allowance_type_id' => $specialType->id,
+            'amount' => 25000,
+        ]);
+
+        // Update allowances
+        $updatePayload = [
+            'title' => 'Mr.',
+            'full_name' => 'Allowance Test Employee',
+            'username' => $emp->user->username,
+            'email' => $emp->user->email,
+            'employee_id_number' => 'EMP-TEST-ALLOW-01',
+            'department_id' => $this->department->id,
+            'designation_id' => $this->designation->id,
+            'basic_salary' => 120000,
+            'allowances' => [
+                ['allowance_type_id' => $travelType->id, 'amount' => 18000],
+            ],
+        ];
+
+        $updateResponse = $this->put(route('employee.update', $emp->id), $updatePayload);
+        $updateResponse->assertRedirect(route('employee.index'));
+
+        $this->assertDatabaseHas('employee_allowances', [
+            'employee_id' => $emp->id,
+            'allowance_type_id' => $travelType->id,
+            'amount' => 18000,
+        ]);
+        $this->assertDatabaseMissing('employee_allowances', [
+            'employee_id' => $emp->id,
+            'allowance_type_id' => $specialType->id,
+        ]);
     }
 }

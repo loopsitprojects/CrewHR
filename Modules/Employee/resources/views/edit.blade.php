@@ -9,30 +9,111 @@
     <span class="text-blue-600 font-black">Edit Profile</span>
 @endsection
 
+@php
+    $initialAllowances = [];
+    if (isset($employee) && $employee->relationLoaded('employeeAllowances') && $employee->employeeAllowances->isNotEmpty()) {
+        foreach ($employee->employeeAllowances as $ea) {
+            $initialAllowances[] = [
+                'allowance_type_id' => $ea->allowance_type_id,
+                'amount' => (float) $ea->amount,
+            ];
+        }
+    } elseif (isset($employee) && $employee->id) {
+        $loadedEa = $employee->employeeAllowances()->get();
+        if ($loadedEa->isNotEmpty()) {
+            foreach ($loadedEa as $ea) {
+                $initialAllowances[] = [
+                    'allowance_type_id' => $ea->allowance_type_id,
+                    'amount' => (float) $ea->amount,
+                ];
+            }
+        } else {
+            if (($employee->travelling_allowance ?? 0) > 0) {
+                $t = $allowanceTypes->firstWhere('code', 'TRAVEL') ?? $allowanceTypes->firstWhere('name', 'Travelling Allowance');
+                if ($t) $initialAllowances[] = ['allowance_type_id' => $t->id, 'amount' => (float)$employee->travelling_allowance];
+            }
+            if (($employee->cost_of_living_allowance ?? 0) > 0) {
+                $t = $allowanceTypes->firstWhere('code', 'COLA') ?? $allowanceTypes->firstWhere('name', 'Cost of Living Allowance');
+                if ($t) $initialAllowances[] = ['allowance_type_id' => $t->id, 'amount' => (float)$employee->cost_of_living_allowance];
+            }
+            if (($employee->increments_allowance ?? 0) > 0) {
+                $t = $allowanceTypes->firstWhere('code', 'INC_ALLOW') ?? $allowanceTypes->firstWhere('name', 'Increments Allowance');
+                if ($t) $initialAllowances[] = ['allowance_type_id' => $t->id, 'amount' => (float)$employee->increments_allowance];
+            }
+            if (($employee->fixed_allowance ?? 0) > 0) {
+                $t = $allowanceTypes->firstWhere('code', 'OTHER_FIXED') ?? $allowanceTypes->firstWhere('name', 'Other Fixed Allowance');
+                if ($t) $initialAllowances[] = ['allowance_type_id' => $t->id, 'amount' => (float)$employee->fixed_allowance];
+            }
+        }
+    }
+@endphp
+
 @section('content')
 <div class="max-w-6xl mx-auto space-y-8" x-data="{
     basic: {{ old('basic_salary', $employee->basic_salary ?? 190000) }},
-    fixed: {{ old('fixed_allowance', $employee->fixed_allowance ?? 35000) }},
-    other: {{ old('other_allowance', $employee->other_allowance ?? 25000) }},
-    apit: {{ old('apit_tax', $employee->apit_tax ?? 12000) }},
-    
+    incrementsBasic: {{ old('increments_basic', $employee->increments_basic ?? 0) }},
+    budgetAllowance: {{ old('budget_allowance', $employee->budget_allowance ?? 0) }},
+    other: {{ old('other_allowance', $employee->other_allowance ?? 0) }},
+    apit: {{ old('apit_tax', $employee->apit_tax ?? 0) }},
+    allowanceTypes: @js($allowanceTypes),
+    allowances: @js(old('allowances', $initialAllowances)),
+
+    addAllowance() {
+        if (this.allowanceTypes.length > 0) {
+            this.allowances.push({
+                allowance_type_id: this.allowanceTypes[0].id,
+                amount: this.allowanceTypes[0].default_amount || 0
+            });
+        }
+    },
+    removeAllowance(index) {
+        this.allowances.splice(index, 1);
+    },
+    onAllowanceTypeChange(index) {
+        const typeId = this.allowances[index].allowance_type_id;
+        const selected = this.allowanceTypes.find(t => t.id == typeId);
+        if (selected && (!this.allowances[index].amount || this.allowances[index].amount == 0)) {
+            this.allowances[index].amount = selected.default_amount || 0;
+        }
+    },
+    isAllowanceEpfLiable(typeId) {
+        const selected = this.allowanceTypes.find(t => t.id == typeId);
+        return selected ? !!selected.is_epf_liable : false;
+    },
+    get totalBase() {
+        return (parseFloat(this.basic) || 0) + (parseFloat(this.incrementsBasic) || 0) + (parseFloat(this.budgetAllowance) || 0);
+    },
+    get epfLiableAllowances() {
+        return this.allowances.reduce((sum, item) => {
+            if (this.isAllowanceEpfLiable(item.allowance_type_id)) {
+                return sum + (parseFloat(item.amount) || 0);
+            }
+            return sum;
+        }, 0);
+    },
+    get totalFixed() {
+        return this.allowances.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    },
+    get totalForEpf() {
+        return this.totalBase + this.epfLiableAllowances;
+    },
     get gross() {
-        return (parseFloat(this.basic) || 0) + (parseFloat(this.fixed) || 0) + (parseFloat(this.other) || 0);
+        return this.totalBase + this.totalFixed + (parseFloat(this.other) || 0);
     },
     get epfEmployee() {
-        return (parseFloat(this.basic) || 0) * 0.08;
+        return Math.round(this.totalForEpf * 0.08);
     },
     get epfEmployer() {
-        return (parseFloat(this.basic) || 0) * 0.12;
+        return Math.round(this.totalForEpf * 0.12);
     },
     get etfEmployer() {
-        return (parseFloat(this.basic) || 0) * 0.03;
+        return Math.round(this.totalForEpf * 0.03);
     },
     get netTakeHome() {
-        return this.gross - this.epfEmployee - (parseFloat(this.apit) || 0);
+        return Math.max(0, this.gross - this.epfEmployee - (parseFloat(this.apit) || 0));
     },
     formatNumber(num) {
-        return new Intl.NumberFormat('en-LK', { maximumFractionDigits: 0 }).format(num);
+        return new Intl.NumberFormat('en-LK', { maximumFractionDigits: 0 }).format(num || 0);
     }
 }">
 
@@ -220,7 +301,36 @@
                     <input type="text" name="epf_registration_no" value="{{ old('epf_registration_no', $employee->epf_registration_no) }}" class="w-full border-slate-200/80 rounded-xl text-xs font-bold bg-slate-50/50 p-2.5">
                 </div>
 
-                <div class="md:col-span-2">
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1.5">Staff Category (Payroll) *</label>
+                    <select name="staff_category" class="w-full border-blue-200 rounded-xl text-xs font-bold bg-blue-50/40 p-2.5">
+                        <option value="Executive" {{ old('staff_category', $employee->staff_category) == 'Executive' ? 'selected' : '' }}>Executive</option>
+                        <option value="Non-Executive" {{ old('staff_category', $employee->staff_category) == 'Non-Executive' ? 'selected' : '' }}>Non-Executive</option>
+                        <option value="Shift Staff" {{ old('staff_category', $employee->staff_category) == 'Shift Staff' ? 'selected' : '' }}>Shift Staff</option>
+                        <option value="Management" {{ old('staff_category', $employee->staff_category) == 'Management' ? 'selected' : '' }}>Management</option>
+                        <option value="Contract" {{ old('staff_category', $employee->staff_category) == 'Contract' ? 'selected' : '' }}>Contract</option>
+                        <option value="Intern" {{ old('staff_category', $employee->staff_category) == 'Intern' ? 'selected' : '' }}>Intern</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1.5">Cost Center Classification</label>
+                    <select name="cost_classification" class="w-full border-slate-200/80 rounded-xl text-xs font-bold bg-slate-50/50 p-2.5">
+                        <option value="Direct" {{ old('cost_classification', $employee->cost_classification) == 'Direct' ? 'selected' : '' }}>Direct (Cost of Sales / Production)</option>
+                        <option value="Indirect" {{ old('cost_classification', $employee->cost_classification) == 'Indirect' ? 'selected' : '' }}>Indirect (Administrative / Corporate)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1.5">Payment Method</label>
+                    <select name="payment_method" class="w-full border-slate-200/80 rounded-xl text-xs font-bold bg-slate-50/50 p-2.5">
+                        <option value="Bank Transfer" {{ old('payment_method', $employee->payment_method) == 'Bank Transfer' ? 'selected' : '' }}>Bank Transfer</option>
+                        <option value="Cash" {{ old('payment_method', $employee->payment_method) == 'Cash' ? 'selected' : '' }}>Cash</option>
+                        <option value="Cheque" {{ old('payment_method', $employee->payment_method) == 'Cheque' ? 'selected' : '' }}>Cheque</option>
+                    </select>
+                </div>
+
+                <div class="md:col-span-3">
                     <label class="block text-slate-700 font-bold mb-1.5">Job Category *</label>
                     <select name="job_category" class="w-full border-slate-200/80 rounded-xl text-xs font-bold bg-slate-50/50 p-2.5">
                         <option value="Full Time (Permanent)" {{ old('job_category', $employee->job_category) == 'Full Time (Permanent)' ? 'selected' : '' }}>Full Time (Permanent)</option>
@@ -262,25 +372,108 @@
             <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div class="flex items-center gap-3">
                     <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60 font-black text-xs flex items-center justify-center">03</span>
-                    <h2 class="text-sm font-extrabold text-slate-900 tracking-tight">BASIC SALARY & MONTHLY ALLOWANCES (RS.)</h2>
+                    <div>
+                        <h2 class="text-sm font-extrabold text-slate-900 tracking-tight">COMPENSATION & STATUTORY EARNINGS ARCHITECTURE</h2>
+                        <p class="text-[11px] font-semibold text-slate-400">Base Pay (Qualifying for EPF) & Fixed Allowances Breakdown</p>
+                    </div>
                 </div>
-                <span class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full text-xs font-extrabold tracking-wide shadow-sm">
-                    GROSS: RS. <span x-text="formatNumber(gross)">250,000</span>
-                </span>
+                <div class="flex items-center gap-2">
+                    <span class="bg-indigo-50 text-indigo-800 border border-indigo-200 px-3 py-1 rounded-full text-xs font-extrabold">
+                        EPF BASE: RS. <span x-text="formatNumber(totalBase)">190,000</span>
+                    </span>
+                    <span class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full text-xs font-extrabold">
+                        GROSS: RS. <span x-text="formatNumber(gross)">250,000</span>
+                    </span>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold">
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1.5">Basic Salary (Rs.) *</label>
-                    <input type="number" name="basic_salary" x-model="basic" class="w-full border-slate-200/80 rounded-xl text-xs font-bold bg-slate-50/50 p-2.5">
+            <!-- Base Pay Section (EPF Qualifying) -->
+            <div class="space-y-2">
+                <span class="text-xs font-black uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+                    <i class="ph ph-coins"></i> 1. Base Pay Architecture (EPF Liable Base)
+                </span>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-semibold">
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-1.5">Basic Salary (Rs.) *</label>
+                        <input type="number" name="basic_salary" x-model="basic" class="w-full border-slate-200/80 rounded-xl text-xs font-bold bg-slate-50/50 p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-1.5">Increments Basic (Rs.)</label>
+                        <input type="number" name="increments_basic" x-model="incrementsBasic" class="w-full border-slate-200/80 rounded-xl text-xs font-bold bg-slate-50/50 p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-1.5">Budget Allowance (Rs.)</label>
+                        <input type="number" name="budget_allowance" x-model="budgetAllowance" class="w-full border-slate-200/80 rounded-xl text-xs font-bold bg-slate-50/50 p-2.5">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1.5">Fixed Allowance (Rs.)</label>
-                    <input type="number" name="fixed_allowance" x-model="fixed" class="w-full border-slate-200/80 rounded-xl text-xs font-bold bg-slate-50/50 p-2.5">
+            </div>
+
+            <!-- Fixed Allowances Section (Dynamic Allowance Types) -->
+            <div class="space-y-3 pt-4 border-t border-slate-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                            <i class="ph ph-hand-coins"></i> 2. Fixed Allowances Architecture
+                        </span>
+                        <p class="text-[11px] font-semibold text-slate-400">Add or remove customized allowance components assigned to this employee</p>
+                    </div>
+                    <button type="button" @click="addAllowance()" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black rounded-xl border border-indigo-200/80 transition-colors shadow-sm cursor-pointer">
+                        <i class="ph ph-plus-circle text-base"></i> Add Allowance
+                    </button>
                 </div>
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1.5">Other Allowance (Rs.)</label>
-                    <input type="number" name="other_allowance" x-model="other" class="w-full border-slate-200/80 rounded-xl text-xs font-bold bg-slate-50/50 p-2.5">
+
+                <div class="space-y-2.5">
+                    <template x-for="(item, index) in allowances" :key="index">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-50/80 hover:bg-slate-50 p-3 rounded-xl border border-slate-200/80 transition-all">
+                            <div class="flex-1">
+                                <label class="block text-[11px] font-bold text-slate-500 mb-1">Allowance Type *</label>
+                                <select :name="'allowances[' + index + '][allowance_type_id]'" x-model.number="item.allowance_type_id" @change="onAllowanceTypeChange(index)" class="w-full border-slate-200 rounded-xl text-xs font-bold bg-white p-2.5 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                                    <template x-for="type in allowanceTypes" :key="type.id">
+                                        <option :value="type.id" :selected="type.id == item.allowance_type_id" x-text="type.name + (type.is_epf_liable ? ' (EPF Liable)' : ' (Non-EPF)')"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <div class="w-full sm:w-48">
+                                <label class="block text-[11px] font-bold text-slate-500 mb-1">Amount (Rs.) *</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-xs font-bold text-slate-400">Rs.</span>
+                                    <input type="number" step="any" min="0" :name="'allowances[' + index + '][amount]'" x-model.number="item.amount" placeholder="0.00" class="w-full pl-9 pr-3 py-2.5 border-slate-200 rounded-xl text-xs font-black bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-800">
+                                </div>
+                            </div>
+
+                            <div class="sm:w-32 flex flex-col justify-end pt-1 sm:pt-0">
+                                <label class="block text-[11px] font-bold text-slate-500 mb-1">Statutory Base</label>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold border"
+                                      :class="isAllowanceEpfLiable(item.allowance_type_id) ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-100 text-slate-600 border-slate-200'">
+                                    <i class="ph" :class="isAllowanceEpfLiable(item.allowance_type_id) ? 'ph-check-circle' : 'ph-minus-circle'"></i>
+                                    <span x-text="isAllowanceEpfLiable(item.allowance_type_id) ? 'EPF Liable' : 'Non-EPF'"></span>
+                                </span>
+                            </div>
+
+                            <div class="flex items-end justify-end sm:pt-4">
+                                <button type="button" @click="removeAllowance(index)" class="w-9 h-9 rounded-xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors shadow-sm cursor-pointer" title="Remove allowance">
+                                    <i class="ph ph-trash text-base"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div x-show="allowances.length === 0" class="p-4 bg-slate-50 border border-dashed border-slate-300 rounded-xl text-center">
+                        <i class="ph ph-hand-coins text-2xl text-slate-400 block mb-1"></i>
+                        <p class="text-xs font-bold text-slate-500">No fixed allowances configured for this employee.</p>
+                        <button type="button" @click="addAllowance()" class="mt-2 inline-flex items-center gap-1 text-xs font-extrabold text-indigo-600 hover:underline cursor-pointer">
+                            + Click here to add an allowance
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between bg-indigo-50/50 border border-indigo-100 rounded-xl p-3 text-xs font-bold text-indigo-900">
+                    <span class="flex items-center gap-1.5">
+                        <i class="ph ph-calculator text-indigo-600 text-sm"></i>
+                        Total Fixed Allowances:
+                    </span>
+                    <span class="font-black text-sm text-indigo-700">Rs. <span x-text="formatNumber(totalFixed)"></span></span>
                 </div>
             </div>
 

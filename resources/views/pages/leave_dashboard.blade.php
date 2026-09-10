@@ -3,10 +3,10 @@
 @section('content')
 @php
     $leaveTypeMap = collect($leaveBalances ?? [])->mapWithKeys(function($b) {
-        return [strtoupper($b->leaveType->code ?? '') => $b->leave_type_id];
+        return [strtoupper($b->leaveType->code ?? '') => (string)$b->leave_type_id];
     })->toArray();
     $leaveCodeMap = collect($leaveBalances ?? [])->mapWithKeys(function($b) {
-        return [$b->leave_type_id => strtoupper($b->leaveType->code ?? '')];
+        return [(string)$b->leave_type_id => strtoupper($b->leaveType->code ?? '')];
     })->toArray();
 @endphp
 
@@ -20,7 +20,7 @@
          allMyHistory: {{ json_encode($myLeaveHistory) }},
          leaveTypesMap: {{ json_encode($leaveTypeMap) }},
          leaveCodeMap: {{ json_encode($leaveCodeMap) }},
-         selectedLeaveTypeId: '{{ $leaveTypeMap['ANNUAL'] ?? ($leaveBalances->first()->leave_type_id ?? '') }}',
+         selectedLeaveTypeId: '{{ (string)($leaveTypeMap['ANNUAL'] ?? ($leaveBalances->first()->leave_type_id ?? '')) }}',
          selectedLeaveTypeCode: 'ANNUAL',
          selectedDay: {{ json_encode($todayCell) }}, 
          viewMode: 'grid', 
@@ -30,48 +30,59 @@
          isShortLeave: false,
          allHolidays: {{ json_encode($allHolidaysList ?? []) }},
          calculateDuration() {
-             if (this.selectedLeaveTypeCode === 'SHORT') return '0.2 (Short Leave)';
-             if (this.isHalfDay) return '0.5 (Half Day)';
-             if (!this.targetStartDate || !this.targetEndDate) return '0';
-             
-             let start = new Date(this.targetStartDate + 'T00:00:00');
-             let end = new Date(this.targetEndDate + 'T00:00:00');
-             if (start > end) return '0';
+            if (this.selectedLeaveTypeCode === 'SHORT') return '0.2 (Short Leave)';
+            if (this.isHalfDay) return '0.5 (Half Day)';
+            if (!this.targetStartDate || !this.targetEndDate) return 0;
+            
+            const sParts = this.targetStartDate.split('-').map(Number);
+            const eParts = this.targetEndDate.split('-').map(Number);
+            if (sParts.length !== 3 || eParts.length !== 3) return 0;
 
-             let count = 0;
-             let curr = new Date(start);
-             while (curr <= end) {
-                 let dayOfWeek = curr.getDay(); // 0 = Sun, 6 = Sat
-                 let isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-                 let y = curr.getFullYear();
-                 let m = String(curr.getMonth() + 1).padStart(2, '0');
-                 let d = String(curr.getDate()).padStart(2, '0');
-                 let dateStr = `${y}-${m}-${d}`;
-                 let isHoliday = this.allHolidays.includes(dateStr);
+            const start = new Date(sParts[0], sParts[1] - 1, sParts[2], 0, 0, 0, 0);
+            const end = new Date(eParts[0], eParts[1] - 1, eParts[2], 0, 0, 0, 0);
+            if (start.getTime() > end.getTime()) return 0;
 
-                 if (!isWeekend && !isHoliday) {
-                     count++;
-                 }
-                 curr.setDate(curr.getDate() + 1);
-             }
-             return count;
-         },
-         openApplyModal(code) {
-             let targetCode = (code || 'ANNUAL').toUpperCase();
-             this.selectedLeaveTypeCode = targetCode;
-             if (this.leaveTypesMap[targetCode]) {
-                 this.selectedLeaveTypeId = this.leaveTypesMap[targetCode];
-             }
-             if (targetCode === 'SHORT') {
-                 this.isHalfDay = false;
-                 this.isShortLeave = true;
-                 this.targetEndDate = this.targetStartDate;
-             } else {
-                 this.isShortLeave = false;
-             }
-             this.applyLeaveModal = true;
-             this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
-         },
+            const holidays = Array.isArray(this.allHolidays) ? this.allHolidays : [];
+            let count = 0;
+            let curr = new Date(start.getTime());
+
+            while (curr.getTime() <= end.getTime()) {
+                const dayOfWeek = curr.getDay(); // 0 = Sun, 6 = Sat
+                const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                const y = curr.getFullYear();
+                const m = String(curr.getMonth() + 1).padStart(2, '0');
+                const d = String(curr.getDate()).padStart(2, '0');
+                const dateStr = `${y}-${m}-${d}`;
+                const isHoliday = holidays.includes(dateStr);
+
+                if (!isWeekend && !isHoliday) {
+                    count++;
+                }
+                curr.setDate(curr.getDate() + 1);
+            }
+            return count;
+        },
+        openApplyModal(code) {
+            let targetCode = (code || 'ANNUAL').toUpperCase();
+            this.selectedLeaveTypeCode = targetCode;
+            if (this.leaveTypesMap && this.leaveTypesMap[targetCode]) {
+                this.selectedLeaveTypeId = String(this.leaveTypesMap[targetCode]);
+            }
+            if (targetCode === 'SHORT') {
+                this.isHalfDay = false;
+                this.isShortLeave = true;
+                this.targetEndDate = this.targetStartDate;
+            } else {
+                this.isShortLeave = false;
+            }
+            this.applyLeaveModal = true;
+            this.$nextTick(() => { 
+                if (this.leaveTypesMap && this.leaveTypesMap[targetCode]) {
+                    this.selectedLeaveTypeId = String(this.leaveTypesMap[targetCode]);
+                }
+                if (window.lucide) lucide.createIcons(); 
+            });
+        },
          openQuotaModal(code, name, icon, color, total, used, available, carryForward, unit) {
              let targetCode = (code || '').toUpperCase();
              this.selectedQuota = {
@@ -146,15 +157,10 @@
         <!-- 1. Annual Leave -->
         <div @click="openQuotaModal('ANNUAL', 'Annual Leave', 'plane', 'blue', {{ $annualData['total'] }}, {{ $annualData['used'] }}, {{ $annualData['available'] }}, {{ $annualData['cf'] }}, 'days')"
              class="bg-white dark:bg-[#161b22] p-3 rounded-2xl border border-slate-200 dark:border-[#30363d] shadow-sm hover:shadow-md hover:shadow-blue-500/10 hover:border-blue-300 dark:hover:border-blue-500 flex flex-col justify-between transition-all cursor-pointer hover:-translate-y-0.5 min-h-[112px]">
-            <!-- Top Header: Icon + Full Title + Carry Forward Badge -->
-            <div class="flex items-center justify-between gap-1 shrink-0 pb-1.5 border-b border-slate-100 dark:border-[#21262d]">
-                <div class="flex items-center gap-1.5 min-w-0">
-                    <i data-lucide="plane" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0"></i>
-                    <span class="text-xs font-black text-slate-900 dark:text-slate-100 whitespace-nowrap">Annual Leave</span>
-                </div>
-                @if($annualData['cf'] > 0)
-                    <span class="text-[9px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950 px-1.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800 shrink-0 leading-none" title="{{ $annualData['cf'] }} Carry Forward Days Allocated">+{{ $annualData['cf'] }} CF</span>
-                @endif
+            <!-- Top Header: Icon + Full Title -->
+            <div class="flex items-center gap-1.5 shrink-0 pb-1.5 border-b border-slate-100 dark:border-[#21262d]">
+                <i data-lucide="plane" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0"></i>
+                <span class="text-xs font-black text-slate-900 dark:text-slate-100 whitespace-nowrap">Annual Leave</span>
             </div>
 
             <!-- Content: Available Count + Donut Ring -->
@@ -338,13 +344,8 @@
                             <i data-lucide="calendar" class="w-4 h-4"></i>
                         </div>
                         <div>
-                            <div class="flex items-center gap-2">
-                                <h2 class="text-sm font-black text-slate-900 dark:text-slate-100 tracking-tight">{{ $selectedDate->format('F Y') }}</h2>
-                                <span class="bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
-                                    {{ $gazetteCount }} Gazette Holidays
-                                </span>
-                            </div>
-                            <span class="text-[10px] font-black text-slate-500 dark:text-slate-500">Asia/Colombo (GMT+5:30) • Sri Lankan Gazette Calendar</span>
+                            <h2 class="text-sm font-black text-slate-900 dark:text-slate-100 tracking-tight">{{ $selectedDate->format('F Y') }}</h2>
+                            <span class="text-[10px] font-black text-slate-500 dark:text-slate-500">Asia/Colombo (GMT+5:30) • Holiday Calendar</span>
                         </div>
                     </div>
 
@@ -396,7 +397,7 @@
                             @if(!$cell['is_current_month'])
                                 <div class="h-full w-full p-1.5 bg-slate-50 dark:bg-[#0d1117] rounded-xl border border-slate-100 dark:border-[#21262d]/60"></div>
                             @else
-                                <div @click="selectedDay = {{ json_encode($cell) }}; dayModalOpen = true; targetStartDate = '{{ $cell['date'] }}'; targetEndDate = '{{ $cell['date'] }}'" 
+                                <div @click="selectedDay = {{ json_encode($cell) }}; dayModalOpen = true" 
                                      :class="selectedDay && selectedDay.date === '{{ $cell['date'] }}' ? 'outline outline-2 outline-blue-500 dark:outline-blue-400 border-blue-500 dark:border-blue-400 z-10' : ''"
                                      class="h-full w-full p-1.5 rounded-xl flex flex-col justify-between transition-all duration-150 cursor-pointer border group relative min-h-0 overflow-hidden
                                     {{ $cell['is_today'] ? 'bg-blue-50 dark:bg-[#1c2f4a] border-blue-400 dark:border-blue-500 text-blue-950 dark:text-blue-100 shadow-md dark:shadow-blue-950/60' : '' }}
@@ -418,7 +419,7 @@
                                      <div class="flex-1 flex items-center justify-center min-h-0 pt-2 pb-0.5">
                                          <div class="flex flex-wrap items-center justify-center gap-2">
                                              
-                                             <!-- 1. Distinct Icon for Gazette Public vs Company Holidays -->
+                                             <!-- 1. Distinct Icon for Public vs Company Holidays -->
                                              @if($cell['holiday'])
                                                  @if($cell['holiday']->type === 'Company')
                                                      <i data-lucide="building-2" class="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0" title="🏢 {{ $cell['holiday']->title }} (Company Holiday)"></i>
@@ -467,9 +468,9 @@
 
                 <!-- MODE 2: AGENDA / LIST VIEW -->
                 <div x-show="viewMode === 'agenda'" x-cloak class="flex-1 flex flex-col min-h-0 mt-3 overflow-y-auto space-y-3">
-                    <h3 class="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">Upcoming Gazette Holidays & Scheduled Leaves ({{ $selectedDate->format('F Y') }})</h3>
+                    <h3 class="text-xs font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider">Upcoming Holidays & Scheduled Leaves ({{ $selectedDate->format('F Y') }})</h3>
                     
-                    <!-- Gazette Holidays List -->
+                    <!-- Holidays List -->
                     <div class="space-y-2">
                         @forelse($monthHolidays as $h)
                             <div class="p-3 bg-slate-50 dark:bg-[#1c2128] rounded-xl border border-slate-200 dark:border-[#30363d] flex items-center justify-between text-xs">
@@ -490,7 +491,7 @@
                                 </span>
                             </div>
                         @empty
-                            <div class="p-4 text-center text-xs text-slate-400 italic bg-slate-50 dark:bg-[#1c2128] rounded-xl border border-slate-200 dark:border-[#30363d]">No gazette holidays scheduled for this month.</div>
+                            <div class="p-4 text-center text-xs text-slate-400 italic bg-slate-50 dark:bg-[#1c2128] rounded-xl border border-slate-200 dark:border-[#30363d]">No holidays scheduled for this month.</div>
                         @endforelse
                     </div>
                 </div>
@@ -504,7 +505,7 @@
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500 dark:bg-purple-500"></span> Staff Leave</span>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="flex items-center gap-1"><i data-lucide="landmark" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 inline"></i> Gazette Holiday</span>
+                    <span class="flex items-center gap-1"><i data-lucide="landmark" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 inline"></i> Public Holiday</span>
                     <span class="flex items-center gap-1"><i data-lucide="building-2" class="w-3.5 h-3.5 text-rose-500 dark:text-rose-400 inline"></i> Company Holiday</span>
                     <span class="flex items-center gap-1"><i data-lucide="cake" class="w-3.5 h-3.5 text-pink-500 dark:text-pink-400 inline"></i> Birthday</span>
                     <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-emerald-500"></span> Mercantile (M)</span>
@@ -520,7 +521,7 @@
                 $canAddHoliday = in_array($activeRole, ['HR Lead', 'Super (Admin)']);
             @endphp
             <div class="grid {{ $canAddHoliday ? 'grid-cols-2' : 'grid-cols-1' }} gap-2 shrink-0">
-                <button @click="applyLeaveModal = true" class="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition-all">
+                <button @click="openApplyModal('ANNUAL')" class="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition-all">
                     <i class="ph ph-plus-circle text-base"></i>
                     <span>Apply Leave</span>
                 </button>
@@ -692,12 +693,12 @@
                             <div class="flex items-center justify-between">
                                 <span class="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
                                     <i data-lucide="landmark" class="w-4 h-4 text-amber-700 dark:text-amber-400"></i>
-                                    <span>Public Gazette Holiday</span>
+                                    <span>Holiday Details</span>
                                 </span>
-                                <span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-white dark:bg-[#21262d] text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-[#30363d]" x-text="selectedDay.holiday.category"></span>
+                                <span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-white dark:bg-[#21262d] text-slate-900 dark:text-slate-200 border border-slate-200 dark:border-[#30363d]" x-text="selectedDay.holiday.category || selectedDay.holiday.type || 'Holiday'"></span>
                             </div>
                             <h4 class="text-sm font-black" x-text="selectedDay.holiday.title"></h4>
-                            <p class="text-xs font-medium opacity-80" x-text="selectedDay.holiday.description || 'Official Sri Lanka Gazette Holiday'"></p>
+                            <p class="text-xs font-medium opacity-80" x-text="selectedDay.holiday.description || (selectedDay.holiday.category ? selectedDay.holiday.category + ' Holiday' : 'Holiday')"></p>
 
                             <!-- Mercantile Coverage Badge -->
                             <div class="pt-2 border-t border-slate-200 dark:border-[#30363d] flex items-center justify-between text-xs font-extrabold">
@@ -768,7 +769,6 @@
                     <!-- Actions -->
                     <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-[#21262d]">
                         <button type="button" @click="dayModalOpen = false" class="px-4 py-2 bg-slate-100 dark:bg-[#21262d] text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-[#2d333b] transition-colors border border-slate-200 dark:border-[#30363d]">Close</button>
-                        <button type="button" @click="dayModalOpen = false; applyLeaveModal = true" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 shadow-sm transition-colors">Apply Leave for this Date</button>
                     </div>
                 </div>
             </template>
@@ -778,14 +778,19 @@
     <!-- APPLY FOR LEAVE MODAL (LOOPS HR LEAVE BRIEF COMPLIANT) -->
     <div x-show="applyLeaveModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div class="bg-white dark:bg-[#161b22] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-[#30363d]" @click.away="applyLeaveModal = false">
+            
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-[#21262d] pb-3">
-                <div>
-                    <h3 class="text-sm font-black text-slate-900 dark:text-slate-100">Apply for Leave Request</h3>
-                    <p class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">LOOPS HR Policy Rules & Pro-rata Allowances Enforced</p>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
+                        <i class="ph ph-airplane-tilt text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-slate-900 dark:text-slate-100">Apply for Leave</h3>
+                        <p class="text-[11px] text-slate-600 dark:text-slate-400 font-bold">Submit a new leave application</p>
+                    </div>
                 </div>
                 <button @click="applyLeaveModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph ph-x text-base"></i></button>
             </div>
-
             @if($errors->any())
                 <div class="bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 p-3 rounded-xl text-xs space-y-1">
                     @foreach($errors->all() as $err)
@@ -819,7 +824,7 @@
                                 $isShort = strtoupper($lb->leaveType->code) === 'SHORT';
                                 $availText = $isShort ? ($shortData['available'] . ' / 2 available this month') : (max(0, ($lb->allocated + $lb->carried_forward) - $lb->used) . ' days available');
                             @endphp
-                            <option value="{{ $lb->leave_type_id }}" data-code="{{ strtoupper($lb->leaveType->code) }}" class="bg-white dark:bg-[#1c2128] text-slate-900 dark:text-slate-200">
+                            <option value="{{ (string)$lb->leave_type_id }}" data-code="{{ strtoupper($lb->leaveType->code) }}" class="bg-white dark:bg-[#1c2128] text-slate-900 dark:text-slate-200">
                                 {{ $lb->leaveType->name }} ({{ $availText }})
                             </option>
                             @endif
@@ -832,13 +837,13 @@
                     <div>
                         <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Start Date *</label>
                         <input type="date" name="start_date" x-model="targetStartDate" 
-                               @change="if (selectedLeaveTypeCode === 'SHORT') targetEndDate = targetStartDate"
+                               @change="if (selectedLeaveTypeCode === 'SHORT' || isHalfDay || !targetEndDate || targetEndDate < targetStartDate) targetEndDate = targetStartDate"
                                class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
                     </div>
                     <div>
                         <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">End Date *</label>
                         <input type="date" name="end_date" x-model="targetEndDate" 
-                               :disabled="selectedLeaveTypeCode === 'SHORT'"
+                               :disabled="selectedLeaveTypeCode === 'SHORT' || isHalfDay"
                                class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60">
                     </div>
                 </div>
@@ -849,13 +854,13 @@
                         <i class="ph ph-calendar-blank text-blue-600 dark:text-blue-400 text-sm"></i>
                         <span class="text-[11px] text-slate-600 dark:text-slate-400 font-semibold">Total Leave Days:</span>
                     </div>
-                    <span class="text-xs font-black text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded-lg" x-text="calculateDuration() + (selectedLeaveTypeCode === 'SHORT' ? '' : ' Day(s)')"></span>
+                    <span class="text-xs font-black text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded-lg" x-text="calculateDuration() + (selectedLeaveTypeCode === 'SHORT' || isHalfDay ? '' : ' Day(s)')"></span>
                 </div>
 
                 <!-- Half Day Toggle & Slot Selector (Disabled for Short Leave) -->
                 <div x-show="selectedLeaveTypeCode !== 'SHORT'" class="p-3 bg-slate-50 dark:bg-[#21262d] rounded-xl border border-slate-200 dark:border-[#30363d] space-y-2">
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" name="is_half_day" value="1" x-model="isHalfDay" class="rounded text-blue-600 focus:ring-blue-500">
+                        <input type="checkbox" name="is_half_day" value="1" x-model="isHalfDay" @change="if (isHalfDay) targetEndDate = targetStartDate" class="rounded text-blue-600 focus:ring-blue-500">
                         <span class="font-bold text-slate-800 dark:text-slate-200">Apply as Half Day Leave (0.5 Days)</span>
                     </label>
 
@@ -930,7 +935,7 @@
     <div x-show="addCompanyLeaveModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <div class="bg-white dark:bg-[#161b22] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100 dark:border-[#30363d]" @click.away="addCompanyLeaveModal = false">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-[#21262d] pb-3">
-                <h3 class="text-sm font-black text-slate-900 dark:text-slate-100">Add Holiday / Gazette Day</h3>
+                <h3 class="text-sm font-black text-slate-900 dark:text-slate-100">Add Holiday</h3>
                 <button @click="addCompanyLeaveModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph ph-x text-base"></i></button>
             </div>
 
@@ -1005,7 +1010,7 @@
                         <span class="text-xs font-black text-slate-700 dark:text-slate-400" x-text="selectedQuota?.unit"></span>
                     </div>
                     <template x-if="selectedQuota?.carryForward > 0">
-                        <span class="text-[8px] font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 inline-block mt-1" x-text="'+' + selectedQuota?.carryForward + ' CF Included'"></span>
+                        <span class="text-[8px] font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 inline-block mt-1" x-text="'+' + selectedQuota?.carryForward + ' Carry Forward Included'"></span>
                     </template>
                 </div>
 
@@ -1026,19 +1031,6 @@
                         <span class="text-xl font-black text-emerald-950 dark:text-emerald-100" x-text="selectedQuota?.available"></span>
                         <span class="text-xs font-black text-emerald-900 dark:text-emerald-300" x-text="selectedQuota?.unit"></span>
                     </div>
-                    <span class="text-[8px] font-extrabold text-emerald-800 dark:text-emerald-400 mt-1">Ready for Use</span>
-                </div>
-            </div>
-
-            <!-- Visual Progress Bar -->
-            <div class="p-3 bg-slate-50 dark:bg-[#1c2128] rounded-xl border border-slate-200 dark:border-[#30363d] space-y-1.5 shrink-0">
-                <div class="flex items-center justify-between text-xs font-black">
-                    <span class="text-slate-900 dark:text-slate-200">Usage Progress</span>
-                    <span class="text-slate-900 dark:text-slate-200 font-black" x-text="(selectedQuota?.used || 0) + ' of ' + (selectedQuota?.total || 0) + ' ' + (selectedQuota?.unit || '')"></span>
-                </div>
-                <div class="w-full h-2.5 bg-slate-200 dark:bg-[#21262d] rounded-full overflow-hidden border border-slate-300 dark:border-[#30363d]">
-                    <div class="h-full bg-blue-500 dark:bg-blue-500 transition-all duration-500 rounded-full"
-                         :style="'width: ' + (selectedQuota?.total > 0 ? Math.min(100, Math.round(((selectedQuota?.used || 0) / selectedQuota?.total) * 100)) : 0) + '%'"></div>
                 </div>
             </div>
 

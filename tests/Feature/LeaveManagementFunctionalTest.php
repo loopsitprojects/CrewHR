@@ -570,8 +570,8 @@ class LeaveManagementFunctionalTest extends TestCase
         // 2026-08-23 (Sunday) -> Weekend (excluded)
         // 2026-08-24 (Monday) -> 1 working day
         // 2026-08-25 (Tuesday) -> 1 working day
-        // 2026-08-26 (Wednesday) -> Milad-Un-Nabi Gazette Holiday (excluded)
-        // 2026-08-27 (Thursday) -> Nikini Poya Gazette Holiday (excluded)
+        // 2026-08-26 (Wednesday) -> Milad-Un-Nabi Holiday (excluded)
+        // 2026-08-27 (Thursday) -> Nikini Poya Holiday (excluded)
         // 2026-08-28 (Friday) -> 1 working day
         // Total span: 8 calendar days. Net working days = 4 working days!
 

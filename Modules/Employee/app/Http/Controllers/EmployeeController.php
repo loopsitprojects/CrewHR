@@ -65,9 +65,10 @@ class EmployeeController extends Controller
         $departments = Department::all();
         $designations = Designation::all();
         $reportingPersons = Employee::with('user')->get();
+        $allowanceTypes = \Modules\Payroll\Models\AllowanceType::where('status', 'Active')->orderBy('name')->get();
         $employee = new Employee();
 
-        return view('employee::create', compact('departments', 'designations', 'reportingPersons', 'employee'));
+        return view('employee::create', compact('departments', 'designations', 'reportingPersons', 'employee', 'allowanceTypes'));
     }
 
     public function store(Request $request)
@@ -88,8 +89,9 @@ class EmployeeController extends Controller
         DB::transaction(function () use ($request, $designationId) {
             $user = User::create([
                 'name' => $request->full_name,
+                'username' => $request->username ?? strtolower(str_replace(' ', '.', $request->full_name)) . rand(10, 99),
                 'email' => $request->email,
-                'password' => Hash::make('password'),
+                'password' => Hash::make($request->password ?? 'password123'),
             ]);
 
             $profilePicture = $request->profile_picture;
@@ -115,12 +117,20 @@ class EmployeeController extends Controller
                 'joined_date' => $request->joined_date ?? now()->toDateString(),
                 'epf_registration_no' => $request->epf_registration_no,
                 'job_category' => $request->job_category ?? 'Full Time (Permanent)',
+                'staff_category' => $request->staff_category ?? 'Executive',
+                'cost_classification' => $request->cost_classification ?? 'Direct',
+                'payment_method' => $request->payment_method ?? 'Bank Transfer',
 
                 'increment_amount' => $request->increment_amount ?? 0,
                 'promotion_designation' => $request->promotion_designation,
                 'promotion_date' => $request->promotion_date,
 
                 'basic_salary' => $request->basic_salary ?? 0,
+                'increments_basic' => $request->increments_basic ?? 0,
+                'budget_allowance' => $request->budget_allowance ?? 0,
+                'travelling_allowance' => $request->travelling_allowance ?? 0,
+                'cost_of_living_allowance' => $request->cost_of_living_allowance ?? 0,
+                'increments_allowance' => $request->increments_allowance ?? 0,
                 'fixed_allowance' => $request->fixed_allowance ?? 0,
                 'other_allowance' => $request->other_allowance ?? 0,
                 'apit_tax' => $request->apit_tax ?? 0,
@@ -133,6 +143,19 @@ class EmployeeController extends Controller
                 'higher_education' => $request->higher_education,
                 'professional_qualifications' => $request->professional_qualifications,
             ]);
+
+            // Sync dynamic allowances
+            if ($request->has('allowances') && is_array($request->allowances)) {
+                foreach ($request->allowances as $item) {
+                    if (!empty($item['allowance_type_id']) && (float)($item['amount'] ?? 0) > 0) {
+                        \Modules\Payroll\Models\EmployeeAllowance::create([
+                            'employee_id' => $emp->id,
+                            'allowance_type_id' => $item['allowance_type_id'],
+                            'amount' => (float)$item['amount'],
+                        ]);
+                    }
+                }
+            }
 
             // Auto-seed default leave balances for the new employee
             $leaveTypes = LeaveType::all();
@@ -155,7 +178,8 @@ class EmployeeController extends Controller
             'designation', 
             'reportingPerson.user',
             'subordinates.user',
-            'leaveBalances.leaveType'
+            'leaveBalances.leaveType',
+            'employeeAllowances.allowanceType'
         ])->findOrFail($id);
 
         return view('employee::show', compact('employee'));
@@ -170,14 +194,16 @@ class EmployeeController extends Controller
             'department', 
             'designation', 
             'reportingPerson.user',
-            'leaveBalances.leaveType'
+            'leaveBalances.leaveType',
+            'employeeAllowances.allowanceType'
         ])->findOrFail($id);
 
         $departments = Department::all();
         $designations = Designation::all();
         $reportingPersons = Employee::with('user')->where('id', '!=', $id)->get();
+        $allowanceTypes = \Modules\Payroll\Models\AllowanceType::where('status', 'Active')->orderBy('name')->get();
 
-        return view('employee::edit', compact('employee', 'departments', 'designations', 'reportingPersons'));
+        return view('employee::edit', compact('employee', 'departments', 'designations', 'reportingPersons', 'allowanceTypes'));
     }
 
     public function update(Request $request, $id)
@@ -232,13 +258,21 @@ class EmployeeController extends Controller
                 'reporting_person_id' => $request->reporting_person_id,
                 'joined_date' => $request->joined_date,
                 'epf_registration_no' => $request->epf_registration_no,
-                'job_category' => $request->job_category,
+                'job_category' => $request->job_category ?? $employee->job_category,
+                'staff_category' => $request->staff_category ?? ($employee->staff_category ?? 'Executive'),
+                'cost_classification' => $request->cost_classification ?? ($employee->cost_classification ?? 'Direct'),
+                'payment_method' => $request->payment_method ?? ($employee->payment_method ?? 'Bank Transfer'),
 
                 'increment_amount' => $request->increment_amount ?? 0,
                 'promotion_designation' => $request->promotion_designation,
                 'promotion_date' => $request->promotion_date,
 
                 'basic_salary' => $request->basic_salary ?? 0,
+                'increments_basic' => $request->increments_basic ?? 0,
+                'budget_allowance' => $request->budget_allowance ?? 0,
+                'travelling_allowance' => $request->travelling_allowance ?? 0,
+                'cost_of_living_allowance' => $request->cost_of_living_allowance ?? 0,
+                'increments_allowance' => $request->increments_allowance ?? 0,
                 'fixed_allowance' => $request->fixed_allowance ?? 0,
                 'other_allowance' => $request->other_allowance ?? 0,
                 'apit_tax' => $request->apit_tax ?? 0,
@@ -263,6 +297,22 @@ class EmployeeController extends Controller
                             'allocated' => $allocated,
                             'used' => $used,
                         ]);
+                    }
+                }
+            }
+
+            // Sync dynamic allowances
+            if ($request->has('allowances')) {
+                \Modules\Payroll\Models\EmployeeAllowance::where('employee_id', $employee->id)->delete();
+                if (is_array($request->allowances)) {
+                    foreach ($request->allowances as $item) {
+                        if (!empty($item['allowance_type_id']) && (float)($item['amount'] ?? 0) > 0) {
+                            \Modules\Payroll\Models\EmployeeAllowance::create([
+                                'employee_id' => $employee->id,
+                                'allowance_type_id' => $item['allowance_type_id'],
+                                'amount' => (float)$item['amount'],
+                            ]);
+                        }
                     }
                 }
             }

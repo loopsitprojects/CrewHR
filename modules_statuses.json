@@ -5,7 +5,7 @@
     "Analytics": true,
     "Attendance": true,
     "Payroll": true,
-    "Recruitment": true,
-    "Performance": true,
-    "Organization": true
+    "Recruitment": false,
+    "Performance": false,
+    "Organization": false
 }

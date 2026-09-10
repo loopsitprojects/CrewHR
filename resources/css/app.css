@@ -153,3 +153,86 @@ html.dark .bg-rose-50 {
 .dark table tbody tr:hover {
     background-color: #1e2d4d !important;
 }
+
+/* =========================================================
+   PRINT MEDIA STYLES (Professional Document & Pay Advice)
+   ========================================================= */
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 12mm 15mm;
+    }
+
+    /* Reset root container */
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        font-size: 10pt !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Hide Navigation, Sidebar, Headers, Modals Backdrop & Web UI Controls */
+    aside, 
+    header, 
+    nav, 
+    #sidebar, 
+    #topbar, 
+    .navbar, 
+    .sidebar, 
+    .print\:hidden, 
+    [class*="print:hidden"], 
+    button, 
+    .btn,
+    .no-print {
+        display: none !important;
+    }
+
+    body > div.h-screen {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+        position: static !important;
+    }
+
+    body > div.h-screen > aside,
+    body > div.h-screen > div > header,
+    body > div.h-screen > div > main > div > *:not([data-printable-container]) {
+        display: none !important;
+    }
+
+    /* Target the printable modal container */
+    [data-printable-container] {
+        display: block !important;
+        position: static !important;
+        inset: auto !important;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        z-index: 1 !important;
+    }
+
+    [data-printable-card] {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        page-break-inside: avoid !important;
+    }
+}

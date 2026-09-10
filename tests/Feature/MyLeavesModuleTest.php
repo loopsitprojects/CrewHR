@@ -27,8 +27,7 @@ class MyLeavesModuleTest extends TestCase
         $response = $this->get(route('my-leaves.index'));
 
         $response->assertStatus(200);
-        $response->assertSee('My Leave Records Directory');
-        $response->assertSee('Total Applied');
+        $response->assertSee('Leave Record Directory');
     }
 
     public function test_my_leaves_filters_requests_by_status()

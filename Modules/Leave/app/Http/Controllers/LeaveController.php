@@ -60,9 +60,9 @@ class LeaveController extends Controller
         // Balances
         $balances = \Modules\Leave\Models\EmployeeLeaveBalance::with('leaveType')->where('employee_id', $employee->id)->where('year', $year)->get();
         
-        $gazetteCount = $holidays->where('type', 'Gazette')->count();
+        $holidayCount = $holidays->count();
 
-        return view('leave::index', compact('calendarDays', 'balances', 'date', 'gazetteCount', 'month', 'year'));
+        return view('leave::index', compact('calendarDays', 'balances', 'date', 'holidayCount', 'month', 'year'));
     }
 
     /**

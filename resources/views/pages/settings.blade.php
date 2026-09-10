@@ -88,8 +88,8 @@
                     <div class="group relative flex flex-col justify-between p-3.5 rounded-xl border transition-all duration-200 {{ $activeModule === $modKey ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white border-transparent shadow-md shadow-blue-500/25 ring-2 ring-blue-500/50' : 'bg-slate-50/70 dark:bg-[#1a2642] border-slate-200/70 dark:border-slate-800/80 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-white dark:hover:bg-[#1e2d4d] text-slate-700 dark:text-slate-200 shadow-xs' }}">
                         
                         <div class="flex items-start justify-between gap-2 mb-2">
-                            <a href="{{ route('settings.index', ['module' => $modKey]) }}" class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {{ $activeModule === $modKey ? 'bg-white/20 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 ' . $modInfo['color'] }}">
-                                <i class="ph {{ $modInfo['icon'] }} text-base"></i>
+                            <a href="{{ route('settings.index', ['module' => $modKey]) }}" class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 {{ $activeModule === $modKey ? 'bg-white/20 text-white' : 'bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 ' . $modInfo['color'] }}">
+                                <i class="ph {{ $modInfo['icon'] }} text-base font-bold"></i>
                             </a>
                             
                             <div class="flex items-center gap-1">

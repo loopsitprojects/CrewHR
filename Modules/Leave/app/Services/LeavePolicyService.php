@@ -15,7 +15,7 @@ class LeavePolicyService
 {
     /**
      * Calculate net working days excluding weekends (Saturday/Sunday configurable)
-     * and official public/gazette/company holidays in the date range.
+     * and official public/company holidays in the date range.
      */
     public function calculateWorkingDays(string $startDateStr, string $endDateStr): float
     {
@@ -26,7 +26,7 @@ class LeavePolicyService
             return 0.0;
         }
 
-        // Fetch all Holidays (Gazette, Public, Mercantile, Bank, and Company) in the range
+        // Fetch all Holidays (Public, Mercantile, Bank, and Company) in the range
         $holidays = Holiday::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
             ->pluck('date')
             ->map(fn($d) => Carbon::parse($d)->toDateString())
@@ -45,7 +45,7 @@ class LeavePolicyService
             $isWeekendDayOff = ($isSat && $satOff === '1') || ($isSun && $sunOff === '1');
             $isHoliday = in_array($curr->toDateString(), $holidays);
 
-            // Exclude both weekends and public / gazette / company holidays
+            // Exclude both weekends and public / company holidays
             if (!$isWeekendDayOff && !$isHoliday) {
                 $workingDays += 1.0;
             }

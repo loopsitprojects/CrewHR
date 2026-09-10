@@ -10,11 +10,23 @@ use Modules\Payroll\Models\Payslip;
 use Modules\Payroll\Models\EmployeeLoan;
 use Modules\Payroll\Models\LoanType;
 use Modules\Payroll\Models\SalaryAdvance;
+use Modules\Payroll\Models\LoanRepayment;
+use Modules\Payroll\Services\PayrollCalculationService;
+use Modules\Payroll\Services\PayrollAccountingService;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class PayrollController extends Controller
 {
+    protected PayrollCalculationService $calcService;
+    protected PayrollAccountingService $accountingService;
+
+    public function __construct(PayrollCalculationService $calcService, PayrollAccountingService $accountingService)
+    {
+        $this->calcService = $calcService;
+        $this->accountingService = $accountingService;
+    }
+
     private function getActiveRole()
     {
         $user = auth()->user();
@@ -34,8 +46,8 @@ class PayrollController extends Controller
     {
         $role = $this->getActiveRole();
 
-        // If regular employee, route to My Payslips view
-        if ($role === 'Employee') {
+        // If not HR or Super Admin, route directly to My Payslips view
+        if (!in_array($role, ['HR Lead', 'Super (Admin)', 'Super Admin'])) {
             return $this->myPayslips($request);
         }
 
@@ -70,6 +82,8 @@ class PayrollController extends Controller
         $allActiveLoans = EmployeeLoan::with('employee.user')->where('status', 'Active')->get();
         $allPendingAdvances = SalaryAdvance::with('employee.user')->where('status', 'Pending')->get();
 
+        $journalData = null;
+
         // Calculate live totals from DB or live preview
         if ($payroll && $payroll->payslips->count() > 0) {
             $payslipsQuery = $payroll->payslips();
@@ -79,33 +93,51 @@ class PayrollController extends Controller
             if ($paymentMethodFilter !== 'All') {
                 $payslipsQuery->where('payment_method', $paymentMethodFilter);
             }
-            $payslips = $payslipsQuery->get();
+            $payslips = $payslipsQuery->with(['employee.user', 'employee.department', 'employee.designation'])->get();
 
-            $totalGross = $payslips->sum('gross_salary');
-            $totalEpfEmployer = $payslips->sum('epf_employer');
-            $totalEtfEmployer = $payslips->sum('etf_employer');
-            $totalNetPay = $payslips->sum('net_salary');
+            $totalGross = (float) $payslips->sum('gross_salary');
+            $totalEpfQualifying = (float) $payslips->sum('total_for_epf');
+            $totalEpfEmployee = (float) $payslips->sum('epf_employee');
+            $totalEpfEmployer = (float) $payslips->sum('epf_employer');
+            $totalEtfEmployer = (float) $payslips->sum('etf_employer');
+            $totalApit = (float) $payslips->sum('apit_tax');
+            $totalNetPay = (float) $payslips->sum('net_salary');
+
+            // Direct vs Indirect Cost
+            $directPayslips = $payslips->filter(fn($p) => ($p->cost_classification ?? 'Direct') === 'Direct');
+            $indirectPayslips = $payslips->filter(fn($p) => ($p->cost_classification ?? 'Direct') === 'Indirect');
+            $totalDirectSalaries = (float) $directPayslips->sum('gross_salary');
+            $totalIndirectSalaries = (float) $indirectPayslips->sum('gross_salary');
+
+            // Generate double-entry journal sheet
+            $journalData = $this->accountingService->generateJournalEntries($payroll);
         } else {
             $payslips = collect();
             $totalGross = 0;
+            $totalEpfQualifying = 0;
+            $totalEpfEmployee = 0;
             $totalEpfEmployer = 0;
             $totalEtfEmployer = 0;
+            $totalApit = 0;
             $totalNetPay = 0;
+            $totalDirectSalaries = 0;
+            $totalIndirectSalaries = 0;
 
             foreach ($employees as $emp) {
-                $basic = $emp->basic_salary ?: 180000;
-                $allowances = ($emp->fixed_allowance ?: 30000) + ($emp->other_allowance ?: 20000);
-                $gross = $basic + $allowances;
-                $epf8 = $basic * 0.08;
-                $epf12 = $basic * 0.12;
-                $etf3 = $basic * 0.03;
-                $apit = $emp->apit_tax ?: 10000;
-                $net = $gross - $epf8 - $apit;
+                $calc = $this->calcService->calculateEmployeePayroll($emp, $month, $year);
+                $totalGross += $calc['gross_salary'];
+                $totalEpfQualifying += $calc['total_for_epf'];
+                $totalEpfEmployee += $calc['epf_employee'];
+                $totalEpfEmployer += $calc['epf_employer'];
+                $totalEtfEmployer += $calc['etf_employer'];
+                $totalApit += $calc['apit_tax'];
+                $totalNetPay += $calc['net_salary'];
 
-                $totalGross += $gross;
-                $totalEpfEmployer += $epf12;
-                $totalEtfEmployer += $etf3;
-                $totalNetPay += $net;
+                if ($calc['cost_classification'] === 'Direct') {
+                    $totalDirectSalaries += $calc['gross_salary'];
+                } else {
+                    $totalIndirectSalaries += $calc['gross_salary'];
+                }
             }
         }
 
@@ -129,9 +161,15 @@ class PayrollController extends Controller
             'monthName',
             'cycleName',
             'totalGross',
+            'totalEpfQualifying',
+            'totalEpfEmployee',
             'totalEpfEmployer',
             'totalEtfEmployer',
+            'totalApit',
             'totalNetPay',
+            'totalDirectSalaries',
+            'totalIndirectSalaries',
+            'journalData',
             'monthsList',
             'yearsList',
             'categoriesList',
@@ -163,97 +201,121 @@ class PayrollController extends Controller
                 ['cycle_name' => $cycleName, 'status' => 'Processed', 'processed_by_user_id' => auth()->id()]
             );
 
-            $employees = Employee::with('user')->get();
+            $employees = Employee::with(['user', 'department', 'designation'])->get();
 
             $totBasic = 0;
             $totAllowances = 0;
             $totGross = 0;
+            $totEpfQualifying = 0;
             $totEpfEmp = 0;
             $totEpfEmployer = 0;
             $totEtfEmployer = 0;
             $totApit = 0;
             $totNet = 0;
+            $totDirectSalaries = 0;
+            $totIndirectSalaries = 0;
+            $totDirectEpfEmployer = 0;
+            $totIndirectEpfEmployer = 0;
+            $totDirectEtfEmployer = 0;
+            $totIndirectEtfEmployer = 0;
+            $totExpenseRecovery = 0;
+            $totLoanDeductions = 0;
+            $totAdvanceDeductions = 0;
 
             foreach ($employees as $emp) {
-                $basic = (float) ($emp->basic_salary ?: 180000);
-                $fixed = (float) ($emp->fixed_allowance ?: 30000);
-                $other = (float) ($emp->other_allowance ?: 20000);
+                // Collect any form overrides for dynamic lines
+                $inputs = [
+                    'basic_salary' => $request->input("basic_salary.{$emp->id}"),
+                    'increments_basic' => $request->input("increments_basic.{$emp->id}"),
+                    'budget_allowance' => $request->input("budget_allowance.{$emp->id}"),
+                    'travelling_allowance' => $request->input("travelling_allowance.{$emp->id}"),
+                    'cost_of_living_allowance' => $request->input("cost_of_living_allowance.{$emp->id}"),
+                    'increments_allowance' => $request->input("increments_allowance.{$emp->id}"),
+                    'fixed_allowance' => $request->input("fixed_allowance.{$emp->id}"),
+                    'ot_hours' => $request->input("ot_hours.{$emp->id}", 0),
+                    'ot_amount' => $request->input("ot_amount.{$emp->id}"),
+                    'shift_allowance' => $request->input("shift_allowance.{$emp->id}"),
+                    'incentive_commission' => $request->input("incentive_commission.{$emp->id}", $request->input("performance_incentive.{$emp->id}", 0)),
+                    'salary_arrears_basic' => $request->input("salary_arrears_basic.{$emp->id}", 0),
+                    'salary_arrears_allowance' => $request->input("salary_arrears_allowance.{$emp->id}", 0),
+                    'no_pay_days' => $request->input("no_pay_days.{$emp->id}", 0),
+                    'personal_expense_recovery' => $request->input("personal_expense_recovery.{$emp->id}", 0),
+                    'other_deductions' => $request->input("other_deductions.{$emp->id}", 0),
+                ];
 
-                // Attendance Payment Rules Input (if provided per employee)
-                $otHours = (float) ($request->input("ot_hours.{$emp->id}", rand(0, 15)));
-                $otAmount = round(($basic / 200) * $otHours * 1.5, 2);
+                // Run Statutory & Payroll Calculation Engine
+                $calc = $this->calcService->calculateEmployeePayroll($emp, $month, $year, array_filter($inputs, fn($v) => !is_null($v)));
 
-                $shiftAllowance = (float) ($request->input("shift_allowance.{$emp->id}", str_contains($emp->staff_category ?? '', 'Shift') ? 15000 : 0));
-                $performanceIncentive = (float) ($request->input("performance_incentive.{$emp->id}", 0));
-
-                $totalAllowances = $fixed + $other + $otAmount + $shiftAllowance + $performanceIncentive;
-                $gross = $basic + $totalAllowances;
-
-                // Statutory Deductions
-                $epf8 = round($basic * 0.08, 2);
-                $epf12 = round($basic * 0.12, 2);
-                $etf3 = round($basic * 0.03, 2);
-                $apit = (float) ($emp->apit_tax ?: 10000);
-
-                // Attendance No-Pay Deduction Rule
-                $noPayDays = (float) ($request->input("no_pay_days.{$emp->id}", 0));
-                $noPayDeduction = round(($basic / 30) * $noPayDays, 2);
-
-                // Loan Auto-Deduction
-                $activeLoan = EmployeeLoan::where('employee_id', $emp->id)->where('status', 'Active')->first();
-                $loanInstallment = 0;
-                $currentPayslip = null;
-
-                if ($activeLoan && $activeLoan->remaining_balance > 0) {
-                    $loanInstallment = min($activeLoan->monthly_installment, $activeLoan->remaining_balance);
-                }
-
-                // Salary Advance Auto-Deduction
-                $advance = SalaryAdvance::where('employee_id', $emp->id)->where('status', 'Pending')->first();
-                $salaryAdvanceDeduction = 0;
-                if ($advance) {
-                    $salaryAdvanceDeduction = $advance->amount;
-                    $advance->update(['status' => 'Deducted']);
-                }
-
-                $totalDeductions = $epf8 + $apit + $noPayDeduction + $loanInstallment + $salaryAdvanceDeduction;
-                $net = max(0, $gross - $totalDeductions);
-
+                // Update or Create Payslip Record
                 $psRecord = Payslip::updateOrCreate(
                     ['payroll_id' => $payroll->id, 'employee_id' => $emp->id],
                     [
                         'month' => $month,
                         'year' => $year,
-                        'staff_category' => $emp->staff_category ?? 'Executive',
-                        'payment_method' => $emp->payment_method ?? 'Bank Transfer',
-                        'basic_salary' => $basic,
-                        'fixed_allowance' => $fixed,
-                        'other_allowance' => $other,
-                        'ot_hours' => $otHours,
-                        'ot_amount' => $otAmount,
-                        'shift_allowance' => $shiftAllowance,
-                        'performance_incentive' => $performanceIncentive,
-                        'gross_salary' => $gross,
-                        'no_pay_days' => $noPayDays,
-                        'no_pay_deduction' => $noPayDeduction,
-                        'epf_employee' => $epf8,
-                        'epf_employer' => $epf12,
-                        'etf_employer' => $etf3,
-                        'apit_tax' => $apit,
-                        'loan_installment' => $loanInstallment,
-                        'salary_advance' => $salaryAdvanceDeduction,
-                        'other_deductions' => $noPayDeduction + $loanInstallment + $salaryAdvanceDeduction,
-                        'net_salary' => $net,
+                        'staff_category' => $calc['staff_category'],
+                        'payment_method' => $calc['payment_method'],
+                        'department_name' => $calc['department_name'],
+                        'cost_classification' => $calc['cost_classification'],
+
+                        // Base Pay Architecture
+                        'basic_salary' => $calc['basic_salary'],
+                        'increments_basic' => $calc['increments_basic'],
+                        'budget_allowance' => $calc['budget_allowance'],
+                        'total_base_pay' => $calc['total_base_pay'],
+
+                        // Fixed Allowances Architecture
+                        'travelling_allowance' => $calc['travelling_allowance'],
+                        'cost_of_living_allowance' => $calc['cost_of_living_allowance'],
+                        'increments_allowance' => $calc['increments_allowance'],
+                        'fixed_allowance' => $calc['fixed_allowance'],
+                        'total_fixed_allowance' => $calc['total_fixed_allowance'],
+
+                        // Variable Pay Architecture
+                        'ot_hours' => $calc['ot_hours'],
+                        'ot_amount' => $calc['ot_amount'],
+                        'shift_allowance' => $calc['shift_allowance'],
+                        'performance_incentive' => $calc['incentive_commission'],
+                        'incentive_commission' => $calc['incentive_commission'],
+                        'salary_arrears_basic' => $calc['salary_arrears_basic'],
+                        'salary_arrears_allowance' => $calc['salary_arrears_allowance'],
+                        'total_variable_pay' => $calc['total_variable_pay'],
+
+                        // Attendance Adjustments
+                        'no_pay_days' => $calc['no_pay_days'],
+                        'no_pay_basic_deduction' => $calc['no_pay_basic_deduction'],
+                        'no_pay_allowance_deduction' => $calc['no_pay_allowance_deduction'],
+                        'total_no_pay_deduction' => $calc['total_no_pay_deduction'],
+                        'no_pay_deduction' => $calc['total_no_pay_deduction'],
+
+                        // Statutory Calculations
+                        'gross_salary' => $calc['gross_salary'],
+                        'total_for_epf' => $calc['total_for_epf'],
+                        'epf_employee' => $calc['epf_employee'],
+                        'epf_employer' => $calc['epf_employer'],
+                        'etf_employer' => $calc['etf_employer'],
+                        'apit_tax' => $calc['apit_tax'],
+
+                        // Recoveries & Deductions
+                        'loan_installment' => $calc['loan_installment'],
+                        'salary_advance' => $calc['salary_advance'],
+                        'personal_expense_recovery' => $calc['personal_expense_recovery'],
+                        'other_deductions' => $calc['other_deductions'],
+                        'total_deductions' => $calc['total_deductions'],
+
+                        'net_salary' => $calc['net_salary'],
                         'status' => 'Processed',
                     ]
                 );
 
+                // Loan Auto-Repayment Ledger Entry
+                $activeLoan = $calc['active_loan'];
+                $loanInstallment = $calc['loan_installment'];
                 if ($activeLoan && $loanInstallment > 0) {
                     $newRemaining = max(0, $activeLoan->remaining_balance - $loanInstallment);
                     $newTotalPaid = $activeLoan->total_paid + $loanInstallment;
                     $loanStatus = $newRemaining <= 0 ? 'Completed' : 'Active';
 
-                    \Modules\Payroll\Models\LoanRepayment::create([
+                    LoanRepayment::create([
                         'employee_loan_id' => $activeLoan->id,
                         'payslip_id' => $psRecord->id,
                         'amount_paid' => $loanInstallment,
@@ -271,14 +333,35 @@ class PayrollController extends Controller
                     ]);
                 }
 
-                $totBasic += $basic;
-                $totAllowances += $totalAllowances;
-                $totGross += $gross;
-                $totEpfEmp += $epf8;
-                $totEpfEmployer += $epf12;
-                $totEtfEmployer += $etf3;
-                $totApit += $apit;
-                $totNet += $net;
+                // Salary Advance Status Update
+                $advance = $calc['advance_record'];
+                if ($advance && $calc['salary_advance'] > 0) {
+                    $advance->update(['status' => 'Deducted']);
+                }
+
+                // Accumulate Aggregates
+                $totBasic += $calc['total_base_pay'];
+                $totAllowances += ($calc['total_fixed_allowance'] + $calc['total_variable_pay']);
+                $totGross += $calc['gross_salary'];
+                $totEpfQualifying += $calc['total_for_epf'];
+                $totEpfEmp += $calc['epf_employee'];
+                $totEpfEmployer += $calc['epf_employer'];
+                $totEtfEmployer += $calc['etf_employer'];
+                $totApit += $calc['apit_tax'];
+                $totNet += $calc['net_salary'];
+                $totExpenseRecovery += $calc['personal_expense_recovery'];
+                $totLoanDeductions += $calc['loan_installment'];
+                $totAdvanceDeductions += $calc['salary_advance'];
+
+                if ($calc['cost_classification'] === 'Direct') {
+                    $totDirectSalaries += $calc['gross_salary'];
+                    $totDirectEpfEmployer += $calc['epf_employer'];
+                    $totDirectEtfEmployer += $calc['etf_employer'];
+                } else {
+                    $totIndirectSalaries += $calc['gross_salary'];
+                    $totIndirectEpfEmployer += $calc['epf_employer'];
+                    $totIndirectEtfEmployer += $calc['etf_employer'];
+                }
             }
 
             $payroll->update([
@@ -287,17 +370,289 @@ class PayrollController extends Controller
                 'total_basic' => $totBasic,
                 'total_allowances' => $totAllowances,
                 'total_gross' => $totGross,
+                'total_epf_qualifying' => $totEpfQualifying,
                 'total_epf_employee' => $totEpfEmp,
                 'total_epf_employer' => $totEpfEmployer,
                 'total_etf_employer' => $totEtfEmployer,
                 'total_apit_tax' => $totApit,
                 'total_net_pay' => $totNet,
+                'total_direct_salaries' => $totDirectSalaries,
+                'total_indirect_salaries' => $totIndirectSalaries,
+                'total_direct_epf_employer' => $totDirectEpfEmployer,
+                'total_indirect_epf_employer' => $totIndirectEpfEmployer,
+                'total_direct_etf_employer' => $totDirectEtfEmployer,
+                'total_indirect_etf_employer' => $totIndirectEtfEmployer,
+                'total_expense_recovery' => $totExpenseRecovery,
+                'total_loan_deductions' => $totLoanDeductions,
+                'total_advance_deductions' => $totAdvanceDeductions,
                 'processed_at' => now(),
             ]);
         });
 
         return redirect()->route('payroll.index', ['month' => $month, 'year' => $year])
-            ->with('success', "Payroll for {$monthName} {$year} processed successfully with statutory, OT, No-Pay, and Loan deductions!");
+            ->with('success', "Payroll for {$monthName} {$year} processed successfully with Sri Lanka statutory formulas, dynamic No-Pay, direct/indirect accounting & loan deductions!");
+    }
+
+    public function exportMasterRegister($id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $payroll = Payroll::with(['payslips.employee.user', 'payslips.employee.department', 'payslips.employee.designation'])->findOrFail($id);
+        $filename = "Salary_Master_Register_{$payroll->month}_{$payroll->year}.csv";
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename={$filename}",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($payroll) {
+            $file = fopen('php://output', 'w');
+
+            // Header columns
+            fputcsv($file, [
+                'Emp ID', 'EPF No', 'Employee Name', 'Department', 'Designation', 'Cost Center', 'Staff Type',
+                'Basic Salary', 'Increments (Basic)', 'Budget Allowance', 'Total Base Pay',
+                'Travelling Allw', 'COLA Allw', 'Increments (Allw)', 'Other Fixed Allw', 'Total Fixed Allw',
+                'OT Hours', 'OT Pay', 'Shift Allw', 'Incentive / Commission', 'Arrears (Basic)', 'Arrears (Allw)', 'Total Variable Pay',
+                'No-Pay Days', 'No-Pay (Basic)', 'No-Pay (Allw)', 'Total No-Pay Deducted',
+                'Total For EPF', 'Gross Salary',
+                'EPF Employee (8%)', 'EPF Employer (12%)', 'Total EPF (20%)', 'ETF Employer (3%)', 'APIT / PAYE Tax',
+                'Salary Advance', 'Loan Repayment', 'PickMe / Expense Recovery', 'Other Deductions', 'Total Deductions',
+                'Net Salary (LKR)', 'Payment Method'
+            ]);
+
+            foreach ($payroll->payslips as $ps) {
+                $emp = $ps->employee;
+                fputcsv($file, [
+                    $emp->employee_id_number ?? "EMP-{$emp->id}",
+                    $emp->epf_registration_no ?? 'N/A',
+                    $emp->user->name ?? 'Employee',
+                    $ps->department_name ?: ($emp->department->name ?? 'Corporate'),
+                    $emp->designation->name ?? 'Staff',
+                    $ps->cost_classification ?? 'Direct',
+                    $ps->staff_category ?? 'Executive',
+
+                    number_format($ps->basic_salary, 2, '.', ''),
+                    number_format($ps->increments_basic, 2, '.', ''),
+                    number_format($ps->budget_allowance, 2, '.', ''),
+                    number_format($ps->total_base_pay ?: ($ps->basic_salary + $ps->increments_basic + $ps->budget_allowance), 2, '.', ''),
+
+                    number_format($ps->travelling_allowance, 2, '.', ''),
+                    number_format($ps->cost_of_living_allowance, 2, '.', ''),
+                    number_format($ps->increments_allowance, 2, '.', ''),
+                    number_format($ps->fixed_allowance, 2, '.', ''),
+                    number_format($ps->total_fixed_allowance ?: ($ps->travelling_allowance + $ps->cost_of_living_allowance + $ps->increments_allowance + $ps->fixed_allowance), 2, '.', ''),
+
+                    $ps->ot_hours,
+                    number_format($ps->ot_amount, 2, '.', ''),
+                    number_format($ps->shift_allowance, 2, '.', ''),
+                    number_format($ps->incentive_commission ?: $ps->performance_incentive, 2, '.', ''),
+                    number_format($ps->salary_arrears_basic, 2, '.', ''),
+                    number_format($ps->salary_arrears_allowance, 2, '.', ''),
+                    number_format($ps->total_variable_pay ?: ($ps->ot_amount + $ps->shift_allowance + $ps->incentive_commission + $ps->salary_arrears_basic + $ps->salary_arrears_allowance), 2, '.', ''),
+
+                    $ps->no_pay_days,
+                    number_format($ps->no_pay_basic_deduction, 2, '.', ''),
+                    number_format($ps->no_pay_allowance_deduction, 2, '.', ''),
+                    number_format($ps->total_no_pay_deduction ?: $ps->no_pay_deduction, 2, '.', ''),
+
+                    number_format($ps->total_for_epf, 2, '.', ''),
+                    number_format($ps->gross_salary, 2, '.', ''),
+
+                    number_format($ps->epf_employee, 2, '.', ''),
+                    number_format($ps->epf_employer, 2, '.', ''),
+                    number_format($ps->epf_employee + $ps->epf_employer, 2, '.', ''),
+                    number_format($ps->etf_employer, 2, '.', ''),
+                    number_format($ps->apit_tax, 2, '.', ''),
+
+                    number_format($ps->salary_advance, 2, '.', ''),
+                    number_format($ps->loan_installment, 2, '.', ''),
+                    number_format($ps->personal_expense_recovery, 2, '.', ''),
+                    number_format($ps->other_deductions, 2, '.', ''),
+                    number_format($ps->total_deductions, 2, '.', ''),
+
+                    number_format($ps->net_salary, 2, '.', ''),
+                    $ps->payment_method ?? 'Bank Transfer'
+                ]);
+            }
+
+            // Totals row
+            fputcsv($file, []);
+            fputcsv($file, [
+                'TOTALS', '', '', '', '', '', '',
+                number_format($payroll->payslips->sum('basic_salary'), 2, '.', ''),
+                number_format($payroll->payslips->sum('increments_basic'), 2, '.', ''),
+                number_format($payroll->payslips->sum('budget_allowance'), 2, '.', ''),
+                number_format($payroll->payslips->sum('total_base_pay'), 2, '.', ''),
+                number_format($payroll->payslips->sum('travelling_allowance'), 2, '.', ''),
+                number_format($payroll->payslips->sum('cost_of_living_allowance'), 2, '.', ''),
+                number_format($payroll->payslips->sum('increments_allowance'), 2, '.', ''),
+                number_format($payroll->payslips->sum('fixed_allowance'), 2, '.', ''),
+                number_format($payroll->payslips->sum('total_fixed_allowance'), 2, '.', ''),
+                $payroll->payslips->sum('ot_hours'),
+                number_format($payroll->payslips->sum('ot_amount'), 2, '.', ''),
+                number_format($payroll->payslips->sum('shift_allowance'), 2, '.', ''),
+                number_format($payroll->payslips->sum('incentive_commission'), 2, '.', ''),
+                number_format($payroll->payslips->sum('salary_arrears_basic'), 2, '.', ''),
+                number_format($payroll->payslips->sum('salary_arrears_allowance'), 2, '.', ''),
+                number_format($payroll->payslips->sum('total_variable_pay'), 2, '.', ''),
+                $payroll->payslips->sum('no_pay_days'),
+                number_format($payroll->payslips->sum('no_pay_basic_deduction'), 2, '.', ''),
+                number_format($payroll->payslips->sum('no_pay_allowance_deduction'), 2, '.', ''),
+                number_format($payroll->payslips->sum('total_no_pay_deduction'), 2, '.', ''),
+                number_format($payroll->total_epf_qualifying ?: $payroll->payslips->sum('total_for_epf'), 2, '.', ''),
+                number_format($payroll->total_gross, 2, '.', ''),
+                number_format($payroll->total_epf_employee, 2, '.', ''),
+                number_format($payroll->total_epf_employer, 2, '.', ''),
+                number_format($payroll->total_epf_employee + $payroll->total_epf_employer, 2, '.', ''),
+                number_format($payroll->total_etf_employer, 2, '.', ''),
+                number_format($payroll->total_apit_tax, 2, '.', ''),
+                number_format($payroll->total_advance_deductions ?: $payroll->payslips->sum('salary_advance'), 2, '.', ''),
+                number_format($payroll->total_loan_deductions ?: $payroll->payslips->sum('loan_installment'), 2, '.', ''),
+                number_format($payroll->total_expense_recovery ?: $payroll->payslips->sum('personal_expense_recovery'), 2, '.', ''),
+                number_format($payroll->payslips->sum('other_deductions'), 2, '.', ''),
+                number_format($payroll->payslips->sum('total_deductions'), 2, '.', ''),
+                number_format($payroll->total_net_pay, 2, '.', ''),
+                ''
+            ]);
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportEpfCForm($id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $payroll = Payroll::with(['payslips.employee.user'])->findOrFail($id);
+        $filename = "EPF_C_Form_Remittance_{$payroll->month}_{$payroll->year}.csv";
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename={$filename}",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($payroll) {
+            $file = fopen('php://output', 'w');
+
+            // C-Form Statutory Header
+            fputcsv($file, ['EMPLOYEES PROVIDENT FUND (EPF) - MONTHLY REMITTANCE STATEMENT (FORM C)']);
+            fputcsv($file, ['Employer Registration No: E-88941', "Contribution Month/Year: {$payroll->month}/{$payroll->year}"]);
+            fputcsv($file, []);
+            fputcsv($file, ['Member EPF No', 'National ID (NIC)', 'Full Name of Member', 'Total Earnings For EPF (LKR)', 'Employee 8% Contribution (LKR)', 'Employer 12% Contribution (LKR)', 'Total 20% Contribution (LKR)']);
+
+            $totQualifying = 0;
+            $totEmp = 0;
+            $totEmployer = 0;
+            $totSum = 0;
+
+            foreach ($payroll->payslips as $ps) {
+                $emp = $ps->employee;
+                $qualifying = $ps->total_for_epf ?: ($ps->basic_salary + $ps->increments_basic + $ps->budget_allowance);
+                $epf8 = $ps->epf_employee;
+                $epf12 = $ps->epf_employer;
+                $total20 = round($epf8 + $epf12, 2);
+
+                $totQualifying += $qualifying;
+                $totEmp += $epf8;
+                $totEmployer += $epf12;
+                $totSum += $total20;
+
+                fputcsv($file, [
+                    $emp->epf_registration_no ?? 'EPF-'.$emp->id,
+                    $emp->national_id ?? $emp->nic ?? 'N/A',
+                    $emp->user->name ?? 'Employee',
+                    number_format($qualifying, 2, '.', ''),
+                    number_format($epf8, 2, '.', ''),
+                    number_format($epf12, 2, '.', ''),
+                    number_format($total20, 2, '.', ''),
+                ]);
+            }
+
+            fputcsv($file, []);
+            fputcsv($file, ['TOTAL REMITTANCE', '', '', number_format($totQualifying, 2, '.', ''), number_format($totEmp, 2, '.', ''), number_format($totEmployer, 2, '.', ''), number_format($totSum, 2, '.', '')]);
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportJournalEntry($id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $payroll = Payroll::with(['payslips.employee.department'])->findOrFail($id);
+        $journal = $this->accountingService->generateJournalEntries($payroll);
+        $filename = "Payroll_Journal_Entry_{$payroll->month}_{$payroll->year}.csv";
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename={$filename}",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($payroll, $journal) {
+            $file = fopen('php://output', 'w');
+
+            fputcsv($file, ["DOUBLE-ENTRY PAYROLL JOURNAL VOUCHER - {$payroll->cycle_name}"]);
+            fputcsv($file, ['Journal Ref:', "JV-PR-{$payroll->year}-" . str_pad($payroll->month, 2, '0', STR_PAD_LEFT), 'Status:', $journal['is_balanced'] ? 'BALANCED' : 'UNBALANCED']);
+            fputcsv($file, []);
+            fputcsv($file, ['Account Code', 'Account Name & Description', 'Classification', 'Debit (LKR)', 'Credit (LKR)', 'Ledger Remarks']);
+
+            foreach ($journal['all_entries'] as $entry) {
+                fputcsv($file, [
+                    $entry['account_code'],
+                    $entry['account_name'],
+                    $entry['category'],
+                    $entry['debit'] > 0 ? number_format($entry['debit'], 2, '.', '') : '',
+                    $entry['credit'] > 0 ? number_format($entry['credit'], 2, '.', '') : '',
+                    $entry['notes']
+                ]);
+            }
+
+            fputcsv($file, []);
+            fputcsv($file, [
+                'TOTAL', 'GRAND TOTALS & VERIFICATION', '',
+                number_format($journal['total_debits'], 2, '.', ''),
+                number_format($journal['total_credits'], 2, '.', ''),
+                "Variance: " . number_format($journal['variance'], 2, '.', '') . " LKR (" . ($journal['is_balanced'] ? 'Balanced (Zero Difference)' : 'Warning: Difference Detected') . ")"
+            ]);
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function getPayslipDetails($id)
+    {
+        $payslip = Payslip::with(['employee.user', 'employee.department', 'employee.designation', 'payroll'])->findOrFail($id);
+
+        $role = $this->getActiveRole();
+        $user = auth()->user();
+        if ($role === 'Employee' && ($payslip->employee->user_id ?? null) !== $user->id) {
+            abort(403, 'Unauthorized access to payslip');
+        }
+
+        return response()->json([
+            'payslip' => $payslip,
+            'employee' => $payslip->employee,
+            'user' => $payslip->employee->user,
+            'department' => $payslip->employee->department->name ?? 'Corporate',
+            'designation' => $payslip->employee->designation->name ?? 'Staff',
+            'cycle_name' => $payslip->payroll->cycle_name ?? "{$payslip->month}/{$payslip->year} Payroll",
+        ]);
     }
 
     public function storeLoan(Request $request)
@@ -353,7 +708,6 @@ class PayrollController extends Controller
         $this->authorizeAdminOrHr();
 
         $payroll = Payroll::with(['payslips.employee.user', 'payslips.employee.department'])->findOrFail($id);
-
         $filename = "Bank_Advice_Report_{$payroll->month}_{$payroll->year}.csv";
 
         $headers = [
@@ -447,14 +801,36 @@ class PayrollController extends Controller
     public function myPayslips(Request $request)
     {
         $user = auth()->user();
-        $employee = $user ? Employee::where('user_id', $user->id)->first() : null;
+        $employee = $user ? Employee::with(['user', 'department', 'designation'])->where('user_id', $user->id)->first() : null;
 
-        $payslips = $employee ? Payslip::with('payroll')
-            ->where('employee_id', $employee->id)
-            ->orderBy('year', 'desc')
+        $yearFilter = $request->get('year', 'All');
+
+        $query = $employee ? Payslip::with(['payroll', 'employee.user', 'employee.department', 'employee.designation'])
+            ->where('employee_id', $employee->id) : Payslip::whereRaw('1=0');
+
+        if ($yearFilter !== 'All' && is_numeric($yearFilter)) {
+            $query->where('year', (int) $yearFilter);
+        }
+
+        $payslips = $query->orderBy('year', 'desc')
             ->orderBy('month', 'desc')
-            ->get() : collect();
+            ->get();
 
-        return view('payroll::my_payslips', compact('employee', 'payslips'));
+        $allEmployeePayslips = $employee ? Payslip::where('employee_id', $employee->id)->get() : collect();
+        $availableYears = $allEmployeePayslips->pluck('year')->unique()->sortDesc()->values();
+
+        $totalEarned = (float) $allEmployeePayslips->sum('net_salary');
+        $totalEpfEmployee = (float) $allEmployeePayslips->sum('epf_employee');
+        $latestPayslip = $allEmployeePayslips->sortByDesc(fn($p) => ($p->year * 100) + $p->month)->first();
+
+        return view('payroll::my_payslips', compact(
+            'employee',
+            'payslips',
+            'availableYears',
+            'yearFilter',
+            'totalEarned',
+            'totalEpfEmployee',
+            'latestPayslip'
+        ));
     }
 }

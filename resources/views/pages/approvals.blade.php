@@ -53,127 +53,105 @@
         </div>
     </div>
 
-    <!-- Approvals List Cards -->
-    <div class="space-y-4">
+    <!-- Approvals List (Minimalistic & Compact Design) -->
+    <div class="space-y-2.5">
         @forelse($leaveRequests as $req)
-            <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4 hover:border-blue-300 transition-all">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <!-- Left: Employee Avatar & Info -->
-                    <div class="flex items-center gap-3">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode($req->employee->user->name ?? 'Employee') }}&background=random" class="w-10 h-10 rounded-full border-2 border-blue-500" alt="Avatar">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-sm font-black text-gray-900">{{ $req->employee->user->name ?? 'Employee' }}</h3>
-                                <span class="text-xs font-bold text-gray-400">({{ $req->req_number ?? 'REQ-1000' }})</span>
-                            </div>
-                            <p class="text-xs font-bold text-gray-500 mt-0.5">
-                                {{ $req->employee->designation->name ?? 'Developer' }} <span class="text-gray-300 mx-1">•</span> <span class="text-blue-600">{{ $req->employee->department->name ?? 'IT' }}</span>
-                            </p>
+            <div class="bg-white rounded-xl border border-slate-200/90 hover:border-blue-300 hover:shadow-xs p-3.5 sm:p-4 transition-all flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <!-- Left: Employee & Leave Details -->
+                <div class="flex items-start gap-3 min-w-0">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                        {{ strtoupper(substr($req->employee->user->name ?? 'E', 0, 2)) }}
+                    </div>
+                    <div class="min-w-0 space-y-1">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="text-xs font-black text-slate-900">{{ $req->employee->user->name ?? 'Employee' }}</span>
+                            <span class="text-[10px] font-mono text-slate-400 font-semibold">({{ $req->req_number ?? 'REQ-'.$req->id }})</span>
+                            <span class="text-slate-300 text-xs">•</span>
+                            <span class="text-[11px] font-bold text-slate-500">{{ $req->employee->designation->name ?? 'Developer' }}</span>
+                            <span class="text-[10px] font-extrabold px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">{{ $req->employee->department->name ?? 'IT' }}</span>
+                            <span class="text-slate-300 text-xs">•</span>
+                            <span class="text-[11px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 rounded-md">
+                                {{ $req->leaveType->name ?? 'Leave' }} • {{ $req->is_half_day ? 'Half Day' : ($req->is_short_leave ? 'Short Leave' : $req->duration.'d') }}
+                            </span>
+                            <span class="text-xs font-semibold text-slate-700">
+                                <i class="ph ph-calendar text-slate-400"></i> {{ $req->start_date }}{{ $req->start_date !== $req->end_date ? ' → '.$req->end_date : '' }}
+                            </span>
                         </div>
-                    </div>
 
-                    <!-- Right: Workflow Status Pill -->
-                    <div>
-                        @if($req->status === 'Approved' || $req->manager_status === 'Approved')
-                            <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-sm">
-                                <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
-                                Approved
-                            </span>
-                        @elseif($req->status === 'Rejected' || $req->manager_status === 'Rejected')
-                            <span class="inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-sm">
-                                <span class="w-2 h-2 rounded-full bg-rose-600"></span>
-                                Rejected
-                            </span>
-                        @else
-                            <span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-xs font-extrabold shadow-sm">
-                                <span class="w-2 h-2 rounded-full bg-amber-600"></span>
-                                {{ $req->status ?? 'Pending Manager Approval' }}
-                            </span>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- Middle Details Bar -->
-                <div class="flex flex-wrap items-center justify-between gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs">
-                    <div class="flex flex-wrap items-center gap-2.5">
-                        <!-- Leave details pill -->
-                        <span class="bg-white border border-gray-200 text-gray-800 px-3 py-1 rounded-lg font-bold">
-                            <span class="text-purple-600 font-black">{{ $req->leaveType->name ?? 'Leave' }}</span> • {{ $req->is_half_day ? 'Half Day' : ($req->is_short_leave ? 'Short Leave' : $req->duration.'d') }} • Date: {{ $req->start_date }}{{ $req->start_date !== $req->end_date ? ' → '.$req->end_date : '' }} • <span class="text-gray-400 font-normal">Applied: {{ $req->applied_at ?? $req->created_at->format('Y-m-d') }}</span>
-                        </span>
-
-                        <!-- Half Day Badge with Hours -->
-                        @if($req->is_half_day)
-                            <span class="bg-purple-100 text-purple-900 border border-purple-300 px-3 py-1 rounded-lg font-black flex items-center gap-1.5 shadow-2xs">
-                                <i class="ph ph-clock text-purple-700 font-bold"></i>
-                                Half Day ({{ $req->half_day_slot ?? 'Morning' }}: {{ strtolower($req->half_day_slot) === 'afternoon' ? '1:00 PM – 5:30 PM' : '8:30 AM – 1:00 PM' }})
-                            </span>
-                        @elseif($req->is_short_leave)
-                            <span class="bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1 rounded-lg font-black flex items-center gap-1.5 shadow-2xs">
-                                <i class="ph ph-timer text-amber-700 font-bold"></i>
-                                Short Leave ({{ $req->short_leave_slot ?? '1.5 Hours' }})
-                            </span>
-                        @endif
-
-                        <!-- Medical Certificate File Link -->
-                        @if($req->medical_certificate_path)
-                            <a href="{{ $req->medical_certificate_path }}" target="_blank" class="bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100 px-3 py-1 rounded-lg font-bold flex items-center gap-1.5">
-                                <i class="ph ph-paperclip text-blue-600"></i>
-                                Medical Certificate
-                            </a>
-                        @endif
-
-                        <!-- Duty Leave Client/Project Badge -->
-                        @if($req->project_client_name)
-                            <span class="bg-teal-50 text-teal-800 border border-teal-300 px-3 py-1 rounded-lg font-bold flex items-center gap-1.5">
-                                Duty: {{ $req->project_client_name }}
-                            </span>
-                        @endif
-
-                        <!-- Covering Person Badge -->
-                        @if($req->coveringEmployee)
-                            <div class="flex items-center gap-2">
-                                <span class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 rounded-lg font-bold flex items-center gap-1.5">
-                                    <i class="ph ph-handshake text-blue-600 text-sm"></i>
+                        <!-- Secondary Info Strip (Reason, Covering, Cert, Slot) -->
+                        <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                            @if($req->coveringEmployee)
+                                <span class="inline-flex items-center gap-1 text-blue-700 font-semibold bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-100">
+                                    <i class="ph ph-handshake text-xs text-blue-600"></i>
                                     Covering: {{ $req->coveringEmployee->user->name ?? 'Covering' }}
                                 </span>
-                            </div>
-                        @endif
-                    </div>
+                            @endif
 
-                    <!-- Reason string -->
-                    <div class="italic text-gray-500 font-medium">
-                        "{{ $req->reason }}"
+                            @if($req->is_half_day)
+                                <span class="inline-flex items-center gap-1 text-purple-800 font-semibold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
+                                    <i class="ph ph-clock text-xs"></i>
+                                    {{ $req->half_day_slot ?? 'Morning' }} ({{ strtolower($req->half_day_slot) === 'afternoon' ? '1:00 PM – 5:30 PM' : '8:30 AM – 1:00 PM' }})
+                                </span>
+                            @elseif($req->is_short_leave)
+                                <span class="inline-flex items-center gap-1 text-amber-800 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                                    <i class="ph ph-timer text-xs"></i>
+                                    Short ({{ $req->short_leave_slot ?? '1.5 Hours' }})
+                                </span>
+                            @endif
+
+                            @if($req->medical_certificate_path)
+                                <a href="{{ $req->medical_certificate_path }}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 font-bold hover:underline">
+                                    <i class="ph ph-paperclip"></i> Certificate
+                                </a>
+                            @endif
+
+                            @if($req->project_client_name)
+                                <span class="text-teal-700 font-bold">Duty: {{ $req->project_client_name }}</span>
+                            @endif
+
+                            @if($req->reason)
+                                <span class="italic text-slate-400 font-medium truncate max-w-sm sm:max-w-md" title="{{ $req->reason }}">
+                                    "{{ $req->reason }}"
+                                </span>
+                            @endif
+
+                            <span class="text-slate-400 text-[10px]">Applied: {{ $req->applied_at ?? $req->created_at->format('Y-m-d') }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Bottom Action Controls -->
-                <div class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                    <!-- 1. Manager Approval Section -->
+                <!-- Right: Action Buttons / Status Pill -->
+                <div class="flex items-center justify-end gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                     @if($req->status === 'Approved' || $req->manager_status === 'Approved')
-                        <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                            <i class="ph ph-check-circle text-emerald-600 text-base"></i>
-                            Approved ({{ $req->managerEmployee->user->name ?? 'Line Manager' }})
+                        <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-xl text-xs font-extrabold">
+                            <i class="ph ph-check-circle text-emerald-600 text-sm"></i>
+                            Approved
+                        </span>
+                    @elseif($req->status === 'Rejected' || $req->manager_status === 'Rejected')
+                        <span class="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1 rounded-xl text-xs font-extrabold">
+                            <i class="ph ph-x-circle text-rose-600 text-sm"></i>
+                            Rejected
                         </span>
                     @elseif($activeEmployee && $req->employee_id === $activeEmployee->id && $role !== 'Super (Admin)')
-                        <span class="bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 opacity-90" title="Self-approval is prohibited for managers">
-                            <i class="ph ph-user text-slate-500"></i>
-                            Self Request (Pending Manager)
+                        <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1 rounded-xl text-xs font-bold" title="Self-approval is prohibited for managers">
+                            <i class="ph ph-user text-xs"></i>
+                            Self Request
                         </span>
                     @elseif(in_array($role, ['HOD / Manager', 'Super (Admin)', 'HR Lead']))
-                        <form action="{{ route('approvals.action', $req->id) }}" method="POST">
+                        <form action="{{ route('approvals.action', $req->id) }}" method="POST" class="inline">
                             @csrf
                             <input type="hidden" name="action_type" value="manager_approve">
-                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20">
-                                <i class="ph ph-check-circle text-base"></i>
-                                Approve Leave
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer">
+                                <i class="ph ph-check text-sm font-bold"></i>
+                                Approve
                             </button>
                         </form>
 
-                        <form action="{{ route('approvals.action', $req->id) }}" method="POST" onsubmit="return confirm('Reject this leave request?')">
+                        <form action="{{ route('approvals.action', $req->id) }}" method="POST" onsubmit="return confirm('Reject this leave request?')" class="inline">
                             @csrf
                             <input type="hidden" name="action_type" value="reject_manager">
-                            <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-300 px-4 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all">
-                                <i class="ph ph-x-circle text-base"></i>
+                            <button type="submit" class="bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer">
+                                <i class="ph ph-x text-sm"></i>
                                 Reject
                             </button>
                         </form>

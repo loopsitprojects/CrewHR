@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->date('date');
             $table->string('title');
-            $table->string('type')->default('Gazette'); // Gazette, Company, Special Leave, Year-End Closure
+            $table->string('type')->default('Public'); // Public, Mercantile, Poya, Company, Special Leave, Year-End Closure
             $table->string('category')->nullable(); // Public & Bank, Public & Mercantile, Company Holiday, etc.
             $table->text('description')->nullable();
             $table->timestamps();

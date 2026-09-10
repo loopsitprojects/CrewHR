@@ -29,7 +29,7 @@ class LeaveBriefPolicyTest extends TestCase
     {
         $user = User::create([
             'name' => 'Test User ' . rand(100, 999),
-            'email' => 'testuser' . rand(1000, 9999) . '@example.com',
+            'email' => 'testuser' . uniqid() . rand(1000, 99999) . '@example.com',
             'password' => bcrypt('password'),
         ]);
 
@@ -40,7 +40,7 @@ class LeaveBriefPolicyTest extends TestCase
             'user_id' => $user->id,
             'department_id' => $dept->id ?? 1,
             'designation_id' => $desig->id ?? 1,
-            'employee_id_number' => 'EMP-' . rand(1000, 9999),
+            'employee_id_number' => 'EMP-' . uniqid() . rand(1000, 99999),
             'joined_date' => $joinedDate,
             'job_category' => $jobCategory,
             'basic_salary' => 100000,

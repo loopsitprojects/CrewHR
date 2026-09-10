@@ -55,6 +55,17 @@ class DatabaseSeeder extends Seeder
             'joined_date' => '2020-05-10',
             'epf_registration_no' => 'EPF/2020/0015',
             'job_category' => 'Full Time (Permanent)',
+            'basic_salary' => 240000,
+            'budget_allowance' => 10000,
+            'travelling_allowance' => 25000,
+            'cost_of_living_allowance' => 15000,
+            'fixed_allowance' => 10000,
+            'staff_category' => 'Executive',
+            'cost_classification' => 'Direct',
+            'bank_name' => 'Commercial Bank of Ceylon',
+            'bank_branch' => 'Kollupitiya',
+            'account_number' => '1004829104',
+            'account_holder_name' => 'Anjalie De Silva',
         ]);
 
         // User 2: Sahan Wickramasinghe (DevOps Engineer)
@@ -174,6 +185,16 @@ class DatabaseSeeder extends Seeder
             'system_role' => 'Super (Admin)',
             'epf_registration_no' => 'EPF-1001',
             'joined_date' => '2022-01-01',
+            'basic_salary' => 350000,
+            'budget_allowance' => 10000,
+            'travelling_allowance' => 30000,
+            'cost_of_living_allowance' => 15000,
+            'staff_category' => 'Management',
+            'cost_classification' => 'Indirect',
+            'bank_name' => 'Commercial Bank of Ceylon',
+            'bank_branch' => 'Head Office',
+            'account_number' => '8004921092',
+            'account_holder_name' => 'Super Admin',
         ]);
 
         // 4. Leave Types (LOOPS HR Leave Brief)
@@ -238,34 +259,34 @@ class DatabaseSeeder extends Seeder
             'applied_at' => '2026-08-10',
         ]);
 
-        // 7. Official Sri Lankan Gazette Holidays (2026)
+        // 7. Holidays (2026)
         $slHolidays = [
-            ['title' => 'Duruthu Full Moon Poya Day', 'date' => '2026-01-03', 'type' => 'Gazette', 'category' => 'Public, Bank & Mercantile'],
-            ['title' => 'Tamil Thai Pongal Day', 'date' => '2026-01-15', 'type' => 'Gazette', 'category' => 'Public, Bank & Mercantile'],
-            ['title' => 'Navam Full Moon Poya Day', 'date' => '2026-02-01', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'National Independence Day', 'date' => '2026-02-04', 'type' => 'Gazette', 'category' => 'Public, Bank & Mercantile'],
-            ['title' => 'Maha Sivarathri Day', 'date' => '2026-02-15', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Medin Full Moon Poya Day', 'date' => '2026-03-02', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Id-Ul-Fitr (Ramazan Festival)', 'date' => '2026-03-21', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Bak Full Moon Poya Day', 'date' => '2026-04-01', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Good Friday', 'date' => '2026-04-03', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Day Prior to Sinhala & Tamil New Year', 'date' => '2026-04-13', 'type' => 'Gazette', 'category' => 'Public, Bank & Mercantile'],
-            ['title' => 'Sinhala & Tamil New Year Day', 'date' => '2026-04-14', 'type' => 'Gazette', 'category' => 'Public, Bank & Mercantile'],
-            ['title' => 'May Day (Labour Day)', 'date' => '2026-05-01', 'type' => 'Gazette', 'category' => 'Public, Bank & Mercantile'],
-            ['title' => 'Vesak Full Moon Poya Day', 'date' => '2026-05-01', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Day Following Vesak Full Moon Poya Day', 'date' => '2026-05-02', 'type' => 'Gazette', 'category' => 'Public, Bank & Mercantile'],
-            ['title' => 'Id-Ul-Alha (Hadji Festival)', 'date' => '2026-05-28', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Adhi Poson Full Moon Poya Day', 'date' => '2026-05-30', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Poson Full Moon Poya Day', 'date' => '2026-06-29', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Esala Full Moon Poya Day', 'date' => '2026-07-29', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Milad-Un-Nabi (Holy Prophet Birthday)', 'date' => '2026-08-26', 'type' => 'Gazette', 'category' => 'Public, Bank & Mercantile'],
-            ['title' => 'Nikini Full Moon Poya Day', 'date' => '2026-08-27', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Binara Full Moon Poya Day', 'date' => '2026-09-26', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Vap Full Moon Poya Day', 'date' => '2026-10-25', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Deepavali Festival Day', 'date' => '2026-11-08', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Ill Full Moon Poya Day', 'date' => '2026-11-24', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Unduvap Full Moon Poya Day', 'date' => '2026-12-23', 'type' => 'Gazette', 'category' => 'Public & Bank'],
-            ['title' => 'Christmas Day', 'date' => '2026-12-25', 'type' => 'Gazette', 'category' => 'Public, Bank & Mercantile'],
+            ['title' => 'Duruthu Full Moon Poya Day', 'date' => '2026-01-03', 'type' => 'Poya', 'category' => 'Public, Bank & Mercantile'],
+            ['title' => 'Tamil Thai Pongal Day', 'date' => '2026-01-15', 'type' => 'Mercantile', 'category' => 'Public, Bank & Mercantile'],
+            ['title' => 'Navam Full Moon Poya Day', 'date' => '2026-02-01', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'National Independence Day', 'date' => '2026-02-04', 'type' => 'Mercantile', 'category' => 'Public, Bank & Mercantile'],
+            ['title' => 'Maha Sivarathri Day', 'date' => '2026-02-15', 'type' => 'Public', 'category' => 'Public & Bank'],
+            ['title' => 'Medin Full Moon Poya Day', 'date' => '2026-03-02', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Id-Ul-Fitr (Ramazan Festival)', 'date' => '2026-03-21', 'type' => 'Public', 'category' => 'Public & Bank'],
+            ['title' => 'Bak Full Moon Poya Day', 'date' => '2026-04-01', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Good Friday', 'date' => '2026-04-03', 'type' => 'Public', 'category' => 'Public & Bank'],
+            ['title' => 'Day Prior to Sinhala & Tamil New Year', 'date' => '2026-04-13', 'type' => 'Mercantile', 'category' => 'Public, Bank & Mercantile'],
+            ['title' => 'Sinhala & Tamil New Year Day', 'date' => '2026-04-14', 'type' => 'Mercantile', 'category' => 'Public, Bank & Mercantile'],
+            ['title' => 'May Day (Labour Day)', 'date' => '2026-05-01', 'type' => 'Mercantile', 'category' => 'Public, Bank & Mercantile'],
+            ['title' => 'Vesak Full Moon Poya Day', 'date' => '2026-05-01', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Day Following Vesak Full Moon Poya Day', 'date' => '2026-05-02', 'type' => 'Mercantile', 'category' => 'Public, Bank & Mercantile'],
+            ['title' => 'Id-Ul-Alha (Hadji Festival)', 'date' => '2026-05-28', 'type' => 'Public', 'category' => 'Public & Bank'],
+            ['title' => 'Adhi Poson Full Moon Poya Day', 'date' => '2026-05-30', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Poson Full Moon Poya Day', 'date' => '2026-06-29', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Esala Full Moon Poya Day', 'date' => '2026-07-29', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Milad-Un-Nabi (Holy Prophet Birthday)', 'date' => '2026-08-26', 'type' => 'Mercantile', 'category' => 'Public, Bank & Mercantile'],
+            ['title' => 'Nikini Full Moon Poya Day', 'date' => '2026-08-27', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Binara Full Moon Poya Day', 'date' => '2026-09-26', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Vap Full Moon Poya Day', 'date' => '2026-10-25', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Deepavali Festival Day', 'date' => '2026-11-08', 'type' => 'Public', 'category' => 'Public & Bank'],
+            ['title' => 'Ill Full Moon Poya Day', 'date' => '2026-11-24', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Unduvap Full Moon Poya Day', 'date' => '2026-12-23', 'type' => 'Poya', 'category' => 'Public & Bank'],
+            ['title' => 'Christmas Day', 'date' => '2026-12-25', 'type' => 'Mercantile', 'category' => 'Public, Bank & Mercantile'],
 
             // Company Holidays
             ['title' => 'Company Founding Day', 'date' => '2026-06-15', 'type' => 'Company', 'category' => 'Company Holiday'],
@@ -328,10 +349,217 @@ class DatabaseSeeder extends Seeder
         \App\Models\HrNotification::create([
             'user_id' => $userSahan->id,
             'type' => 'info',
-            'title' => 'Gazette Holiday Alert 🇱🇰',
+            'title' => 'Public Holiday Notice 🇱🇰',
             'message' => 'Upcoming Holiday: Nikini Full Moon Poya Day on August 27, 2026.',
             'link' => route('dashboard'),
             'is_read' => false,
         ]);
+
+        // 10. Loan Types & Dummy Loans
+        $loanTypeDistress = \Modules\Payroll\Models\LoanType::updateOrCreate(['code' => 'DISTRESS'], [
+            'name' => 'Distress / Welfare Loan',
+            'description' => 'Interest-free emergency financial assistance for urgent employee medical or family distress.',
+            'max_amount' => 150000,
+            'interest_rate_annual' => 0.00,
+            'max_repayment_months' => 24,
+            'status' => 'Active',
+        ]);
+
+        $loanTypeHousing = \Modules\Payroll\Models\LoanType::updateOrCreate(['code' => 'HOUSING'], [
+            'name' => 'Housing & Renovation Loan',
+            'description' => 'Subsidized low-interest loan for home purchase, building or renovation.',
+            'max_amount' => 500000,
+            'interest_rate_annual' => 4.50,
+            'max_repayment_months' => 48,
+            'status' => 'Active',
+        ]);
+
+        $loanTypeFestival = \Modules\Payroll\Models\LoanType::updateOrCreate(['code' => 'FESTIVAL'], [
+            'name' => 'Festival Advance / Loan',
+            'description' => 'Seasonal advance given during Sinhala & Tamil New Year or Christmas season.',
+            'max_amount' => 50000,
+            'interest_rate_annual' => 0.00,
+            'max_repayment_months' => 10,
+            'status' => 'Active',
+        ]);
+
+        // Sahan's Active Distress Loan
+        $loanSahan = \Modules\Payroll\Models\EmployeeLoan::updateOrCreate(
+            ['loan_number' => 'LN-2026-001'],
+            [
+                'employee_id' => $empSahan->id,
+                'loan_type_id' => $loanTypeDistress->id,
+                'loan_title' => 'Emergency Home Appliance & Welfare Support',
+                'principal_amount' => 120000.00,
+                'interest_rate' => 0.00,
+                'repayment_months' => 12,
+                'monthly_installment' => 10000.00,
+                'total_paid' => 30000.00,
+                'remaining_balance' => 90000.00,
+                'purpose' => 'Urgent home roof repair and electrical upgrades before monsoon season.',
+                'status' => 'Active',
+                'start_date' => '2026-06-01',
+                'applied_at' => '2026-05-25 10:00:00',
+                'approved_at' => '2026-05-28 14:30:00',
+                'approved_by_user_id' => $userSuper->id,
+            ]
+        );
+
+        // Arosh's Active Housing Loan
+        $loanArosh = \Modules\Payroll\Models\EmployeeLoan::updateOrCreate(
+            ['loan_number' => 'LN-2026-002'],
+            [
+                'employee_id' => $empArosh->id,
+                'loan_type_id' => $loanTypeHousing->id,
+                'loan_title' => 'Housing Construction Phase 2 Loan',
+                'principal_amount' => 360000.00,
+                'interest_rate' => 4.50,
+                'repayment_months' => 24,
+                'monthly_installment' => 15000.00,
+                'total_paid' => 45000.00,
+                'remaining_balance' => 315000.00,
+                'purpose' => 'Finishing upstairs bedroom and solar panel installation.',
+                'status' => 'Active',
+                'start_date' => '2026-05-01',
+                'applied_at' => '2026-04-20 09:15:00',
+                'approved_at' => '2026-04-25 16:00:00',
+                'approved_by_user_id' => $userSuper->id,
+            ]
+        );
+
+        // Loan Repayment records
+        \Modules\Payroll\Models\LoanRepayment::updateOrCreate(
+            ['employee_loan_id' => $loanSahan->id, 'amount_paid' => 10000.00, 'paid_date' => '2026-08-28 17:00:00'],
+            [
+                'principal_paid' => 10000.00,
+                'interest_paid' => 0.00,
+                'remaining_balance_after' => 90000.00,
+                'repayment_type' => 'Payroll Auto-Deduction',
+                'notes' => 'August 2026 Payroll Auto Deduction installment 3/12',
+            ]
+        );
+
+        // 11. Dummy Salary Advances
+        \Modules\Payroll\Models\SalaryAdvance::updateOrCreate(
+            ['advance_number' => 'ADV-2026-001'],
+            [
+                'employee_id' => $empSahan->id,
+                'amount' => 25000.00,
+                'month' => 9,
+                'year' => 2026,
+                'reason' => 'Advance needed for child school admission and term book fees.',
+                'status' => 'Pending',
+                'requested_date' => '2026-09-02',
+            ]
+        );
+
+        \Modules\Payroll\Models\SalaryAdvance::updateOrCreate(
+            ['advance_number' => 'ADV-2026-002'],
+            [
+                'employee_id' => $empShimal->id,
+                'amount' => 15000.00,
+                'month' => 9,
+                'year' => 2026,
+                'reason' => 'Medical checkup and prescription costs for parents.',
+                'status' => 'Approved',
+                'requested_date' => '2026-09-01',
+                'approved_at' => '2026-09-03 11:20:00',
+                'approved_by_user_id' => $userSupuni->id,
+            ]
+        );
+
+        \Modules\Payroll\Models\SalaryAdvance::updateOrCreate(
+            ['advance_number' => 'ADV-2026-003'],
+            [
+                'employee_id' => $empAnjalie->id,
+                'amount' => 30000.00,
+                'month' => 8,
+                'year' => 2026,
+                'reason' => 'Vehicle minor repair expenses during outstation travel.',
+                'status' => 'Deducted',
+                'requested_date' => '2026-08-10',
+                'approved_at' => '2026-08-12 09:30:00',
+                'approved_by_user_id' => $userSuper->id,
+            ]
+        );
+
+        // 12. Dummy Overtime Records
+        $sahanHourly = round(190000 / 200, 2); // 950.00
+        $shimalHourly = round(150000 / 200, 2); // 750.00
+
+        \Modules\Payroll\Models\OvertimeRecord::updateOrCreate(
+            ['ot_number' => 'OT-2026-001'],
+            [
+                'employee_id' => $empSahan->id,
+                'ot_date' => '2026-09-05',
+                'start_time' => '17:00',
+                'end_time' => '20:30',
+                'hours' => 3.5,
+                'rate_multiplier_type' => 'Standard (1.5x)',
+                'multiplier' => 1.5,
+                'hourly_rate' => $sahanHourly,
+                'estimated_amount' => round(3.5 * $sahanHourly * 1.5, 2), // 4987.50
+                'reason' => 'Emergency production database migration and Kubernetes cluster patch release.',
+                'status' => 'Approved',
+                'approved_at' => '2026-09-06 10:00:00',
+                'approved_by_user_id' => $userSupuni->id,
+            ]
+        );
+
+        \Modules\Payroll\Models\OvertimeRecord::updateOrCreate(
+            ['ot_number' => 'OT-2026-002'],
+            [
+                'employee_id' => $empSahan->id,
+                'ot_date' => '2026-09-07',
+                'start_time' => '17:00',
+                'end_time' => '19:00',
+                'hours' => 2.0,
+                'rate_multiplier_type' => 'Standard (1.5x)',
+                'multiplier' => 1.5,
+                'hourly_rate' => $sahanHourly,
+                'estimated_amount' => round(2.0 * $sahanHourly * 1.5, 2), // 2850.00
+                'reason' => 'Post-deployment system health and monitoring metrics validation.',
+                'status' => 'Pending',
+            ]
+        );
+
+        \Modules\Payroll\Models\OvertimeRecord::updateOrCreate(
+            ['ot_number' => 'OT-2026-003'],
+            [
+                'employee_id' => $empShimal->id,
+                'ot_date' => '2026-09-01',
+                'start_time' => '07:30',
+                'end_time' => '09:00',
+                'hours' => 1.5,
+                'rate_multiplier_type' => 'Standard (1.5x)',
+                'multiplier' => 1.5,
+                'hourly_rate' => $shimalHourly,
+                'estimated_amount' => round(1.5 * $shimalHourly * 1.5, 2), // 1687.50
+                'reason' => 'Early morning critical bugfix resolution for banking client portal.',
+                'status' => 'Approved',
+                'approved_at' => '2026-09-02 09:30:00',
+                'approved_by_user_id' => $userSupuni->id,
+            ]
+        );
+
+        \Modules\Payroll\Models\OvertimeRecord::updateOrCreate(
+            ['ot_number' => 'OT-2026-004'],
+            [
+                'employee_id' => $empShimal->id,
+                'ot_date' => '2026-08-27',
+                'start_time' => '10:00',
+                'end_time' => '16:00',
+                'hours' => 6.0,
+                'rate_multiplier_type' => 'Holiday (2.5x)',
+                'multiplier' => 2.5,
+                'hourly_rate' => $shimalHourly,
+                'estimated_amount' => round(6.0 * $shimalHourly * 2.5, 2), // 11250.00
+                'reason' => 'Poya Day urgent client support and incident standby coverage.',
+                'status' => 'Approved',
+                'approved_at' => '2026-08-28 09:00:00',
+                'approved_by_user_id' => $userSuper->id,
+            ]
+        );
     }
 }
+

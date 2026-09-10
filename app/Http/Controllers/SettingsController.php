@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Modules\Employee\Models\Department;
 use Modules\Leave\Models\Holiday;
 use Modules\Leave\Models\LeaveType;
+use Modules\Leave\Models\DayType;
 use Illuminate\Support\Facades\DB;
 
 class SettingsController extends Controller
@@ -33,6 +34,7 @@ class SettingsController extends Controller
         $departments = Department::all();
         $customHolidays = Holiday::where('type', 'Company')->get();
         $leaveTypes = LeaveType::orderBy('id')->get();
+        $allowanceTypes = \Modules\Payroll\Models\AllowanceType::orderBy('id')->get();
 
         $statusesPath = base_path('modules_statuses.json');
         $moduleStatuses = file_exists($statusesPath) ? json_decode(file_get_contents($statusesPath), true) : [
@@ -50,7 +52,7 @@ class SettingsController extends Controller
             'Super Admin' => ['Employee' => true, 'Leave' => true, 'Approvals' => true, 'Analytics' => true, 'Attendance' => true, 'Payroll' => true, 'Recruitment' => true, 'Performance' => true],
             'HR Lead' => ['Employee' => true, 'Leave' => true, 'Approvals' => true, 'Analytics' => true, 'Attendance' => true, 'Payroll' => true, 'Recruitment' => true, 'Performance' => true],
             'Manager' => ['Employee' => true, 'Leave' => true, 'Approvals' => true, 'Analytics' => false, 'Attendance' => true, 'Payroll' => false, 'Recruitment' => false, 'Performance' => true],
-            'Employee' => ['Employee' => false, 'Leave' => true, 'Approvals' => false, 'Analytics' => false, 'Attendance' => true, 'Payroll' => false, 'Recruitment' => false, 'Performance' => true],
+            'Employee' => ['Employee' => false, 'Leave' => true, 'Approvals' => false, 'Analytics' => false, 'Attendance' => true, 'Payroll' => true, 'Recruitment' => false, 'Performance' => true],
         ];
 
         // Modular Settings Configuration Registry
@@ -59,70 +61,70 @@ class SettingsController extends Controller
                 'title' => 'General Organization',
                 'desc' => 'Company profile, timezone, currency, fiscal year & official holidays',
                 'icon' => 'ph-buildings',
-                'color' => 'text-blue-600 dark:text-blue-400',
+                'color' => 'text-blue-600 dark:text-blue-300',
                 'badge' => 'Core'
             ],
             'leave' => [
                 'title' => 'Leave Management',
                 'desc' => 'Sri Lanka S&O Act Quotas, Short Leave (2/mo), Half-days & Weekends',
                 'icon' => 'ph-calendar-check',
-                'color' => 'text-emerald-600 dark:text-emerald-400',
+                'color' => 'text-emerald-600 dark:text-emerald-300',
                 'badge' => 'Policy'
             ],
             'organization' => [
                 'title' => 'Departments & Structure',
                 'desc' => 'Company departments, department codes, HOD leadership',
                 'icon' => 'ph-tree-structure',
-                'color' => 'text-indigo-600 dark:text-indigo-400',
+                'color' => 'text-indigo-600 dark:text-indigo-300',
                 'badge' => count($departments) . ' Depts'
             ],
             'roles' => [
                 'title' => 'Roles & Access Control',
                 'desc' => 'RBAC Matrix, permission privileges, module registries',
                 'icon' => 'ph-shield-check',
-                'color' => 'text-purple-600 dark:text-purple-400',
+                'color' => 'text-purple-600 dark:text-purple-300',
                 'badge' => 'RBAC'
             ],
             'attendance' => [
                 'title' => 'Attendance & Shifts',
                 'desc' => 'Standard working hours, grace period, overtime policies & clock-in',
                 'icon' => 'ph-clock-countdown',
-                'color' => 'text-cyan-600 dark:text-cyan-400',
+                'color' => 'text-cyan-600 dark:text-cyan-300',
                 'badge' => 'Shifts'
             ],
             'payroll' => [
                 'title' => 'Payroll & Statutory Tax',
                 'desc' => 'EPF (8%/12%), ETF (3%), APIT Tax brackets, salary cutoff cycles',
                 'icon' => 'ph-money',
-                'color' => 'text-amber-600 dark:text-amber-400',
+                'color' => 'text-amber-600 dark:text-amber-300',
                 'badge' => 'EPF/ETF'
             ],
             'recruitment' => [
                 'title' => 'Recruitment & ATS',
                 'desc' => 'Candidate hiring pipeline stages, portal visibility & auto-emails',
                 'icon' => 'ph-briefcase',
-                'color' => 'text-pink-600 dark:text-pink-400',
+                'color' => 'text-pink-600 dark:text-pink-300',
                 'badge' => 'ATS'
             ],
             'performance' => [
                 'title' => 'Performance & Appraisal',
                 'desc' => 'Appraisal cycles, evaluation rating scales, self-appraisals',
                 'icon' => 'ph-award',
-                'color' => 'text-orange-600 dark:text-orange-400',
+                'color' => 'text-orange-600 dark:text-orange-300',
                 'badge' => 'KPIs'
             ],
             'system' => [
                 'title' => 'System & Developer Engine',
                 'desc' => 'Developer mode, debug logging, cache flush & health diagnostics',
                 'icon' => 'ph-cpu',
-                'color' => 'text-slate-600 dark:text-slate-400',
+                'color' => 'text-slate-600 dark:text-slate-200',
                 'badge' => 'Engine'
             ],
             'profile' => [
                 'title' => 'My Account & Security',
                 'desc' => 'Personal details, emergency contact, qualifications & password',
                 'icon' => 'ph-user-gear',
-                'color' => 'text-rose-600 dark:text-rose-400',
+                'color' => 'text-rose-600 dark:text-rose-300',
                 'badge' => 'Personal'
             ]
         ];
@@ -139,7 +141,7 @@ class SettingsController extends Controller
                 $mInfo['badge'] = $settingsRaw['module_badge_' . $mKey];
             }
         }
-        unset($mInfo);
+        $dayTypes = DayType::orderBy('id')->get();
 
         return view('pages.settings', compact(
             'user', 
@@ -148,6 +150,8 @@ class SettingsController extends Controller
             'departments', 
             'customHolidays', 
             'leaveTypes',
+            'dayTypes',
+            'allowanceTypes',
             'moduleStatuses', 
             'rolePermissions', 
             'activeModule', 
@@ -573,5 +577,293 @@ class SettingsController extends Controller
         $leaveType->delete();
 
         return redirect()->back()->with('success', "Leave type '{$typeName}' deleted successfully.");
+    }
+
+    public function storeAllowanceType(Request $request)
+    {
+        $this->authorizeAdminOrHr();
+
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'code' => 'nullable|string|max:30',
+            'default_amount' => 'nullable|numeric|min:0',
+            'is_epf_liable' => 'nullable|boolean',
+            'status' => 'nullable|string',
+        ]);
+
+        $allowanceType = \Modules\Payroll\Models\AllowanceType::create([
+            'name' => $request->name,
+            'code' => $request->code ? strtoupper($request->code) : strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $request->name), 0, 10)),
+            'default_amount' => (float) ($request->default_amount ?? 0),
+            'is_epf_liable' => $request->boolean('is_epf_liable'),
+            'status' => $request->status ?? 'Active',
+        ]);
+
+        return redirect()->back()->with('success', "Allowance type '{$allowanceType->name}' created successfully!");
+    }
+
+    public function updateAllowanceType(Request $request, $id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $allowanceType = \Modules\Payroll\Models\AllowanceType::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:100',
+            'code' => 'nullable|string|max:30',
+            'default_amount' => 'nullable|numeric|min:0',
+            'is_epf_liable' => 'nullable|boolean',
+            'status' => 'nullable|string',
+        ]);
+
+        $allowanceType->update([
+            'name' => $request->name,
+            'code' => $request->code ? strtoupper($request->code) : $allowanceType->code,
+            'default_amount' => (float) ($request->default_amount ?? 0),
+            'is_epf_liable' => $request->boolean('is_epf_liable'),
+            'status' => $request->status ?? $allowanceType->status,
+        ]);
+
+        return redirect()->back()->with('success', "Allowance type '{$allowanceType->name}' updated successfully!");
+    }
+
+    public function toggleAllowanceType($id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $allowanceType = \Modules\Payroll\Models\AllowanceType::findOrFail($id);
+        $allowanceType->status = ($allowanceType->status === 'Active') ? 'Inactive' : 'Active';
+        $allowanceType->save();
+
+        $statusStr = $allowanceType->status === 'Active' ? 'activated' : 'deactivated';
+        return redirect()->back()->with('success', "Allowance type '{$allowanceType->name}' {$statusStr} successfully!");
+    }
+
+    public function destroyAllowanceType($id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $allowanceType = \Modules\Payroll\Models\AllowanceType::findOrFail($id);
+        $name = $allowanceType->name;
+        $allowanceType->delete();
+
+        return redirect()->back()->with('success', "Allowance type '{$name}' removed successfully.");
+    }
+
+    /* =========================================================================
+       HOLIDAYS & DAY TYPES CALENDAR MANAGEMENT (DRAG & DROP MANUAL ENGINE)
+       ========================================================================= */
+
+    public function getHolidaysJson(Request $request)
+    {
+        $year = (int) $request->get('year', date('Y'));
+        $month = (int) $request->get('month', date('n'));
+
+        $holidays = Holiday::whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->get(['id', 'date', 'title', 'type', 'category', 'description']);
+
+        return response()->json([
+            'success' => true,
+            'year' => $year,
+            'month' => $month,
+            'holidays' => $holidays
+        ]);
+    }
+
+    public function assignHoliday(Request $request)
+    {
+        $this->authorizeAdminOrHr();
+
+        $request->validate([
+            'date' => 'required|date_format:Y-m-d',
+            'day_type' => 'required|string',
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $date = $request->date;
+        $dayType = trim($request->day_type);
+
+        // Reset to normal working day
+        if (in_array(strtolower($dayType), ['working day', 'working_day', 'normal', 'none', 'remove', 'reset'])) {
+            Holiday::where('date', $date)->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'Reset to regular Working Day',
+                'action' => 'deleted',
+                'date' => $date
+            ]);
+        }
+
+        $matchingDayType = DayType::where('name', $dayType)->first();
+
+        // Determine mercantile status
+        $isMercantile = true;
+        if ($request->has('is_mercantile')) {
+            $isMercantile = filter_var($request->is_mercantile, FILTER_VALIDATE_BOOLEAN);
+        } elseif ($matchingDayType && $matchingDayType->is_mercantile !== null) {
+            $isMercantile = (bool) $matchingDayType->is_mercantile;
+        } elseif (str_contains(strtolower($dayType), 'non-mercantile') || str_contains(strtolower($dayType), 'bank only')) {
+            $isMercantile = false;
+        }
+
+        $type = 'Public';
+        $category = $dayType;
+
+        if (str_contains(strtolower($dayType), 'mercantile')) {
+            $type = 'Mercantile';
+            $category = $isMercantile ? 'Public, Bank & Mercantile' : 'Public & Bank Only (Non-Mercantile)';
+        } elseif (str_contains(strtolower($dayType), 'poya')) {
+            $type = 'Poya';
+            $category = $isMercantile ? 'Public, Bank & Mercantile' : 'Public & Bank Only (Non-Mercantile)';
+        } elseif (str_contains(strtolower($dayType), 'public')) {
+            $type = 'Public';
+            $category = $isMercantile ? 'Public, Bank & Mercantile' : 'Public & Bank Only (Non-Mercantile)';
+        } elseif (str_contains(strtolower($dayType), 'company')) {
+            $type = 'Company';
+            $category = $isMercantile ? 'Additional Company holiday (Mercantile)' : 'Additional Company holiday (Non-Mercantile)';
+        } else {
+            $type = $dayType;
+            $category = $isMercantile ? "{$dayType} (Mercantile)" : "{$dayType} (Non-Mercantile)";
+        }
+
+        if ($request->filled('category')) {
+            $category = $request->category;
+        }
+
+        $title = $request->filled('title') ? $request->title : ($matchingDayType ? $matchingDayType->name : $category);
+
+        $holiday = Holiday::updateOrCreate(
+            ['date' => $date],
+            [
+                'title' => $title,
+                'type' => $type,
+                'category' => $category,
+                'is_mercantile' => $isMercantile,
+                'description' => $request->description ?? null,
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "Assigned as {$category} for {$date}",
+            'holiday' => $holiday
+        ]);
+    }
+
+    public function destroyHoliday($id)
+    {
+        $this->authorizeAdminOrHr();
+        $holiday = Holiday::findOrFail($id);
+        $holiday->delete();
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Holiday removed successfully.']);
+        }
+        return redirect()->back()->with('success', 'Holiday removed successfully.');
+    }
+
+    /* =========================================================================
+       DAY TYPES CRUD (CUSTOM PALETTE MANAGEMENT)
+       ========================================================================= */
+
+    public function getDayTypesJson()
+    {
+        $dayTypes = DayType::orderBy('id')->get();
+        return response()->json([
+            'success' => true,
+            'day_types' => $dayTypes
+        ]);
+    }
+
+    public function storeDayType(Request $request)
+    {
+        $this->authorizeAdminOrHr();
+
+        $request->validate([
+            'name' => 'required|string|max:100|unique:day_types,name',
+            'color' => 'required|string|max:30',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $isMercantile = $request->has('is_mercantile') ? filter_var($request->is_mercantile, FILTER_VALIDATE_BOOLEAN) : true;
+
+        $dayType = DayType::create([
+            'name' => trim($request->name),
+            'code' => strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $request->name), 0, 10)),
+            'color' => $request->color,
+            'is_mercantile' => $isMercantile,
+            'description' => $request->description,
+            'is_core' => false,
+        ]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Day Type '{$dayType->name}' created successfully!",
+                'day_type' => $dayType
+            ]);
+        }
+
+        return redirect()->back()->with('success', "Day Type '{$dayType->name}' created successfully!");
+    }
+
+    public function updateDayType(Request $request, $id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $dayType = DayType::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:100|unique:day_types,name,' . $id,
+            'color' => 'required|string|max:30',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $oldName = $dayType->name;
+        $newName = trim($request->name);
+        $isMercantile = $request->has('is_mercantile') ? filter_var($request->is_mercantile, FILTER_VALIDATE_BOOLEAN) : (bool) ($dayType->is_mercantile ?? true);
+
+        $dayType->update([
+            'name' => $newName,
+            'color' => $request->color,
+            'is_mercantile' => $isMercantile,
+            'description' => $request->description,
+        ]);
+
+        // If name changed, update any existing holidays with the old category/type
+        if ($oldName !== $newName) {
+            Holiday::where('category', $oldName)->update(['category' => $newName]);
+            Holiday::where('type', $oldName)->update(['type' => $newName]);
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Day Type '{$dayType->name}' updated successfully!",
+                'day_type' => $dayType
+            ]);
+        }
+
+        return redirect()->back()->with('success', "Day Type '{$dayType->name}' updated successfully!");
+    }
+
+    public function destroyDayType(Request $request, $id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $dayType = DayType::findOrFail($id);
+        $name = $dayType->name;
+        $dayType->delete();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Day Type '{$name}' deleted successfully."
+            ]);
+        }
+
+        return redirect()->back()->with('success', "Day Type '{$name}' deleted successfully.");
     }
 }

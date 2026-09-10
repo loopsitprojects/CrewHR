@@ -235,7 +235,7 @@ class LeaveDashboardController extends Controller
             ];
         }
 
-        $gazetteCount = $monthHolidays->where('type', 'Gazette')->count();
+        $holidaysCount = $monthHolidays->count();
 
         // Prev & Next Month dates
         $prevMonthDate = $selectedDate->copy()->subMonth();
@@ -293,7 +293,7 @@ class LeaveDashboardController extends Controller
             'selectedDate',
             'year',
             'month',
-            'gazetteCount',
+            'holidaysCount',
             'prevMonthDate',
             'nextMonthDate',
             'monthsList',
@@ -341,7 +341,7 @@ class LeaveDashboardController extends Controller
         } elseif ($isShortLeave) {
             $workingDays = 0.2; // 1.5 hour break
         } else {
-            // Calculate net working days (excluding weekends and public/gazette/company holidays)
+            // Calculate net working days (excluding weekends and public/company holidays)
             $workingDays = $this->leavePolicyService->calculateWorkingDays($request->start_date, $request->end_date);
 
             if ($workingDays <= 0) {

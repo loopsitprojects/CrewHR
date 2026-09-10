@@ -158,11 +158,11 @@
                             @endif
                         </a>
                         <a href="{{ route('my-leaves.index') }}" 
-                           title="My Leaves"
+                           title="Leave Record Directory"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('my-leaves.*') ? 'bg-blue-50 dark:bg-slate-800 text-blue-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
                             <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-sky-400"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">My Leaves & Calendar</span>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Record Directory</span>
                             @if(request()->routeIs('my-leaves.*'))
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
@@ -261,6 +261,18 @@
                         <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isPayrollActive ? 'text-white' : 'text-slate-500 dark:text-slate-300' }}" :class="openModules.payroll ? 'rotate-180' : ''"></i>
                     </button>
                     <div x-show="openModules.payroll" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-200 dark:border-slate-800/80 ml-3.5 mt-1'">
+                        @if($normalizedRole === 'Employee')
+                        <a href="{{ route('payroll.my_payslips') }}" 
+                           title="My Monthly Payslips"
+                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.my_payslips', 'payroll.index') ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
+                            <i data-lucide="receipt" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">My Payslips</span>
+                            @if(request()->routeIs('payroll.my_payslips', 'payroll.index'))
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+                        @else
                         <a href="{{ route('payroll.index') }}" 
                            title="Payroll & Payslips"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
@@ -268,6 +280,17 @@
                             <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Monthly Payroll Master</span>
                             @if(request()->routeIs('payroll.index'))
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+
+                        <a href="{{ route('payroll.my_payslips') }}" 
+                           title="My Personal Payslips"
+                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.my_payslips') ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
+                            <i data-lucide="receipt" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">My Payslips</span>
+                            @if(request()->routeIs('payroll.my_payslips'))
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
@@ -282,6 +305,29 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
+
+                        <a href="{{ route('payroll.overtime.index') }}" 
+                           title="Overtime Management Sub-Module"
+                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.overtime.*') ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Overtime</span>
+                            @if(request()->routeIs('payroll.overtime.*'))
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+
+                        <a href="{{ route('payroll.advances.index') }}" 
+                           title="Salary Advances Sub-Module"
+                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.advances.*') ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
+                            <i data-lucide="hand-coins" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Salary Advances</span>
+                            @if(request()->routeIs('payroll.advances.*'))
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+                        @endif
                     </div>
                 </div>
                 <div class="border-t border-slate-200 dark:border-slate-800/80 mx-2 my-1.5"></div>

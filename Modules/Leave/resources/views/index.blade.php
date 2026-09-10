@@ -83,7 +83,7 @@
                 <div class="flex items-center gap-3">
                     <i class="ph ph-calendar-blank text-2xl text-blue-600"></i>
                     <h2 class="text-lg font-bold text-gray-900">{{ $date->format('F Y') }}</h2>
-                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">{{ $gazetteCount }} Gazette Holidays</span>
+                    <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">{{ $holidayCount }} Holidays</span>
                     
                     <button class="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1 shadow-sm ml-2">
                         <i class="ph ph-user"></i> Personal Calendar <i class="ph ph-caret-down ml-1 text-[10px]"></i>
@@ -124,13 +124,8 @@
                             }
                             
                             if ($cday['holiday']) {
-                                if ($cday['holiday']->type == 'Gazette') {
-                                    $bgClass = 'bg-orange-50';
-                                    $borderClass = 'border border-orange-200';
-                                } else {
-                                    $bgClass = 'bg-red-50';
-                                    $borderClass = 'border border-red-200';
-                                }
+                                $bgClass = 'bg-orange-50';
+                                $borderClass = 'border border-orange-200';
                             }
                             
                             if ($isToday) {
@@ -144,7 +139,7 @@
                             <div class="flex justify-between w-full">
                                 <span>{{ $cday['day'] }}</span>
                                 @if($cday['holiday'])
-                                    <i class="ph ph-briefcase {{ $cday['holiday']->type == 'Gazette' ? 'text-orange-400' : 'text-red-400' }} text-xs mt-1" title="{{ $cday['holiday']->title }}"></i>
+                                    <i class="ph ph-briefcase text-orange-500 text-xs mt-1" title="{{ $cday['holiday']->title }}"></i>
                                 @endif
                             </div>
                             

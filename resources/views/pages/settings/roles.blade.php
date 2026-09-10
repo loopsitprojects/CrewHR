@@ -47,7 +47,7 @@
                                 'submodules' => [
                                     'Leave' => [
                                         'name' => 'My Leaves & Calendar', 
-                                        'desc' => 'Personal Leave Application & Sri Lanka Gazette Calendar',
+                                        'desc' => 'Personal Leave Application & Holiday Calendar',
                                         'toggle' => 'module_leave_enabled',
                                         'status' => $moduleStatuses['Leave'] ?? true
                                     ],
@@ -155,11 +155,11 @@
                                     <div class="text-[10px] text-slate-400 font-semibold">{{ $subData['desc'] }}</div>
                                 </td>
 
-                                <!-- Global Toggle -->
+                                <!-- Global Toggle Switch -->
                                 <td class="p-3 text-center">
-                                    <label class="inline-flex items-center cursor-pointer select-none">
+                                    <label class="relative inline-flex items-center cursor-pointer select-none">
                                         <input type="checkbox" name="{{ $subData['toggle'] }}" value="1" {{ $subData['status'] ? 'checked' : '' }} class="sr-only peer">
-                                        <div class="w-8 h-4.5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-blue-600 relative"></div>
+                                        <div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 dark:after:border-slate-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500 border border-slate-300 dark:border-slate-600 shadow-inner"></div>
                                     </label>
                                 </td>
 
@@ -170,8 +170,10 @@
                                         $isChecked = $rolePermissions[$roleName][$subKey] ?? true;
                                     @endphp
                                     <td class="p-3 text-center">
-                                        <input type="checkbox" name="{{ $inputName }}" value="1" {{ $isChecked ? 'checked' : '' }}
-                                               class="rounded border-slate-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer">
+                                        <label class="inline-flex items-center justify-center cursor-pointer p-1">
+                                            <input type="checkbox" name="{{ $inputName }}" value="1" {{ $isChecked ? 'checked' : '' }}
+                                                   class="w-5 h-5 rounded-md border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-500 focus:ring-2 focus:ring-purple-500/30 dark:focus:ring-purple-400/30 cursor-pointer transition-all">
+                                        </label>
                                     </td>
                                 @endforeach
                             </tr>
