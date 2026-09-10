@@ -7,25 +7,7 @@
     selectedAdvanceForReject: null
 }">
 
-    @if(session('success'))
-        <div class="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 px-4 py-3 rounded-2xl flex items-center justify-between text-xs font-extrabold shadow-sm">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-check-circle text-emerald-600 text-lg"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-            <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700"><i class="ph ph-x text-base"></i></button>
-        </div>
-    @endif
 
-    @if(session('error'))
-        <div class="bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 px-4 py-3 rounded-2xl flex items-center justify-between text-xs font-extrabold shadow-sm">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-warning-circle text-rose-600 text-lg"></i>
-                <span>{{ session('error') }}</span>
-            </div>
-            <button onclick="this.parentElement.remove()" class="text-rose-500 hover:text-rose-700"><i class="ph ph-x text-base"></i></button>
-        </div>
-    @endif
 
     <!-- Header Banner -->
     <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">

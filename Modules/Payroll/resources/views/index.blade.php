@@ -28,15 +28,7 @@
     }
 }">
 
-    @if(session('success'))
-        <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center justify-between text-xs font-extrabold shadow-sm">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-check-circle text-emerald-600 text-lg"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-            <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700"><i class="ph ph-x text-base"></i></button>
-        </div>
-    @endif
+
 
     <!-- Header Banner & Top Controls -->
     <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -105,27 +97,26 @@
             </div>
         </form>
 
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2" x-data="{ exportOpen: false }">
             @if($payroll)
-                <a href="{{ route('payroll.export_master_register', $payroll->id) }}" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all">
-                    <i class="ph ph-table"></i> Master Register CSV
-                </a>
+                <div class="relative">
+                    <button @click="exportOpen = !exportOpen" @click.away="exportOpen = false" class="bg-blue-600 hover:bg-blue-700 text-white shadow-xs px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer">
+                        <i class="ph ph-download-simple text-base"></i>
+                        <span>Download Report</span>
+                        <i class="ph ph-caret-down text-xs ml-0.5"></i>
+                    </button>
 
-                <a href="{{ route('payroll.export_epf_cform', $payroll->id) }}" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all">
-                    <i class="ph ph-file-csv"></i> EPF C-Form CSV
-                </a>
-
-                <a href="{{ route('payroll.export_journal', $payroll->id) }}" class="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all">
-                    <i class="ph ph-scales"></i> Journal CSV
-                </a>
-
-                <a href="{{ route('payroll.export_bank_advice', $payroll->id) }}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all">
-                    <i class="ph ph-bank"></i> Bank Advice
-                </a>
-
-                <a href="{{ route('payroll.export_cash_denomination', $payroll->id) }}" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all">
-                    <i class="ph ph-money"></i> Cash Notes
-                </a>
+                    <div x-show="exportOpen" x-cloak class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200/90 py-1.5 z-50">
+                        <a href="{{ route('payroll.export_report', ['id' => $payroll->id, 'format' => 'pdf', 'staff_category' => $category, 'payment_method' => $paymentMethodFilter]) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-rose-600 transition-colors">
+                            <i class="ph ph-file-pdf text-rose-500 text-base"></i>
+                            <span>Download PDF Report</span>
+                        </a>
+                        <a href="{{ route('payroll.export_report', ['id' => $payroll->id, 'format' => 'csv', 'staff_category' => $category, 'payment_method' => $paymentMethodFilter]) }}" class="flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-emerald-600 transition-colors">
+                            <i class="ph ph-file-csv text-emerald-600 text-base"></i>
+                            <span>Download CSV Report</span>
+                        </a>
+                    </div>
+                </div>
             @endif
         </div>
     </div>

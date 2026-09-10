@@ -393,6 +393,175 @@ class PayrollController extends Controller
             ->with('success', "Payroll for {$monthName} {$year} processed successfully with Sri Lanka statutory formulas, dynamic No-Pay, direct/indirect accounting & loan deductions!");
     }
 
+    public function exportReport(Request $request, $id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $payroll = Payroll::with(['payslips.employee.user', 'payslips.employee.department', 'payslips.employee.designation'])->findOrFail($id);
+        
+        $category = $request->query('staff_category', 'All');
+        $paymentMethodFilter = $request->query('payment_method', 'All');
+        $format = strtolower($request->query('format', 'pdf'));
+
+        $payslips = $payroll->payslips;
+
+        if ($category && $category !== 'All') {
+            $payslips = $payslips->filter(function ($ps) use ($category) {
+                return ($ps->staff_category ?? $ps->employee->staff_category ?? '') === $category;
+            });
+        }
+
+        if ($paymentMethodFilter && $paymentMethodFilter !== 'All') {
+            $payslips = $payslips->filter(function ($ps) use ($paymentMethodFilter) {
+                return ($ps->payment_method ?? $ps->employee->payment_method ?? 'Bank Transfer') === $paymentMethodFilter;
+            });
+        }
+
+        if ($format === 'pdf') {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('payroll::pdf.payroll_report', [
+                'payroll' => $payroll,
+                'payslips' => $payslips,
+                'category' => $category,
+                'paymentMethodFilter' => $paymentMethodFilter,
+            ])->setPaper('a4', 'landscape');
+
+            return $pdf->download("Payroll_Master_Report_{$payroll->month}_{$payroll->year}.pdf");
+        }
+
+        $filename = "Payroll_Report_{$payroll->month}_{$payroll->year}.csv";
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename={$filename}",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($payroll, $payslips, $category, $paymentMethodFilter) {
+            $file = fopen('php://output', 'w');
+
+            // Header summary
+            fputcsv($file, ["PAYROLL CONSOLIDATED REPORT - {$payroll->cycle_name}"]);
+            fputcsv($file, ["Category Filter:", $category, "Payment Method Filter:", $paymentMethodFilter, "Total Records:", $payslips->count()]);
+            fputcsv($file, []);
+
+            // Header columns
+            fputcsv($file, [
+                'Emp ID', 'EPF No', 'NIC', 'Employee Name', 'Department', 'Designation', 'Cost Center', 'Staff Type', 'Payment Method', 'Bank Name', 'Account Number',
+                'Basic Salary', 'Increments (Basic)', 'Budget Allowance', 'Total Base Pay',
+                'Travelling Allw', 'COLA Allw', 'Increments (Allw)', 'Other Fixed Allw', 'Total Fixed Allw',
+                'OT Hours', 'OT Pay', 'Shift Allw', 'Incentive / Commission', 'Arrears (Basic)', 'Arrears (Allw)', 'Total Variable Pay',
+                'No-Pay Days', 'No-Pay (Basic)', 'No-Pay (Allw)', 'Total No-Pay Deducted',
+                'Total For EPF', 'Gross Salary',
+                'EPF Employee (8%)', 'EPF Employer (12%)', 'Total EPF (20%)', 'ETF Employer (3%)', 'APIT / PAYE Tax',
+                'Salary Advance', 'Loan Repayment', 'PickMe / Expense Recovery', 'Other Deductions', 'Total Deductions',
+                'Net Salary (LKR)'
+            ]);
+
+            foreach ($payslips as $ps) {
+                $emp = $ps->employee;
+                fputcsv($file, [
+                    $emp->employee_id_number ?? "EMP-{$emp->id}",
+                    $emp->epf_registration_no ?? 'N/A',
+                    $emp->national_id ?? $emp->nic ?? 'N/A',
+                    $emp->user->name ?? 'Employee',
+                    $ps->department_name ?: ($emp->department->name ?? 'Corporate'),
+                    $emp->designation->name ?? 'Staff',
+                    $ps->cost_classification ?? 'Direct',
+                    $ps->staff_category ?? 'Executive',
+                    $ps->payment_method ?? $emp->payment_method ?? 'Bank Transfer',
+                    $emp->bank_name ?? 'Commercial Bank',
+                    $emp->bank_account_number ?? $emp->account_number ?? 'N/A',
+
+                    number_format($ps->basic_salary, 2, '.', ''),
+                    number_format($ps->increments_basic, 2, '.', ''),
+                    number_format($ps->budget_allowance, 2, '.', ''),
+                    number_format($ps->total_base_pay ?: ($ps->basic_salary + $ps->increments_basic + $ps->budget_allowance), 2, '.', ''),
+
+                    number_format($ps->travelling_allowance, 2, '.', ''),
+                    number_format($ps->cost_of_living_allowance, 2, '.', ''),
+                    number_format($ps->increments_allowance, 2, '.', ''),
+                    number_format($ps->fixed_allowance, 2, '.', ''),
+                    number_format($ps->total_fixed_allowance ?: ($ps->travelling_allowance + $ps->cost_of_living_allowance + $ps->increments_allowance + $ps->fixed_allowance), 2, '.', ''),
+
+                    $ps->ot_hours,
+                    number_format($ps->ot_amount, 2, '.', ''),
+                    number_format($ps->shift_allowance, 2, '.', ''),
+                    number_format($ps->incentive_commission ?: $ps->performance_incentive, 2, '.', ''),
+                    number_format($ps->salary_arrears_basic, 2, '.', ''),
+                    number_format($ps->salary_arrears_allowance, 2, '.', ''),
+                    number_format($ps->total_variable_pay ?: ($ps->ot_amount + $ps->shift_allowance + $ps->incentive_commission + $ps->salary_arrears_basic + $ps->salary_arrears_allowance), 2, '.', ''),
+
+                    $ps->no_pay_days,
+                    number_format($ps->no_pay_basic_deduction, 2, '.', ''),
+                    number_format($ps->no_pay_allowance_deduction, 2, '.', ''),
+                    number_format($ps->total_no_pay_deduction ?: $ps->no_pay_deduction, 2, '.', ''),
+
+                    number_format($ps->total_for_epf, 2, '.', ''),
+                    number_format($ps->gross_salary, 2, '.', ''),
+
+                    number_format($ps->epf_employee, 2, '.', ''),
+                    number_format($ps->epf_employer, 2, '.', ''),
+                    number_format($ps->epf_employee + $ps->epf_employer, 2, '.', ''),
+                    number_format($ps->etf_employer, 2, '.', ''),
+                    number_format($ps->apit_tax, 2, '.', ''),
+
+                    number_format($ps->salary_advance, 2, '.', ''),
+                    number_format($ps->loan_installment, 2, '.', ''),
+                    number_format($ps->personal_expense_recovery, 2, '.', ''),
+                    number_format($ps->other_deductions, 2, '.', ''),
+                    number_format($ps->total_deductions, 2, '.', ''),
+
+                    number_format($ps->net_salary, 2, '.', '')
+                ]);
+            }
+
+            // Totals row
+            fputcsv($file, []);
+            fputcsv($file, [
+                'TOTALS', '', '', '', '', '', '', '', '', '', '',
+                number_format($payslips->sum('basic_salary'), 2, '.', ''),
+                number_format($payslips->sum('increments_basic'), 2, '.', ''),
+                number_format($payslips->sum('budget_allowance'), 2, '.', ''),
+                number_format($payslips->sum(function($ps){ return $ps->total_base_pay ?: ($ps->basic_salary + $ps->increments_basic + $ps->budget_allowance); }), 2, '.', ''),
+                number_format($payslips->sum('travelling_allowance'), 2, '.', ''),
+                number_format($payslips->sum('cost_of_living_allowance'), 2, '.', ''),
+                number_format($payslips->sum('increments_allowance'), 2, '.', ''),
+                number_format($payslips->sum('fixed_allowance'), 2, '.', ''),
+                number_format($payslips->sum(function($ps){ return $ps->total_fixed_allowance ?: ($ps->travelling_allowance + $ps->cost_of_living_allowance + $ps->increments_allowance + $ps->fixed_allowance); }), 2, '.', ''),
+                $payslips->sum('ot_hours'),
+                number_format($payslips->sum('ot_amount'), 2, '.', ''),
+                number_format($payslips->sum('shift_allowance'), 2, '.', ''),
+                number_format($payslips->sum(function($ps){ return $ps->incentive_commission ?: $ps->performance_incentive; }), 2, '.', ''),
+                number_format($payslips->sum('salary_arrears_basic'), 2, '.', ''),
+                number_format($payslips->sum('salary_arrears_allowance'), 2, '.', ''),
+                number_format($payslips->sum(function($ps){ return $ps->total_variable_pay ?: ($ps->ot_amount + $ps->shift_allowance + $ps->incentive_commission + $ps->salary_arrears_basic + $ps->salary_arrears_allowance); }), 2, '.', ''),
+                $payslips->sum('no_pay_days'),
+                number_format($payslips->sum('no_pay_basic_deduction'), 2, '.', ''),
+                number_format($payslips->sum('no_pay_allowance_deduction'), 2, '.', ''),
+                number_format($payslips->sum(function($ps){ return $ps->total_no_pay_deduction ?: $ps->no_pay_deduction; }), 2, '.', ''),
+                number_format($payslips->sum('total_for_epf'), 2, '.', ''),
+                number_format($payslips->sum('gross_salary'), 2, '.', ''),
+                number_format($payslips->sum('epf_employee'), 2, '.', ''),
+                number_format($payslips->sum('epf_employer'), 2, '.', ''),
+                number_format($payslips->sum('epf_employee') + $payslips->sum('epf_employer'), 2, '.', ''),
+                number_format($payslips->sum('etf_employer'), 2, '.', ''),
+                number_format($payslips->sum('apit_tax'), 2, '.', ''),
+                number_format($payslips->sum('salary_advance'), 2, '.', ''),
+                number_format($payslips->sum('loan_installment'), 2, '.', ''),
+                number_format($payslips->sum('personal_expense_recovery'), 2, '.', ''),
+                number_format($payslips->sum('other_deductions'), 2, '.', ''),
+                number_format($payslips->sum('total_deductions'), 2, '.', ''),
+                number_format($payslips->sum('net_salary'), 2, '.', '')
+            ]);
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     public function exportMasterRegister($id)
     {
         $this->authorizeAdminOrHr();

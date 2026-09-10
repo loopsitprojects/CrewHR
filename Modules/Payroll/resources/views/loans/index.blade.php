@@ -11,15 +11,7 @@
     selectedLoanLedger: null
 }">
 
-    @if(session('success'))
-        <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center justify-between text-xs font-extrabold shadow-sm">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-check-circle text-emerald-600 text-lg"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-            <button onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700"><i class="ph ph-x text-base"></i></button>
-        </div>
-    @endif
+
 
     <!-- Header Banner -->
     <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">

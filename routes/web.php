@@ -32,9 +32,18 @@ Route::post('/my-leaves/{id}/cancel', [MyLeavesController::class, 'cancel'])->na
 // Employees Directory
 Route::resource('employees', EmployeeController::class)->names('employee');
 
-// Attendance Tracking
+// Attendance Tracking & Multi-View Engine
 Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendance.index');
 Route::post('/attendance/clock', [AttendanceController::class, 'clockToggle'])->name('attendance.clock_toggle');
+Route::post('/attendance/manual', [AttendanceController::class, 'storeManual'])->name('attendance.manual_store');
+Route::put('/attendance/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
+Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+Route::post('/attendance/adjustments', [AttendanceController::class, 'storeAdjustment'])->name('attendance.adjustments.store');
+Route::post('/attendance/adjustments/{id}/review', [AttendanceController::class, 'reviewAdjustment'])->name('attendance.adjustments.review');
+Route::get('/attendance/export-monthly', [AttendanceController::class, 'exportMonthly'])->name('attendance.export_monthly');
+Route::get('/attendance/sample-csv', [AttendanceController::class, 'downloadSampleCsv'])->name('attendance.sample_csv');
+Route::post('/attendance/import', [AttendanceController::class, 'bulkImport'])->name('attendance.import');
+Route::post('/attendance/sync-leaves', [AttendanceController::class, 'syncLeaves'])->name('attendance.sync_leaves');
 
 use Modules\Payroll\Http\Controllers\LoanController;
 use Modules\Payroll\Http\Controllers\OvertimeController;
@@ -44,6 +53,7 @@ use Modules\Payroll\Http\Controllers\SalaryAdvanceController;
 Route::get('/payrolls', [PayrollController::class, 'index'])->name('payroll.index');
 Route::post('/payrolls/process', [PayrollController::class, 'process'])->name('payroll.process');
 Route::post('/payrolls/advances', [PayrollController::class, 'storeAdvance'])->name('payroll.advances.store');
+Route::get('/payrolls/export/{id}', [PayrollController::class, 'exportReport'])->name('payroll.export_report');
 Route::get('/payrolls/export-master-register/{id}', [PayrollController::class, 'exportMasterRegister'])->name('payroll.export_master_register');
 Route::get('/payrolls/export-epf-cform/{id}', [PayrollController::class, 'exportEpfCForm'])->name('payroll.export_epf_cform');
 Route::get('/payrolls/export-journal/{id}', [PayrollController::class, 'exportJournalEntry'])->name('payroll.export_journal');
