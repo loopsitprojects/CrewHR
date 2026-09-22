@@ -6,6 +6,6 @@
     "Attendance": true,
     "Payroll": true,
     "Recruitment": false,
-    "Performance": false,
+    "Performance": true,
     "Organization": false
 }

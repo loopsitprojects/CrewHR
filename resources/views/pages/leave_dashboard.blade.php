@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'LOOPS HR - Leave Management Dashboard', 'breadcrumb' => 'Dashboard'])
+@extends('layouts.app', ['title' => 'Crew HR - Leave Management Dashboard', 'breadcrumb' => 'Dashboard'])
 
 @section('content')
 @php

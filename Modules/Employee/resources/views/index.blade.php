@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'LOOPS HR - Employees Directory', 'breadcrumb' => 'Employees Directory'])
+@extends('layouts.app', ['title' => 'Crew HR - Employees Directory', 'breadcrumb' => 'Employees Directory'])
 
 @php
     $currentRole = session('current_role', Auth::user()?->employee?->system_role ?? 'Super (Admin)');

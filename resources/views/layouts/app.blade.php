@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50 overflow-hidden">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'LOOPS HR - Enterprise Portal' }}</title>
+
+    <title>{{ $title ?? 'Crew HR - Enterprise Portal' }}</title>
 
     <script>
         if (localStorage.getItem('theme') === 'dark') {

@@ -129,7 +129,7 @@
     <table class="header-table">
         <tr>
             <td>
-                <div class="header-title">LOOPS HR &bull; Payroll Master Report</div>
+                <div class="header-title">Crew HR &bull; Payroll Master Report</div>
                 <div class="header-subtitle">
                     Salary Cycle: <strong>{{ $payroll->cycle_name }}</strong> &bull; Period: {{ date('F Y', mktime(0, 0, 0, $payroll->month, 1, $payroll->year)) }}
                 </div>

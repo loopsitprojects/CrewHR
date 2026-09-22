@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'LOOPS HR - My Payslips', 'breadcrumb' => 'My Payslips'])
+@extends('layouts.app', ['title' => 'Crew HR - My Payslips', 'breadcrumb' => 'My Payslips'])
 
 @section('content')
 <div class="space-y-6" x-data="{ 

@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'LOOPS HR - Leave Record Directory', 'breadcrumb' => 'Leave Record Directory'])
+@extends('layouts.app', ['title' => 'Crew HR - Leave Record Directory', 'breadcrumb' => 'Leave Record Directory'])
 
 @section('content')
 <div class="flex-1 flex flex-col min-h-0 space-y-4 h-full overflow-hidden" 

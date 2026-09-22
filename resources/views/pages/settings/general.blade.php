@@ -20,7 +20,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold">
             <div>
                 <label class="block text-slate-700 dark:text-slate-300 mb-1 font-bold">Company / Organization Name *</label>
-                <input type="text" name="company_name" value="{{ $settingsRaw['company_name'] ?? 'Loops HR Portal (Sri Lanka)' }}" class="w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white p-2.5 focus:ring-2 focus:ring-blue-500/20" required>
+                <input type="text" name="company_name" value="{{ $settingsRaw['company_name'] ?? 'Crew HR Portal' }}" class="w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white p-2.5 focus:ring-2 focus:ring-blue-500/20" required>
             </div>
 
             <div>
