@@ -12,10 +12,38 @@ use Modules\Leave\Models\Holiday;
 use Modules\Leave\Models\LeaveRequest;
 use Modules\Payroll\Models\OvertimeRecord;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class AttendanceController extends Controller
 {
+    private function ensureAdjustmentsTableExists(): bool
+    {
+        try {
+            if (!Schema::hasTable('attendance_adjustments')) {
+                Schema::create('attendance_adjustments', function (Blueprint $table) {
+                    $table->id();
+                    $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
+                    $table->date('date');
+                    $table->string('clock_in')->nullable();
+                    $table->string('clock_out')->nullable();
+                    $table->text('reason');
+                    $table->string('status')->default('Pending');
+                    $table->foreignId('reviewed_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+                    $table->timestamp('reviewed_at')->nullable();
+                    $table->text('review_remarks')->nullable();
+                    $table->timestamps();
+                });
+            }
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Attendance adjustments table auto-creation: ' . $e->getMessage());
+            return Schema::hasTable('attendance_adjustments');
+        }
+    }
+
     private function getActiveRole()
     {
         $sessionRole = session('current_role') ?? session('active_role');
@@ -261,23 +289,36 @@ class AttendanceController extends Controller
             'ot_hours' => round($myMonthlyAttendances->sum('total_ot_hours'), 1),
         ];
 
-        // 4. Regularization Adjustments Data
-        $adjustmentsQuery = AttendanceAdjustment::with(['employee.user', 'employee.department', 'reviewer'])
-            ->when($deptFilter, function ($q) use ($deptFilter) {
-                $q->whereHas('employee', function ($sub) use ($deptFilter) {
-                    $sub->where('department_id', $deptFilter);
-                });
-            })
-            ->orderBy('created_at', 'desc');
+        // 4. Regularization Adjustments Data (Safe query with auto-healing table check)
+        $adjustments = collect();
+        $pendingAdjustmentsCount = 0;
 
-        if (!in_array($role, ['Super Admin', 'Super (Admin)', 'HR Admin', 'HR Manager', 'HR Lead', 'Department Head', 'Line Manager', 'Manager'])) {
-            if ($myEmp) {
-                $adjustmentsQuery->where('employee_id', $myEmp->id);
+        try {
+            $this->ensureAdjustmentsTableExists();
+
+            if (Schema::hasTable('attendance_adjustments')) {
+                $adjustmentsQuery = AttendanceAdjustment::with(['employee.user', 'employee.department', 'reviewer'])
+                    ->when($deptFilter, function ($q) use ($deptFilter) {
+                        $q->whereHas('employee', function ($sub) use ($deptFilter) {
+                            $sub->where('department_id', $deptFilter);
+                        });
+                    })
+                    ->orderBy('created_at', 'desc');
+
+                if (!in_array($role, ['Super Admin', 'Super (Admin)', 'HR Admin', 'HR Manager', 'HR Lead', 'Department Head', 'Line Manager', 'Manager'])) {
+                    if ($myEmp) {
+                        $adjustmentsQuery->where('employee_id', $myEmp->id);
+                    }
+                }
+
+                $adjustments = $adjustmentsQuery->get();
+                $pendingAdjustmentsCount = AttendanceAdjustment::where('status', 'Pending')->count();
             }
+        } catch (\Throwable $e) {
+            Log::warning('Attendance adjustments query skipped: ' . $e->getMessage());
+            $adjustments = collect();
+            $pendingAdjustmentsCount = 0;
         }
-
-        $adjustments = $adjustmentsQuery->get();
-        $pendingAdjustmentsCount = AttendanceAdjustment::where('status', 'Pending')->count();
 
         // Months and Years lists for filters
         $monthsList = [
@@ -643,6 +684,8 @@ class AttendanceController extends Controller
             'reason' => 'required|string|max:500',
         ]);
 
+        $this->ensureAdjustmentsTableExists();
+
         AttendanceAdjustment::create([
             'employee_id' => $employeeId,
             'date' => $request->date,
@@ -659,6 +702,7 @@ class AttendanceController extends Controller
     public function reviewAdjustment(Request $request, $id)
     {
         $this->authorizeAdminOrHr();
+        $this->ensureAdjustmentsTableExists();
 
         $request->validate([
             'action' => 'required|in:Approved,Rejected',
