@@ -16,8 +16,9 @@
     </script>
 
     <!-- Favicon & Icons -->
-    <link rel="icon" type="image/jpeg" href="{{ asset('crew.jpeg') }}">
-    <link rel="apple-touch-icon" href="{{ asset('crew.jpeg') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ asset('loops-icon.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('loops-icon.png') }}">
 
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,7 +39,7 @@
         [x-cloak] { display: none !important; }
     </style>
 </head>
-<body class="h-screen overflow-hidden antialiased text-slate-800 bg-[#f1f5f9] dark:bg-[#0d1117] dark:text-slate-200 transition-colors duration-200"
+<body class="h-screen overflow-hidden antialiased text-slate-800 bg-[#f4f6fa] dark:bg-[#070b14] dark:text-slate-200 transition-colors duration-200"
       x-data="{ 
           role: '{{ session('current_role', 'Super (Admin)') }}', 
           theme: localStorage.getItem('theme') || 'light',
@@ -76,24 +77,25 @@
 <div class="h-screen flex overflow-hidden">
 
     <!-- Collapsible Sidebar with Lucide Icons (Dual Theme: Light & Dark Mode Support) -->
-    <aside :class="sidebarCollapsed ? 'w-16' : 'w-64'" class="bg-white dark:bg-[#0f172a] border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between h-screen shrink-0 z-20 shadow-2xl transition-all duration-300 ease-in-out">
+    <aside :class="sidebarCollapsed ? 'w-16' : 'w-64'" class="bg-[#0b132b] dark:bg-[#070e1b] border-r border-slate-800/80 flex flex-col justify-between h-screen shrink-0 z-20 shadow-2xl transition-all duration-300 ease-in-out">
         <div class="flex-1 flex flex-col min-h-0 overflow-y-auto">
             <!-- Sidebar Brand Header (Logo Click Navigates to Home Dashboard) -->
-            <div class="h-16 flex items-center justify-center px-3 border-b border-slate-200 dark:border-slate-800/80 transition-all duration-300">
+            <div class="h-16 flex items-center px-4 border-b border-slate-800/80 transition-all duration-300">
                 <a href="{{ route('dashboard') }}" 
-                   class="flex items-center justify-center w-full cursor-pointer group" 
+                   class="flex items-center gap-2.5 w-full cursor-pointer group" 
                    title="Go to Home Dashboard">
                     <!-- Collapsed Mode: Icon Only -->
                     <img x-show="sidebarCollapsed" 
-                         src="{{ asset('crew.jpeg') }}" 
-                         class="w-9 h-9 object-cover rounded-xl shrink-0 group-hover:scale-105 transition-all shadow-xs" 
-                         alt="Crew HR Icon">
+                         src="{{ asset('loops-icon.png') }}" 
+                         class="w-8 h-8 object-contain shrink-0 group-hover:scale-105 transition-all mx-auto" 
+                         alt="Loops HR Icon">
 
-                    <!-- Expanded Mode -->
-                    <img x-show="!sidebarCollapsed" 
-                         src="{{ asset('crew.jpeg') }}" 
-                         class="h-10 w-auto max-w-[200px] object-contain rounded-lg shrink-0 group-hover:scale-105 transition-all bg-white px-2 py-0.5 shadow-2xs" 
-                         alt="Crew HR Logo">
+                    <!-- Expanded Mode: Loops Brand Logo -->
+                    <div x-show="!sidebarCollapsed" class="flex items-center">
+                        <img src="{{ asset('LoopsWhite.png') }}" 
+                             class="h-9 w-auto max-w-[190px] object-contain shrink-0 group-hover:scale-105 transition-all" 
+                             alt="Loops HR Logo">
+                    </div>
                 </a>
             </div>
 
@@ -131,46 +133,46 @@
                             @click="toggleModule('leave')" 
                             title="Leave Management"
                             :class="{ 'justify-center': sidebarCollapsed }"
-                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isLeaveActive ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'hover:bg-slate-100 dark:hover:bg-slate-800/60' }}">
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isLeaveActive ? 'bg-blue-600 dark:bg-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <div class="flex items-center gap-2">
-                            <i data-lucide="calendar" class="w-4 h-4 shrink-0 {{ $isLeaveActive ? 'text-white' : 'text-blue-600 dark:text-sky-400' }}"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-black uppercase tracking-wider {{ $isLeaveActive ? 'text-white' : 'text-slate-900 dark:text-white' }}">Leave Management</span>
+                            <i data-lucide="calendar" class="w-4 h-4 shrink-0 {{ $isLeaveActive ? 'text-white' : 'text-blue-400 dark:text-sky-400' }}"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider {{ $isLeaveActive ? 'text-white' : 'text-slate-300' }}">Leave Management</span>
                         </div>
-                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isLeaveActive ? 'text-white' : 'text-slate-500 dark:text-slate-300' }}" :class="openModules.leave ? 'rotate-180' : ''"></i>
+                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isLeaveActive ? 'text-white' : 'text-slate-400' }}" :class="openModules.leave ? 'rotate-180' : ''"></i>
                     </button>
-                    <div x-show="openModules.leave" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-200 dark:border-slate-800/80 ml-3.5 mt-1'">
+                    <div x-show="openModules.leave" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         @if($isModuleActive('Leave') && $canAccess('Leave'))
                         <a href="{{ route('dashboard') }}" 
                            title="Leave Dashboard"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('dashboard', 'leave.dashboard') ? 'bg-blue-50 dark:bg-slate-800 text-blue-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-sky-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('dashboard', 'leave.dashboard') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Dashboard</span>
                             @if(request()->routeIs('dashboard', 'leave.dashboard'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         <a href="{{ route('my-leaves.index') }}" 
                            title="Leave Record Directory"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('my-leaves.*') ? 'bg-blue-50 dark:bg-slate-800 text-blue-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-sky-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('my-leaves.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Record Directory</span>
                             @if(request()->routeIs('my-leaves.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
 
                         @if($isModuleActive('Approvals') && $canAccess('Approvals'))
                         <a href="{{ route('approvals.index') }}" 
-                           title="Approvals Workflow"
+                           title="Leave Approvals"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('approvals.index') ? 'bg-blue-50 dark:bg-slate-800 text-blue-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="check-square" class="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-sky-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('approvals.index') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="check-square" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Approvals</span>
                             @if(request()->routeIs('approvals.index'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
@@ -179,17 +181,17 @@
                         <a href="{{ route('analytics.index') }}" 
                            title="Leave Analytics"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('analytics.index') ? 'bg-blue-50 dark:bg-slate-800 text-blue-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-sky-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('analytics.index') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Reports & Analytics</span>
                             @if(request()->routeIs('analytics.index'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
                     </div>
                 </div>
-                <div class="border-t border-slate-200 dark:border-slate-800/80 mx-2 my-1.5"></div>
+                <div class="border-t border-slate-800/80 mx-2 my-1.5"></div>
                 @endif
 
                 <!-- Group 2: EMPLOYEES & WORKFORCE SUITE -->
@@ -200,23 +202,23 @@
                             @click="toggleModule('employees')" 
                             title="Employees & Workforce"
                             :class="{ 'justify-center': sidebarCollapsed }"
-                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isEmployeesActive ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'hover:bg-slate-100 dark:hover:bg-slate-800/60' }}">
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isEmployeesActive ? 'bg-blue-600 dark:bg-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <div class="flex items-center gap-2">
-                            <i data-lucide="users" class="w-4 h-4 shrink-0 {{ $isEmployeesActive ? 'text-white' : 'text-indigo-600 dark:text-cyan-400' }}"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-black uppercase tracking-wider {{ $isEmployeesActive ? 'text-white' : 'text-slate-900 dark:text-white' }}">Employees & Workforce</span>
+                            <i data-lucide="users" class="w-4 h-4 shrink-0 {{ $isEmployeesActive ? 'text-white' : 'text-indigo-400 dark:text-cyan-400' }}"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider {{ $isEmployeesActive ? 'text-white' : 'text-slate-300' }}">Employees & Workforce</span>
                         </div>
-                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isEmployeesActive ? 'text-white' : 'text-slate-500 dark:text-slate-300' }}" :class="openModules.employees ? 'rotate-180' : ''"></i>
+                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isEmployeesActive ? 'text-white' : 'text-slate-400' }}" :class="openModules.employees ? 'rotate-180' : ''"></i>
                     </button>
-                    <div x-show="openModules.employees" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-200 dark:border-slate-800/80 ml-3.5 mt-1'">
+                    <div x-show="openModules.employees" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         @if($isModuleActive('Employee') && $canAccess('Employee'))
                         <a href="{{ route('employee.index') }}" 
                            title="Employee Directory"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('employee.*') ? 'bg-indigo-50 dark:bg-slate-800 text-indigo-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="contact" class="w-3.5 h-3.5 shrink-0 text-indigo-600 dark:text-cyan-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('employee.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="contact" class="w-3.5 h-3.5 shrink-0 text-indigo-400 dark:text-cyan-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Employee Directory</span>
                             @if(request()->routeIs('employee.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
@@ -225,17 +227,17 @@
                         <a href="{{ route('attendance.index') }}" 
                            title="Attendance Tracking"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('attendance.*') ? 'bg-indigo-50 dark:bg-slate-800 text-indigo-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-indigo-600 dark:text-cyan-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('attendance.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-indigo-400 dark:text-cyan-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Attendance Tracking</span>
                             @if(request()->routeIs('attendance.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
                     </div>
                 </div>
-                <div class="border-t border-slate-200 dark:border-slate-800/80 mx-2 my-1.5"></div>
+                <div class="border-t border-slate-800/80 mx-2 my-1.5"></div>
                 @endif
 
                 <!-- Group 3: PAYROLL & PAYSLIPS SUITE -->
@@ -246,23 +248,23 @@
                             @click="toggleModule('payroll')" 
                             title="Payroll & Payslips"
                             :class="{ 'justify-center': sidebarCollapsed }"
-                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isPayrollActive ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'hover:bg-slate-100 dark:hover:bg-slate-800/60' }}">
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isPayrollActive ? 'bg-blue-600 dark:bg-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <div class="flex items-center gap-2">
-                            <i data-lucide="file-text" class="w-4 h-4 shrink-0 {{ $isPayrollActive ? 'text-white' : 'text-emerald-600 dark:text-emerald-400' }}"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-black uppercase tracking-wider {{ $isPayrollActive ? 'text-white' : 'text-slate-900 dark:text-white' }}">Payroll & Payslips</span>
+                            <i data-lucide="file-text" class="w-4 h-4 shrink-0 {{ $isPayrollActive ? 'text-white' : 'text-emerald-400' }}"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider {{ $isPayrollActive ? 'text-white' : 'text-slate-300' }}">Payroll & Payslips</span>
                         </div>
-                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isPayrollActive ? 'text-white' : 'text-slate-500 dark:text-slate-300' }}" :class="openModules.payroll ? 'rotate-180' : ''"></i>
+                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isPayrollActive ? 'text-white' : 'text-slate-400' }}" :class="openModules.payroll ? 'rotate-180' : ''"></i>
                     </button>
-                    <div x-show="openModules.payroll" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-200 dark:border-slate-800/80 ml-3.5 mt-1'">
+                    <div x-show="openModules.payroll" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         @if($normalizedRole !== 'Employee')
                         <a href="{{ route('payroll.index') }}" 
                            title="Monthly Payroll Master Register"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.index') ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.index') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Payroll Master</span>
                             @if(request()->routeIs('payroll.index'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
@@ -270,49 +272,49 @@
                         <a href="{{ route('payroll.my_payslips') }}" 
                            title="My Monthly Payslips"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.my_payslips') ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="receipt" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.my_payslips') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="receipt" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">My Payslips</span>
                             @if(request()->routeIs('payroll.my_payslips'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
 
                         <a href="{{ route('payroll.advances.index') }}" 
                            title="Salary Advances & Applications"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.advances.*') ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="hand-coins" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.advances.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="hand-coins" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Salary Advances</span>
                             @if(request()->routeIs('payroll.advances.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
 
                         <a href="{{ route('payroll.overtime.index') }}" 
                            title="Overtime Claims & Tracking"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.overtime.*') ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.overtime.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Overtime</span>
                             @if(request()->routeIs('payroll.overtime.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
 
                         <a href="{{ route('payroll.loans.index') }}" 
                            title="Staff Loans & EMI Schedules"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.loans.*') ? 'bg-emerald-50 dark:bg-slate-800 text-emerald-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="landmark" class="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.loans.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="landmark" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Loan Management</span>
                             @if(request()->routeIs('payroll.loans.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                     </div>
                 </div>
-                <div class="border-t border-slate-200 dark:border-slate-800/80 mx-2 my-1.5"></div>
+                <div class="border-t border-slate-800/80 mx-2 my-1.5"></div>
                 @endif
 
                 <!-- Group 4: RECRUITMENT ATS SUITE -->
@@ -323,27 +325,27 @@
                             @click="toggleModule('recruitment')" 
                             title="Recruitment (ATS)"
                             :class="{ 'justify-center': sidebarCollapsed }"
-                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isRecruitmentActive ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'hover:bg-slate-100 dark:hover:bg-slate-800/60' }}">
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isRecruitmentActive ? 'bg-blue-600 dark:bg-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <div class="flex items-center gap-2">
-                            <i data-lucide="briefcase" class="w-4 h-4 shrink-0 {{ $isRecruitmentActive ? 'text-white' : 'text-purple-600 dark:text-fuchsia-400' }}"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-black uppercase tracking-wider {{ $isRecruitmentActive ? 'text-white' : 'text-slate-900 dark:text-white' }}">Recruitment (ATS)</span>
+                            <i data-lucide="briefcase" class="w-4 h-4 shrink-0 {{ $isRecruitmentActive ? 'text-white' : 'text-purple-400 dark:text-fuchsia-400' }}"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider {{ $isRecruitmentActive ? 'text-white' : 'text-slate-300' }}">Recruitment (ATS)</span>
                         </div>
-                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isRecruitmentActive ? 'text-white' : 'text-slate-500 dark:text-slate-300' }}" :class="openModules.recruitment ? 'rotate-180' : ''"></i>
+                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isRecruitmentActive ? 'text-white' : 'text-slate-400' }}" :class="openModules.recruitment ? 'rotate-180' : ''"></i>
                     </button>
-                    <div x-show="openModules.recruitment" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-200 dark:border-slate-800/80 ml-3.5 mt-1'">
+                    <div x-show="openModules.recruitment" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         <a href="{{ route('recruitment.index') }}" 
                            title="Recruitment ATS"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('recruitment.*') ? 'bg-purple-50 dark:bg-slate-800 text-purple-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="briefcase" class="w-3.5 h-3.5 shrink-0 text-purple-600 dark:text-fuchsia-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('recruitment.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="briefcase" class="w-3.5 h-3.5 shrink-0 text-purple-400 dark:text-fuchsia-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Recruitment (ATS)</span>
                             @if(request()->routeIs('recruitment.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                     </div>
                 </div>
-                <div class="border-t border-slate-200 dark:border-slate-800/80 mx-2 my-1.5"></div>
+                <div class="border-t border-slate-800/80 mx-2 my-1.5"></div>
                 @endif
 
                 <!-- Group 5: PERFORMANCE MANAGEMENT SUITE -->
@@ -354,22 +356,22 @@
                             @click="toggleModule('performance')" 
                             title="Performance"
                             :class="{ 'justify-center': sidebarCollapsed }"
-                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isPerformanceActive ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20' : 'hover:bg-slate-100 dark:hover:bg-slate-800/60' }}">
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isPerformanceActive ? 'bg-blue-600 dark:bg-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <div class="flex items-center gap-2">
-                            <i data-lucide="award" class="w-4 h-4 shrink-0 {{ $isPerformanceActive ? 'text-white' : 'text-amber-600 dark:text-yellow-400' }}"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-black uppercase tracking-wider {{ $isPerformanceActive ? 'text-white' : 'text-slate-900 dark:text-white' }}">Performance</span>
+                            <i data-lucide="award" class="w-4 h-4 shrink-0 {{ $isPerformanceActive ? 'text-white' : 'text-amber-400 dark:text-yellow-400' }}"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider {{ $isPerformanceActive ? 'text-white' : 'text-slate-300' }}">Performance</span>
                         </div>
-                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isPerformanceActive ? 'text-white' : 'text-slate-500 dark:text-slate-300' }}" :class="openModules.performance ? 'rotate-180' : ''"></i>
+                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isPerformanceActive ? 'text-white' : 'text-slate-400' }}" :class="openModules.performance ? 'rotate-180' : ''"></i>
                     </button>
-                    <div x-show="openModules.performance" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-200 dark:border-slate-800/80 ml-3.5 mt-1'">
+                    <div x-show="openModules.performance" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         <a href="{{ route('appraisal.index') }}" 
                            title="Appraisal System"
                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.*') ? 'bg-amber-50 dark:bg-slate-800 text-amber-900 dark:text-white font-extrabold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-amber-600 dark:text-yellow-400"></i>
+                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-amber-400 dark:text-yellow-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Appraisal System</span>
                             @if(request()->routeIs('appraisal.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-500 dark:text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                     </div>
@@ -379,13 +381,13 @@
         </div>
 
         <!-- Sidebar Footer Settings Button -->
-        <div :class="sidebarCollapsed ? 'p-2 flex justify-center' : 'p-3'" class="border-t border-slate-200 dark:border-slate-800/80 shrink-0 bg-slate-50 dark:bg-[#0f172a]">
+        <div :class="sidebarCollapsed ? 'p-2 flex justify-center' : 'p-3'" class="border-t border-slate-800/80 shrink-0 bg-[#0b132b] dark:bg-[#070e1b]">
             <a href="{{ route('settings.index') }}" 
                title="Settings"
                :class="{ 'justify-center': sidebarCollapsed }"
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 {{ request()->routeIs('settings.index') ? 'bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 text-white font-bold shadow-lg shadow-blue-500/25' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 hover:text-slate-900 dark:hover:text-white' }}">
-                <i data-lucide="settings" class="w-5 h-5 shrink-0 {{ request()->routeIs('settings.index') ? 'text-white' : 'text-slate-700 dark:text-slate-200' }}"></i>
-                <span x-show="!sidebarCollapsed" x-cloak class="truncate font-extrabold">Settings</span>
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 {{ request()->routeIs('settings.index') ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
+                <i data-lucide="settings" class="w-5 h-5 shrink-0 text-slate-300"></i>
+                <span x-show="!sidebarCollapsed" x-cloak class="truncate font-bold">Settings</span>
             </a>
         </div>
     </aside>
@@ -393,79 +395,17 @@
     <!-- Main Content Canvas -->
     <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         
-        <!-- Header Bar (h-14, Deep Shadow) -->
-        <header class="h-14 bg-white/90 dark:bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-5 flex items-center justify-between shrink-0 z-10 shadow-sm dark:shadow-none transition-colors duration-200">
-            <!-- Left Controls: Sidebar Toggle + Welcome User Name + Dashboard Name -->
+        <!-- Header Bar (Matching Reference Shell UI) -->
+        <header class="h-16 bg-[#0b132b] dark:bg-[#070e1b] border-b border-slate-800/80 px-5 flex items-center justify-between shrink-0 z-10 transition-colors duration-200">
+            <!-- Left Controls: Sidebar Toggle Button -->
             <div class="flex items-center gap-3">
-                <button @click="toggleSidebar()" class="p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all" title="Toggle Sidebar">
+                <button @click="toggleSidebar()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer" title="Toggle Sidebar">
                     <i data-lucide="panel-left" class="w-5 h-5"></i>
                 </button>
-
-                <div class="flex items-center gap-2 text-xs font-bold">
-                    <span class="text-slate-900 dark:text-white font-black text-sm tracking-tight">Welcome, {{ Auth::user()->name ?? 'User' }}</span>
-                    <span class="text-slate-300 dark:text-slate-700">•</span>
-                    
-                    <!-- Structured Interactive Breadcrumbs Navigation -->
-                    <nav class="flex items-center gap-1.5 bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-semibold shadow-2xs">
-                        <a href="{{ route('dashboard') }}" class="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" title="Home Dashboard">
-                            <i data-lucide="home" class="w-3.5 h-3.5"></i>
-                        </a>
-
-                        @hasSection('breadcrumbs')
-                            @yield('breadcrumbs')
-                        @else
-                            @if(request()->routeIs('employee.create'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <a href="{{ route('employee.index') }}" class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">Employees Directory</a> <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">Add Employee</span>
-                            @elseif(request()->routeIs('employee.edit'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <a href="{{ route('employee.index') }}" class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">Employees Directory</a> <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">Edit Profile</span>
-                            @elseif(request()->routeIs('employee.show'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <a href="{{ route('employee.index') }}" class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">Employees Directory</a> <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">View Profile</span>
-                            @elseif(request()->routeIs('employee.*'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">Employees Directory</span>
-                            @elseif(request()->routeIs('my-leaves.*'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <a href="{{ route('dashboard') }}" class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">Leave Management</a> <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">My Leave Records</span>
-                            @elseif(request()->routeIs('approvals.*'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <a href="{{ route('dashboard') }}" class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">Leave Management</a> <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">Leave Approvals</span>
-                            @elseif(request()->routeIs('analytics.*'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <a href="{{ route('dashboard') }}" class="text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">Leave Management</a> <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">Leave Analytics</span>
-                            @elseif(request()->routeIs('attendance.*'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">Attendance Tracking</span>
-                            @elseif(request()->routeIs('payroll.*'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">Payroll & Payslips</span>
-                            @elseif(request()->routeIs('recruitment.*'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">Recruitment ATS</span>
-                            @elseif(request()->routeIs('appraisal.*'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">Appraisal System</span>
-                            @elseif(request()->routeIs('settings.*'))
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">System Settings</span>
-                            @else
-                                <span class="text-slate-300 dark:text-slate-600">/</span> <span class="text-blue-600 dark:text-blue-400 font-black">Leave Management</span>
-                            @endif
-                        @endif
-                    </nav>
-                </div>
             </div>
 
-            <!-- Right Toolbar Controls: Dark/Light Mode Button + Notification Button + Sign Out Button -->
-            <div class="flex items-center gap-2">
-                <!-- Top Header Sign Out Button -->
-                <form method="POST" action="{{ route('logout') }}" class="inline">
-                    @csrf
-                    <button type="submit" 
-                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black transition-all shadow-md shadow-red-500/20 border border-red-500 group cursor-pointer"
-                            title="Sign Out of Portal">
-                        <i data-lucide="log-out" class="w-4 h-4 text-white group-hover:scale-110 transition-transform"></i>
-                        <span>Sign Out</span>
-                    </button>
-                </form>
-
-                <!-- Dark / Light Mode Toggle Button -->
-                <button @click="toggleTheme()" 
-                        class="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 hover:bg-slate-100 rounded-xl transition-all" 
-                        title="Toggle Light/Dark Theme">
-                    <i data-lucide="moon" class="w-5 h-5" x-show="theme === 'light'"></i>
-                    <i data-lucide="sun" class="w-5 h-5 text-amber-500" x-show="theme === 'dark'" x-cloak></i>
-                </button>
+            <!-- Right Toolbar Controls: User Avatar + Bell + Theme + Sign Out -->
+            <div class="flex items-center gap-3">
                 <!-- Notification Bell Component with Slide-Over Panel -->
                 <div class="relative" x-data="{ 
                     notificationsOpen: false, 
@@ -601,6 +541,35 @@
                         </div>
                     </template>
                 </div>
+
+                <!-- User Profile Avatar matching Reference UI -->
+                <div class="flex items-center gap-2.5 pl-2 border-l border-slate-800">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 text-white flex items-center justify-center font-bold text-xs ring-2 ring-slate-700/80 shrink-0">
+                        {{ strtoupper(substr(Auth::user()->name ?? 'SA', 0, 2)) }}
+                    </div>
+                    <div class="hidden sm:flex flex-col text-left">
+                        <span class="text-xs font-bold text-white leading-tight truncate max-w-[130px]">{{ Auth::user()->name ?? 'Super Admin' }}</span>
+                        <span class="text-[10px] text-slate-300 leading-tight">{{ session('current_role', Auth::user()?->employee?->system_role ?? 'Admin') }}</span>
+                    </div>
+                </div>
+
+                <!-- Dark / Light Mode Toggle Button -->
+                <button @click="toggleTheme()" 
+                        class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer" 
+                        title="Toggle Light/Dark Theme">
+                    <i data-lucide="moon" class="w-4 h-4" x-show="theme === 'light'"></i>
+                    <i data-lucide="sun" class="w-4 h-4 text-amber-400" x-show="theme === 'dark'" x-cloak></i>
+                </button>
+
+                <!-- Sign Out Button -->
+                <form method="POST" action="{{ route('logout') }}" class="inline">
+                    @csrf
+                    <button type="submit" 
+                            class="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+                            title="Sign Out of Portal">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </form>
             </div>
         </header>
 
@@ -626,7 +595,7 @@
         @endif
 
         <!-- Main Content Body -->
-        <main class="flex-1 {{ request()->routeIs('dashboard') ? 'overflow-hidden p-3' : 'overflow-y-auto p-4 md:p-6' }} min-h-0 flex flex-col">
+        <main class="flex-1 overflow-y-auto p-3.5 md:p-5 min-h-0 flex flex-col">
             {{ $slot ?? '' }}
             @yield('content')
         </main>

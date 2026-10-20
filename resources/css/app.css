@@ -55,40 +55,80 @@ html.dark {
     ring-color: rgba(59, 130, 246, 0.3) !important;
 }
 
+/* Remove Tailwind Forms default SVG dropdown arrow when custom icon / appearance-none is used */
+select.appearance-none,
+select[class*="appearance-none"],
+.appearance-none {
+    background-image: none !important;
+}
+
 /* Global Dark Mode Surface Overrides for Cards, Panels & Backgrounds */
 html.dark .bg-white {
-    background-color: #152038 !important;
-    border-color: #1e293b !important;
+    background-color: #152038;
+    border-color: #1e293b;
     color: #f8fafc;
 }
 
 html.dark .bg-gray-50,
-html.dark .bg-slate-50 {
-    background-color: #1e2d4d !important;
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/40,
+html.dark .bg-slate-50\/50,
+html.dark .bg-slate-50\/60,
+html.dark .bg-slate-50\/70,
+html.dark .bg-slate-50\/80 {
+    background-color: #1a2744 !important;
     border-color: #1e293b !important;
     color: #cbd5e1;
 }
 
 html.dark .bg-slate-100,
-html.dark .bg-gray-100 {
+html.dark .bg-slate-100\/90,
+html.dark .bg-slate-100\/80,
+html.dark .bg-slate-100\/70,
+html.dark .bg-slate-100\/60,
+html.dark .bg-gray-100,
+html.dark .bg-gray-100\/90,
+html.dark .bg-gray-100\/80,
+html.dark .bg-slate-200,
+html.dark .bg-gray-200 {
     background-color: #1a2744 !important;
+    border-color: #2e3e60 !important;
     color: #cbd5e1;
 }
 
+/* =========================================================
+   DARK MODE TEXT VISIBILITY & CONTRAST (Universal Fix)
+   ========================================================= */
+
+/* Primary text in dark mode: pure crisp high-contrast */
 html.dark .text-slate-900,
 html.dark .text-gray-900,
 html.dark .text-slate-800,
 html.dark .text-gray-800,
 html.dark .text-slate-700,
 html.dark .text-gray-700 {
-    color: #f1f5f9 !important;
+    color: #f8fafc !important;
 }
 
+/* Medium text in dark mode: bright silver-white */
 html.dark .text-slate-600,
 html.dark .text-gray-600,
+html.dark .text-zinc-600 {
+    color: #e2e8f0 !important;
+}
+
+/* All secondary, muted, grey & slate text in dark mode: clearly readable Slate-300 */
 html.dark .text-slate-500,
-html.dark .text-gray-500 {
-    color: #94a3b8 !important;
+html.dark .text-gray-500,
+html.dark .text-zinc-500,
+html.dark .text-slate-400,
+html.dark .text-gray-400,
+html.dark .text-zinc-400,
+html.dark [class*="dark:text-slate-400"],
+html.dark [class*="dark:text-slate-500"],
+html.dark [class*="dark:text-gray-400"],
+html.dark [class*="dark:text-gray-500"] {
+    color: #cbd5e1 !important;
 }
 
 html.dark .border-slate-200,

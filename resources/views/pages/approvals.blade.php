@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Crew HR - Manager Approvals', 'breadcrumb' => 'Manager Approvals'])
+@extends('layouts.app', ['title' => 'LOOPS HR - Leave Approvals', 'breadcrumb' => 'Leave Approvals'])
 
 @section('content')
 <div class="space-y-6">
@@ -8,9 +8,8 @@
         <div>
             <div class="flex items-center gap-2">
                 <i class="ph ph-check-square-offset text-2xl text-blue-600"></i>
-                <h1 class="text-xl font-black text-gray-900">Line Manager & HOD Approvals Workflow</h1>
+                <h1 class="text-xl font-black text-gray-900">Leave Approvals</h1>
             </div>
-            <p class="text-xs font-semibold text-gray-500 mt-1">Direct Approval Workflow: Covering Confirmation (if assigned) → Line Manager / HOD Final Approval</p>
         </div>
 
         <!-- Filters & Search -->
@@ -36,17 +35,17 @@
             </form>
 
             <!-- Status Tabs -->
-            <div class="bg-gray-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold text-gray-600">
-                <a href="{{ route('approvals.index', ['status' => 'pending_manager']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'pending_manager' ? 'bg-white text-blue-600 shadow-sm' : 'hover:text-gray-900' }}">
+            <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700/60">
+                <a href="{{ route('approvals.index', ['status' => 'pending_manager']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'pending_manager' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
                     Pending Approval ({{ $counts['pending_manager'] }})
                 </a>
-                <a href="{{ route('approvals.index', ['status' => 'approved']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'approved' ? 'bg-white text-blue-600 shadow-sm' : 'hover:text-gray-900' }}">
+                <a href="{{ route('approvals.index', ['status' => 'approved']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'approved' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
                     Approved ({{ $counts['approved'] }})
                 </a>
-                <a href="{{ route('approvals.index', ['status' => 'rejected']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'rejected' ? 'bg-white text-blue-600 shadow-sm' : 'hover:text-gray-900' }}">
+                <a href="{{ route('approvals.index', ['status' => 'rejected']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'rejected' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
                     Rejected ({{ $counts['rejected'] }})
                 </a>
-                <a href="{{ route('approvals.index', ['status' => 'all']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'hover:text-gray-900' }}">
+                <a href="{{ route('approvals.index', ['status' => 'all']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'all' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
                     All ({{ $counts['all'] }})
                 </a>
             </div>
@@ -56,69 +55,64 @@
     <!-- Approvals List (Minimalistic & Compact Design) -->
     <div class="space-y-2.5">
         @forelse($leaveRequests as $req)
-            <div class="bg-white rounded-xl border border-slate-200/90 hover:border-blue-300 hover:shadow-xs p-3.5 sm:p-4 transition-all flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="bg-white dark:bg-[#111927] rounded-xl border border-slate-200/90 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700/60 hover:shadow-xs p-3.5 sm:p-4 transition-all flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <!-- Left: Employee & Leave Details -->
-                <div class="flex items-start gap-3 min-w-0">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                        {{ strtoupper(substr($req->employee->user->name ?? 'E', 0, 2)) }}
-                    </div>
-                    <div class="min-w-0 space-y-1">
+                <div class="min-w-0 space-y-1">
                         <div class="flex flex-wrap items-center gap-1.5">
-                            <span class="text-xs font-black text-slate-900">{{ $req->employee->user->name ?? 'Employee' }}</span>
-                            <span class="text-[10px] font-mono text-slate-400 font-semibold">({{ $req->req_number ?? 'REQ-'.$req->id }})</span>
-                            <span class="text-slate-300 text-xs">•</span>
-                            <span class="text-[11px] font-bold text-slate-500">{{ $req->employee->designation->name ?? 'Developer' }}</span>
-                            <span class="text-[10px] font-extrabold px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">{{ $req->employee->department->name ?? 'IT' }}</span>
-                            <span class="text-slate-300 text-xs">•</span>
-                            <span class="text-[11px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100/80 px-2 py-0.5 rounded-md">
-                                {{ $req->leaveType->name ?? 'Leave' }} • {{ $req->is_half_day ? 'Half Day' : ($req->is_short_leave ? 'Short Leave' : $req->duration.'d') }}
+                            <span class="text-xs font-black text-slate-900 dark:text-slate-100">{{ $req->employee->user->name ?? 'Employee' }}</span>
+                            <span class="text-[10px] font-mono text-slate-400 dark:text-slate-300 font-semibold">({{ $req->req_number ?? 'REQ-'.$req->id }})</span>
+                            <span class="text-slate-300 dark:text-slate-600 text-xs">•</span>
+                            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-300">{{ $req->employee->designation->name ?? 'Developer' }}</span>
+                            <span class="text-[10px] font-extrabold px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded">{{ $req->employee->department->name ?? 'IT' }}</span>
+                            <span class="text-slate-300 dark:text-slate-600 text-xs">•</span>
+                            <span class="text-[11px] font-extrabold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100/80 dark:border-indigo-900/60 px-2 py-0.5 rounded-md">
+                                {{ $req->leaveType->name ?? 'Leave' }} • {{ $req->is_half_day ? 'Half Day' : ($req->is_short_leave ? 'Short Leave' : ((float)$req->duration).'d') }}
                             </span>
-                            <span class="text-xs font-semibold text-slate-700">
-                                <i class="ph ph-calendar text-slate-400"></i> {{ $req->start_date }}{{ $req->start_date !== $req->end_date ? ' → '.$req->end_date : '' }}
+                            <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                <i class="ph ph-calendar text-slate-400 dark:text-slate-300"></i> {{ $req->start_date }}{{ $req->start_date !== $req->end_date ? ' → '.$req->end_date : '' }}
                             </span>
                         </div>
 
                         <!-- Secondary Info Strip (Reason, Covering, Cert, Slot) -->
-                        <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                        <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-300">
                             @if($req->coveringEmployee)
-                                <span class="inline-flex items-center gap-1 text-blue-700 font-semibold bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-100">
-                                    <i class="ph ph-handshake text-xs text-blue-600"></i>
+                                <span class="inline-flex items-center gap-1 text-blue-700 dark:text-blue-300 font-semibold bg-blue-50/80 dark:bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-900/60">
+                                    <i class="ph ph-handshake text-xs text-blue-600 dark:text-blue-400"></i>
                                     Covering: {{ $req->coveringEmployee->user->name ?? 'Covering' }}
                                 </span>
                             @endif
 
                             @if($req->is_half_day)
-                                <span class="inline-flex items-center gap-1 text-purple-800 font-semibold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
+                                <span class="inline-flex items-center gap-1 text-purple-800 dark:text-purple-300 font-semibold bg-purple-50 dark:bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-100 dark:border-purple-900/60">
                                     <i class="ph ph-clock text-xs"></i>
                                     {{ $req->half_day_slot ?? 'Morning' }} ({{ strtolower($req->half_day_slot) === 'afternoon' ? '1:00 PM – 5:30 PM' : '8:30 AM – 1:00 PM' }})
                                 </span>
                             @elseif($req->is_short_leave)
-                                <span class="inline-flex items-center gap-1 text-amber-800 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                                <span class="inline-flex items-center gap-1 text-amber-800 dark:text-amber-300 font-semibold bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-900/60">
                                     <i class="ph ph-timer text-xs"></i>
                                     Short ({{ $req->short_leave_slot ?? '1.5 Hours' }})
                                 </span>
                             @endif
 
                             @if($req->medical_certificate_path)
-                                <a href="{{ $req->medical_certificate_path }}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 font-bold hover:underline">
+                                <a href="{{ $req->medical_certificate_path }}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-bold hover:underline">
                                     <i class="ph ph-paperclip"></i> Certificate
                                 </a>
                             @endif
 
                             @if($req->project_client_name)
-                                <span class="text-teal-700 font-bold">Duty: {{ $req->project_client_name }}</span>
+                                <span class="text-teal-700 dark:text-teal-300 font-bold">Duty: {{ $req->project_client_name }}</span>
                             @endif
 
                             @if($req->reason)
-                                <span class="italic text-slate-400 font-medium truncate max-w-sm sm:max-w-md" title="{{ $req->reason }}">
+                                <span class="italic text-slate-400 dark:text-slate-300 font-medium truncate max-w-sm sm:max-w-md" title="{{ $req->reason }}">
                                     "{{ $req->reason }}"
                                 </span>
                             @endif
 
-                            <span class="text-slate-400 text-[10px]">Applied: {{ $req->applied_at ?? $req->created_at->format('Y-m-d') }}</span>
+                            <span class="text-slate-400 dark:text-slate-300 text-[10px]">Applied: {{ $req->applied_at ?? $req->created_at->format('Y-m-d') }}</span>
                         </div>
                     </div>
-                </div>
 
                 <!-- Right: Action Buttons / Status Pill -->
                 <div class="flex items-center justify-end gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">

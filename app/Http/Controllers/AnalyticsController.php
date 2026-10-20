@@ -11,6 +11,7 @@ use Modules\Leave\Models\LeaveType;
 use Modules\Leave\Models\EmployeeLeaveBalance;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\AttendanceAnalyticsService;
 
 class AnalyticsController extends Controller
 {
@@ -34,8 +35,8 @@ class AnalyticsController extends Controller
             return redirect()->route('dashboard')->with('error', 'Access Denied: Reports & Leave Analytics module is restricted to HR Admin, Managers and Super Admin.');
         }
 
-        // Active Report Tab: 'company', 'department', or 'individual'
-        $activeTab = $request->query('tab', 'company');
+        // Active Report Tab: 'executive' (reference report), 'department', or 'individual'
+        $activeTab = $request->query('tab', 'executive');
 
         // Filters: Year, Month, Department ID, Employee ID, Leave Type ID
         $currentYear = (int) Carbon::now('Asia/Colombo')->year;
@@ -226,6 +227,24 @@ class AnalyticsController extends Controller
             9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
         ];
 
+        // Benchmark & Executive Analytics Dataset (matching reference specification)
+        $analyticsService = new AttendanceAnalyticsService();
+        $shiftConfig = $analyticsService->getShiftConfig();
+        $executiveSummary = $analyticsService->getExecutiveSummary();
+        $keyPatterns = $analyticsService->getKeyPatterns();
+        $leaderboards = $analyticsService->getLeaderboards();
+        $arrivalDistribution = $analyticsService->getArrivalDistribution();
+        $scatterPlotData = $analyticsService->getScatterPlotData();
+        $trendsAndCuts = $analyticsService->getTrendsAndCuts();
+        $leaveAndExceptionMix = $analyticsService->getLeaveAndExceptionMix();
+        $allStaffMeasures = $analyticsService->getAllStaffMeasures();
+        $methodAndCaveats = $analyticsService->getMethodAndCaveats();
+
+        $selectedDeptModel = $selectedDeptId ? Department::find($selectedDeptId) : null;
+        $selectedDeptName = $selectedDeptModel ? $selectedDeptModel->name : $request->query('dept');
+        $min20Days = $request->query('min_days', '1') === '1';
+        $timelineStaff = $analyticsService->getStaffTimelineData($selectedDeptName, $min20Days);
+
         return view('pages.analytics', compact(
             'activeTab',
             'allDepartments',
@@ -248,16 +267,29 @@ class AnalyticsController extends Controller
             'totalWorkforce',
             'totalOnLeaveToday',
             'totalLeavesPeriod',
-            'avgDaysPerEmp'
+            'avgDaysPerEmp',
+            'shiftConfig',
+            'executiveSummary',
+            'keyPatterns',
+            'leaderboards',
+            'arrivalDistribution',
+            'scatterPlotData',
+            'trendsAndCuts',
+            'leaveAndExceptionMix',
+            'allStaffMeasures',
+            'methodAndCaveats',
+            'timelineStaff',
+            'min20Days',
+            'selectedDeptName'
         ));
     }
 
     /**
-     * Export Company-wide, Department-wise, or Individual Leave Report as CSV or PDF
+     * Export Company-wide, Department-wise, Individual, or Executive Leave/Attendance Report as CSV or PDF
      */
      public function export(Request $request)
      {
-         $type = $request->query('type', 'department');
+         $type = $request->query('type', 'executive');
          $format = strtolower($request->query('format', 'csv')); // 'csv' or 'pdf'
          $selectedYear = (int) $request->query('year', Carbon::now('Asia/Colombo')->year);
          $selectedMonth = $request->query('month') !== null && $request->query('month') !== '' ? (int) $request->query('month') : null;
@@ -271,6 +303,78 @@ class AnalyticsController extends Controller
          ];
 
          $monthName = $selectedMonth ? ($monthsList[$selectedMonth] ?? 'Month_'.$selectedMonth) : 'All_Months';
+
+         // === EXECUTIVE ATTENDANCE & LEAVE ANALYSIS EXPORT (Reference Specification) ===
+         if ($type === 'executive' || $type === 'attendance-analysis') {
+             $analyticsService = new AttendanceAnalyticsService();
+
+             if ($format === 'pdf') {
+                 $shiftConfig = $analyticsService->getShiftConfig();
+                 $executiveSummary = $analyticsService->getExecutiveSummary();
+                 $keyPatterns = $analyticsService->getKeyPatterns();
+                 $leaderboards = $analyticsService->getLeaderboards();
+                 $arrivalDistribution = $analyticsService->getArrivalDistribution();
+                 $scatterPlotData = $analyticsService->getScatterPlotData();
+                 $trendsAndCuts = $analyticsService->getTrendsAndCuts();
+                 $leaveAndExceptionMix = $analyticsService->getLeaveAndExceptionMix();
+                 $allStaffMeasures = $analyticsService->getAllStaffMeasures();
+                 $methodAndCaveats = $analyticsService->getMethodAndCaveats();
+                 $timelineStaff = $analyticsService->getStaffTimelineData(null, false);
+
+                 $pdf = Pdf::loadView('reports.pdf-executive-attendance', [
+                     'shiftConfig' => $shiftConfig,
+                     'executiveSummary' => $executiveSummary,
+                     'keyPatterns' => $keyPatterns,
+                     'leaderboards' => $leaderboards,
+                     'arrivalDistribution' => $arrivalDistribution,
+                     'scatterPlotData' => $scatterPlotData,
+                     'trendsAndCuts' => $trendsAndCuts,
+                     'leaveAndExceptionMix' => $leaveAndExceptionMix,
+                     'allStaffMeasures' => $allStaffMeasures,
+                     'methodAndCaveats' => $methodAndCaveats,
+                     'timelineStaff' => $timelineStaff,
+                 ])->setPaper('a4', 'portrait');
+
+                 return $pdf->download("Loops_Digital_Attendance_Analysis_1Apr_31Aug_2026.pdf");
+             } else {
+                 $filename = "Loops_Digital_Attendance_Analysis_1Apr_31Aug_2026.csv";
+                 $headers = [
+                     'Content-Type' => 'text/csv',
+                     'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+                 ];
+
+                 $callback = function () use ($analyticsService) {
+                     $handle = fopen('php://output', 'w');
+                     fputcsv($handle, [
+                         'Name', 'Role / Designation', 'Department', 'Average Clock In', 'Average Clock Out',
+                         'Average Hours', 'Late %', 'Avg Late Minutes', 'After 10:00 (Days)', 'Past 18:30 %',
+                         'Past 20:00 (Days)', 'Extra Hours Logged', 'Absent (Days/Total)', 'Work Pattern'
+                     ]);
+
+                     foreach ($analyticsService->getAllStaffMeasures() as $row) {
+                         fputcsv($handle, [
+                             $row['name'],
+                             $row['role'],
+                             $row['dept'],
+                             $row['avg_in'],
+                             $row['avg_out'],
+                             $row['avg_hrs'],
+                             $row['late_pct'] . '%',
+                             $row['avg_late'],
+                             $row['after_1000'],
+                             $row['past_1830_pct'] . '%',
+                             $row['past_2000'],
+                             $row['extra_hrs'],
+                             $row['absent'],
+                             $row['pattern'],
+                         ]);
+                     }
+                     fclose($handle);
+                 };
+
+                 return response()->stream($callback, 200, $headers);
+             }
+         }
 
          // === PDF EXPORT ===
         if ($format === 'pdf') {

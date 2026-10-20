@@ -58,7 +58,7 @@ class MyLeavesController extends Controller
         }
 
         if ($status === 'pending') {
-            $query->whereIn('status', ['Pending', 'Pending Covering Approval', 'Manager Approved (Pending HR)', 'Step 2: Pending HR Admin']);
+            $query->whereIn('status', ['Pending', 'Pending Manager Approval', 'Pending Covering Approval', 'Manager Approved (Pending HR)', 'Step 2: Pending HR Admin']);
         } elseif ($status === 'approved') {
             $query->where('status', 'Approved');
         } elseif ($status === 'rejected') {
@@ -81,7 +81,7 @@ class MyLeavesController extends Controller
         $allRequests = LeaveRequest::with('leaveType')->where('employee_id', $employee->id ?? 1)->get();
         $counts = [
             'all' => $allRequests->count(),
-            'pending' => $allRequests->whereIn('status', ['Pending', 'Pending Covering Approval', 'Manager Approved (Pending HR)', 'Step 2: Pending HR Admin'])->count(),
+            'pending' => $allRequests->whereIn('status', ['Pending', 'Pending Manager Approval', 'Pending Covering Approval', 'Manager Approved (Pending HR)', 'Step 2: Pending HR Admin'])->count(),
             'approved' => $allRequests->where('status', 'Approved')->count(),
             'rejected' => $allRequests->whereIn('status', ['Rejected', 'Canceled'])->count(),
             'half_day' => $allRequests->where('is_half_day', true)->count(),

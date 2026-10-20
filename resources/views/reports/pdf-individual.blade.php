@@ -98,13 +98,13 @@
             <tr>
                 <td style="width: 160px; vertical-align: middle;">
                     @php
-                        $logoPath = public_path('crew.jpeg');
-                        $logoBase64 = file_exists($logoPath) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($logoPath)) : '';
+                        $logoPath = public_path('LoopsBlack.png');
+                        $logoBase64 = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
                     @endphp
                     @if($logoBase64)
-                        <img src="{{ $logoBase64 }}" alt="Crew Logo" style="height: 38px; width: auto; object-fit: contain;">
+                        <img src="{{ $logoBase64 }}" alt="Loops Logo" style="height: 38px; width: auto; object-fit: contain;">
                     @else
-                        <div class="company-name">CREW HR</div>
+                        <div class="company-name">LOOPS HR</div>
                     @endif
                 </td>
                 <td style="vertical-align: middle; padding-left: 15px;">
@@ -224,7 +224,7 @@
                     </td>
                     <td>{{ \Carbon\Carbon::parse($req->start_date)->format('Y-m-d') }}</td>
                     <td>{{ \Carbon\Carbon::parse($req->end_date)->format('Y-m-d') }}</td>
-                    <td class="text-center font-bold">{{ $req->duration ?: 1.0 }}</td>
+                    <td class="text-center font-bold">{{ (float)($req->duration ?: 1.0) }}</td>
                     <td>{{ $req->coveringEmployee->user->name ?? 'None' }}</td>
                     <td class="text-center">
                         <span class="badge {{ $statusClass }}">{{ $req->status }}</span>

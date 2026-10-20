@@ -134,17 +134,23 @@ class LeaveDashboardController extends Controller
 
         $calendarDays = [];
 
-        // Leading empty slots for padding
+        // Leading slots: dates from previous month
+        $prevMonthDate = $selectedDate->copy()->subMonth();
+        $daysInPrevMonth = $prevMonthDate->daysInMonth;
         for ($i = 1; $i < $startDayOfWeek; $i++) {
+            $prevDayNum = $daysInPrevMonth - ($startDayOfWeek - 1) + $i;
+            $prevCarbon = $prevMonthDate->copy()->day($prevDayNum);
             $calendarDays[] = [
-                'day' => null,
-                'date' => null,
+                'day' => $prevDayNum,
+                'date' => $prevCarbon->format('Y-m-d'),
+                'formatted_date' => $prevCarbon->format('l, d F Y'),
                 'is_current_month' => false,
-                'is_weekend' => false,
+                'is_weekend' => $prevCarbon->isSaturday() || $prevCarbon->isSunday(),
                 'is_today' => false,
                 'holiday' => null,
                 'holidays' => collect(),
                 'leaves' => collect(),
+                'birthdays' => [],
                 'is_poya' => false,
                 'pbm_flags' => [],
             ];
@@ -218,18 +224,22 @@ class LeaveDashboardController extends Controller
             ];
         }
 
-        // Trailing empty slots padding
+        // Trailing slots: dates from next month
+        $nextMonthDate = $selectedDate->copy()->addMonth();
         $paddingEnd = 7 - $endDayOfWeek;
-        for ($i = 0; $i < $paddingEnd; $i++) {
+        for ($i = 1; $i <= $paddingEnd; $i++) {
+            $nextCarbon = $nextMonthDate->copy()->day($i);
             $calendarDays[] = [
-                'day' => null,
-                'date' => null,
+                'day' => $i,
+                'date' => $nextCarbon->format('Y-m-d'),
+                'formatted_date' => $nextCarbon->format('l, d F Y'),
                 'is_current_month' => false,
-                'is_weekend' => false,
+                'is_weekend' => $nextCarbon->isSaturday() || $nextCarbon->isSunday(),
                 'is_today' => false,
                 'holiday' => null,
                 'holidays' => collect(),
                 'leaves' => collect(),
+                'birthdays' => [],
                 'is_poya' => false,
                 'pbm_flags' => [],
             ];
