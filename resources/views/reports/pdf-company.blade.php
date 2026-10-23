@@ -241,7 +241,7 @@
     @endif
 
     <div class="footer">
-        Crew HRIS • Confidential • Company-Wide Executive Report
+        Loops HRIS • Confidential • Company-Wide Executive Report
     </div>
 
 </body>

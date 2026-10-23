@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Crew HR Portal') }}</title>
+        <title>{{ config('app.name', 'Loops HR Portal') }}</title>
 
         <!-- Favicon & Icons -->
         <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">

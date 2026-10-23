@@ -239,7 +239,7 @@
     </table>
 
     <div class="footer">
-        Crew HRIS • Confidential • Individual Leave Statement
+        Loops HRIS • Confidential • Individual Leave Statement
     </div>
 
 </body>

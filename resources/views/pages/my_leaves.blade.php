@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Crew HR - Leave Record Directory', 'breadcrumb' => 'Leave Record Directory'])
+@extends('layouts.app', ['title' => 'Loops HR - Leave Record Directory', 'breadcrumb' => 'Leave Record Directory'])
 
 @section('content')
 <div class="space-y-4 pb-10" 

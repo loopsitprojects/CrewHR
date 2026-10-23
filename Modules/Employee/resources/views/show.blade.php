@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Crew HR - Employee Profile Details'])
+@extends('layouts.app', ['title' => 'Loops HR - Employee Profile Details'])
 
 @section('breadcrumbs')
     <span class="text-slate-300">/</span>

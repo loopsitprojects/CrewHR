@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Crew HR - Appraisal System', 'breadcrumb' => 'Appraisal System'])
+@extends('layouts.app', ['title' => 'Loops HR - Appraisal System', 'breadcrumb' => 'Appraisal System'])
 
 @section('content')
 <div class="space-y-6">

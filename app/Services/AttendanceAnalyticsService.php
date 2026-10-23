@@ -39,7 +39,7 @@ class AttendanceAnalyticsService
             'working_days' => $totalAttended ?: 600,
             'scheduled_days' => $scheduledDays ?: 644,
             'period_label' => '1 Apr – 31 Aug 2026',
-            'source_label' => 'Crew HR automated timesheets and leave records. Generated live from system database.',
+            'source_label' => 'Loops HR automated timesheets and leave records. Generated live from system database.',
         ];
     }
 
@@ -851,7 +851,7 @@ class AttendanceAnalyticsService
             ],
             [
                 'title' => 'Leave Integration',
-                'text' => 'Days with scheduled absences correspond to approved annual, casual, medical, short, and duty leaves recorded in the Crew HR Leave module.',
+                'text' => 'Days with scheduled absences correspond to approved annual, casual, medical, short, and duty leaves recorded in the Loops HR Leave module.',
             ],
         ];
     }

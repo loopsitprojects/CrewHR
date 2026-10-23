@@ -2,12 +2,112 @@
 
 @section('content')
 @php
+    $desiredCodes = ['CASUAL', 'MEDICAL', 'ANNUAL', 'LIEU', 'SHORT', 'DUTY', 'HOSPITALISATION', 'ELECTION', 'RELIGIOUS', 'PATERNITY', 'MATERNITY', 'NO_PAY'];
+    
+    $balancesByCode = collect($leaveBalances ?? [])->keyBy(function($b) {
+        return strtoupper($b->leaveType->code ?? '');
+    });
+
+    $formatNum = function($n) {
+        $whole = floor($n);
+        $rem = $n - $whole;
+        if ($rem == 0.5) {
+            return ($whole > 0 ? $whole . '½' : '½');
+        }
+        return (string)$n;
+    };
+
+    $shortLeftThisMonth = max(0, 2 - (int)($monthlyShortLeavesUsed ?? 0));
+
     $leaveTypeMap = collect($leaveBalances ?? [])->mapWithKeys(function($b) {
         return [strtoupper($b->leaveType->code ?? '') => (string)$b->leave_type_id];
     })->toArray();
     $leaveCodeMap = collect($leaveBalances ?? [])->mapWithKeys(function($b) {
         return [(string)$b->leave_type_id => strtoupper($b->leaveType->code ?? '')];
     })->toArray();
+
+    $allDbLeaveTypes = \Modules\Leave\Models\LeaveType::all()->keyBy(fn($lt) => strtoupper($lt->code));
+    foreach ($allDbLeaveTypes as $c => $ltObj) {
+        if (!isset($leaveTypeMap[$c])) {
+            $leaveTypeMap[$c] = (string)$ltObj->id;
+        }
+        if (!isset($leaveCodeMap[(string)$ltObj->id])) {
+            $leaveCodeMap[(string)$ltObj->id] = $c;
+        }
+    }
+
+    $empMap = collect($allEmployees ?? [])->mapWithKeys(function($emp) {
+        return [(string)$emp->id => ($emp->user->name ?? 'Employee') . ' (' . $emp->employee_id_number . ')'];
+    })->toArray();
+
+    $leaveCatalog = [];
+    foreach ($desiredCodes as $code) {
+        $bal = $balancesByCode->get($code);
+        $lt = $bal?->leaveType ?? $allDbLeaveTypes->get($code);
+        $typeId = $bal ? (string)$bal->leave_type_id : (string)($lt?->id ?? ($leaveTypeMap[$code] ?? $code));
+
+        $allocated = (float)($bal->allocated ?? ($lt?->days ?? 0));
+        $used = (float)($bal->used ?? 0);
+        $avail = max(0, $allocated + (float)($bal->carried_forward ?? 0) - $used);
+
+        $subtext = match($code) {
+            'CASUAL' => $formatNum($avail) . ' of ' . $formatNum($allocated) . ' left',
+            'MEDICAL' => $formatNum($avail) . ' of ' . $formatNum($allocated) . ' left',
+            'ANNUAL' => $formatNum($avail) . ' left',
+            'LIEU' => $formatNum($avail) . ' to use',
+            'SHORT' => $shortLeftThisMonth . ' left this month',
+            'DUTY' => 'Late start or off-site',
+            'HOSPITALISATION' => $formatNum($avail) . ' of ' . $formatNum($allocated) . ' left',
+            'ELECTION' => 'Half day to vote',
+            'RELIGIOUS' => 'With HOD approval',
+            'PATERNITY' => $formatNum($allocated) . ' days',
+            'MATERNITY' => $formatNum($allocated) . ' working days',
+            'NO_PAY' => 'Email HOD, copy HR',
+            default => $formatNum($avail) . ' left'
+        };
+
+        $dotColor = match($code) {
+            'CASUAL' => 'bg-purple-400',
+            'MEDICAL' => 'bg-emerald-400',
+            'ANNUAL' => 'bg-sky-400',
+            'LIEU' => 'bg-teal-400',
+            'SHORT' => 'bg-amber-400',
+            'DUTY' => 'bg-indigo-400',
+            'HOSPITALISATION' => 'bg-rose-400',
+            'ELECTION' => 'bg-violet-400',
+            'RELIGIOUS' => 'bg-orange-400',
+            'PATERNITY' => 'bg-cyan-400',
+            'MATERNITY' => 'bg-pink-400',
+            'NO_PAY' => 'bg-slate-400',
+            default => 'bg-sky-400'
+        };
+
+        $cardName = match($code) {
+            'CASUAL' => 'Casual leave',
+            'MEDICAL' => 'Medical leave',
+            'ANNUAL' => 'Annual leave',
+            'LIEU' => 'Lieu leave',
+            'SHORT' => 'Short leave',
+            'DUTY' => 'Duty leave',
+            'HOSPITALISATION' => 'Hospitalisation leave',
+            'ELECTION' => 'Election leave',
+            'RELIGIOUS' => 'Religious holiday',
+            'PATERNITY' => 'Paternity leave',
+            'MATERNITY' => 'Maternity leave',
+            'NO_PAY' => 'No pay leave',
+            default => ($lt?->name ?? ucfirst(strtolower($code)) . ' leave')
+        };
+
+        $leaveCatalog[] = [
+            'id' => $typeId,
+            'code' => $code,
+            'name' => $cardName,
+            'subtext' => $subtext,
+            'dotColor' => $dotColor,
+            'available' => $avail,
+            'allocated' => $allocated
+        ];
+    }
 @endphp
 
 <div class="flex-1 flex flex-col min-h-0 space-y-4" 
@@ -20,69 +120,250 @@
          allMyHistory: {{ json_encode($myLeaveHistory) }},
          leaveTypesMap: {{ json_encode($leaveTypeMap) }},
          leaveCodeMap: {{ json_encode($leaveCodeMap) }},
+         leaveCatalog: {{ json_encode($leaveCatalog) }},
+         employeesMap: {{ json_encode($empMap) }},
          selectedLeaveTypeId: '{{ (string)($leaveTypeMap['ANNUAL'] ?? ($leaveBalances->first()->leave_type_id ?? '')) }}',
          selectedLeaveTypeCode: 'ANNUAL',
          selectedDay: {{ json_encode($todayCell) }}, 
+         todayCell: {{ json_encode($todayCell) }}, 
          viewMode: 'grid', 
          targetStartDate: '{{ \Carbon\Carbon::now('Asia/Colombo')->toDateString() }}', 
          targetEndDate: '{{ \Carbon\Carbon::now('Asia/Colombo')->toDateString() }}',
          isHalfDay: false,
+         halfDaySlot: 'Morning',
          isShortLeave: false,
+         shortLeaveSlot: '9:30 AM–10:00 AM',
+         coveringEmployeeId: '',
+         coveringEmployeeName: '',
+         handoverNotes: '',
+         anythingElse: '',
+         projectClientName: '',
          allHolidays: {{ json_encode($allHolidaysList ?? []) }},
-         calculateDuration() {
-            if (this.selectedLeaveTypeCode === 'SHORT') return '0.2 (Short Leave)';
-            if (this.isHalfDay) return '0.5 (Half Day)';
-            if (!this.targetStartDate || !this.targetEndDate) return 0;
-            
-            const sParts = this.targetStartDate.split('-').map(Number);
-            const eParts = this.targetEndDate.split('-').map(Number);
-            if (sParts.length !== 3 || eParts.length !== 3) return 0;
 
-            const start = new Date(sParts[0], sParts[1] - 1, sParts[2], 0, 0, 0, 0);
-            const end = new Date(eParts[0], eParts[1] - 1, eParts[2], 0, 0, 0, 0);
-            if (start.getTime() > end.getTime()) return 0;
+         selectLeaveType(code, id) {
+             this.selectedLeaveTypeCode = code;
+             this.selectedLeaveTypeId = String(id || this.leaveTypesMap[code] || '');
+             if (code === 'SHORT') {
+                 this.isHalfDay = false;
+                 this.isShortLeave = true;
+                 this.targetEndDate = this.targetStartDate;
+             } else {
+                 this.isShortLeave = false;
+             }
+         },
 
-            const holidays = Array.isArray(this.allHolidays) ? this.allHolidays : [];
-            let count = 0;
-            let curr = new Date(start.getTime());
+         calculateNetWorkingDays() {
+             if (this.selectedLeaveTypeCode === 'SHORT') return 0.2;
+             if (this.isHalfDay) return 0.5;
+             if (!this.targetStartDate || !this.targetEndDate) return 0;
+             
+             const sParts = this.targetStartDate.split('-').map(Number);
+             const eParts = this.targetEndDate.split('-').map(Number);
+             if (sParts.length !== 3 || eParts.length !== 3) return 0;
 
-            while (curr.getTime() <= end.getTime()) {
-                const dayOfWeek = curr.getDay(); // 0 = Sun, 6 = Sat
-                const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-                const y = curr.getFullYear();
-                const m = String(curr.getMonth() + 1).padStart(2, '0');
-                const d = String(curr.getDate()).padStart(2, '0');
-                const dateStr = `${y}-${m}-${d}`;
-                const isHoliday = holidays.includes(dateStr);
+             const start = new Date(sParts[0], sParts[1] - 1, sParts[2], 0, 0, 0, 0);
+             const end = new Date(eParts[0], eParts[1] - 1, eParts[2], 0, 0, 0, 0);
+             if (start.getTime() > end.getTime()) return 0;
 
-                if (!isWeekend && !isHoliday) {
-                    count++;
-                }
-                curr.setDate(curr.getDate() + 1);
-            }
-            return count;
-        },
-        openApplyModal(code) {
-            let targetCode = (code || 'ANNUAL').toUpperCase();
-            this.selectedLeaveTypeCode = targetCode;
-            if (this.leaveTypesMap && this.leaveTypesMap[targetCode]) {
-                this.selectedLeaveTypeId = String(this.leaveTypesMap[targetCode]);
-            }
-            if (targetCode === 'SHORT') {
-                this.isHalfDay = false;
-                this.isShortLeave = true;
-                this.targetEndDate = this.targetStartDate;
-            } else {
-                this.isShortLeave = false;
-            }
-            this.applyLeaveModal = true;
-            this.$nextTick(() => { 
-                if (this.leaveTypesMap && this.leaveTypesMap[targetCode]) {
-                    this.selectedLeaveTypeId = String(this.leaveTypesMap[targetCode]);
-                }
-                if (window.lucide) lucide.createIcons(); 
-            });
-        },
+             const holidays = Array.isArray(this.allHolidays) ? this.allHolidays : [];
+             let count = 0;
+             let curr = new Date(start.getTime());
+
+             while (curr.getTime() <= end.getTime()) {
+                 const dayOfWeek = curr.getDay(); // 0 = Sun, 6 = Sat
+                 const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                 const y = curr.getFullYear();
+                 const m = String(curr.getMonth() + 1).padStart(2, '0');
+                 const d = String(curr.getDate()).padStart(2, '0');
+                 const dateStr = `${y}-${m}-${d}`;
+                 const isHoliday = holidays.includes(dateStr);
+
+                 if (!isWeekend && !isHoliday) {
+                     count++;
+                 }
+                 curr.setDate(curr.getDate() + 1);
+             }
+             return count;
+         },
+
+         formatDateRangeSummary() {
+             const dur = this.calculateNetWorkingDays();
+             const durText = dur === 0.2 ? 'Short leave (0.2 d)' : (dur === 0.5 ? 'Half day (0.5 d)' : (dur + (dur === 1 ? ' working day' : ' working days')));
+             const item = (this.leaveCatalog || []).find(l => l.code === this.selectedLeaveTypeCode);
+             const typeName = (item?.name || 'Leave').toLowerCase();
+             
+             if (!this.targetStartDate) return `${durText} · ${typeName}`;
+             
+             const sParts = this.targetStartDate.split('-').map(Number);
+             const startDate = new Date(sParts[0], sParts[1] - 1, sParts[2]);
+             const sMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
+             const sDay = startDate.getDate();
+             const sWeekday = startDate.toLocaleDateString('en-US', { weekday: 'short' });
+             
+             if (this.isHalfDay || this.selectedLeaveTypeCode === 'SHORT' || this.targetStartDate === this.targetEndDate) {
+                 return `${durText} · ${typeName} ${sWeekday} ${sDay} ${sMonth}`;
+             }
+             
+             if (!this.targetEndDate) {
+                 return `${durText} · ${typeName} ${sDay} ${sMonth}`;
+             }
+             
+             const eParts = this.targetEndDate.split('-').map(Number);
+             const endDate = new Date(eParts[0], eParts[1] - 1, eParts[2]);
+             const eMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
+             const eDay = endDate.getDate();
+             const eWeekday = endDate.toLocaleDateString('en-US', { weekday: 'short' });
+             
+             if (sMonth === eMonth) {
+                 return `${durText} · ${typeName} ${sDay} ${sMonth} – ${eWeekday} ${eDay} ${eMonth}`;
+             } else {
+                 return `${durText} · ${typeName} ${sDay} ${sMonth} – ${eWeekday} ${eDay} ${eMonth}`;
+             }
+         },
+
+         checkClash() {
+             if (!this.targetStartDate || !this.targetEndDate) {
+                 return { pass: true, message: 'Clash check — choose dates to verify schedule.' };
+             }
+             const s = this.targetStartDate;
+             const e = this.targetEndDate;
+             const clash = (this.allMyHistory || []).find(r => {
+                 if (r.status === 'Rejected' || r.status === 'Canceled') return false;
+                 return (s <= r.end_date && e >= r.start_date);
+             });
+             if (clash) {
+                 return { 
+                     pass: false, 
+                     message: `Clash check — overlaps with booked ${clash.leave_type?.name || 'leave'} (${clash.start_date} to ${clash.end_date}).` 
+                 };
+             }
+             return { pass: true, message: 'Clash check — you have no overlapping leaves booked.' };
+         },
+
+         checkNoticePeriod() {
+             if (!this.targetStartDate) return { pass: true, message: 'Notice period check pending.' };
+             
+             if (this.selectedLeaveTypeCode === 'ANNUAL') {
+                 const today = new Date();
+                 today.setHours(0,0,0,0);
+                 const sParts = this.targetStartDate.split('-').map(Number);
+                 const start = new Date(sParts[0], sParts[1] - 1, sParts[2], 0, 0, 0, 0);
+                 const diffDays = Math.round((start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                 
+                 const earliest = new Date(today.getTime());
+                 earliest.setDate(earliest.getDate() + 14);
+                 const earliestFormatted = earliest.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+
+                 if (diffDays >= 14) {
+                     return { pass: true, message: `Notice period — 14 days required for annual leave. Earliest: ${earliestFormatted}` };
+                 } else {
+                     return { pass: false, message: `Notice period — 14 days required for annual leave. Earliest date allowed: ${earliestFormatted}` };
+                 }
+             }
+             
+             if (this.selectedLeaveTypeCode === 'CASUAL') {
+                 const dur = this.calculateNetWorkingDays();
+                 if (dur > 3) {
+                     return { pass: false, message: `Casual leave — cannot exceed 3 consecutive working days (${dur} requested).` };
+                 }
+                 return { pass: true, message: 'Casual leave — within 3 consecutive working day limit.' };
+             }
+
+             if (this.selectedLeaveTypeCode === 'SHORT') {
+                 return { pass: true, message: 'Short leave — max 2 per calendar month, up to 1.5 hours.' };
+             }
+
+             return { pass: true, message: 'Notice period — standard leave guidelines met.' };
+         },
+
+         checkBalance() {
+             const dur = this.calculateNetWorkingDays();
+             if (this.selectedLeaveTypeCode === 'NO_PAY') {
+                 return { pass: true, message: `No pay leave — ${dur} day(s) requested. Will deduct from payroll.` };
+             }
+             if (this.selectedLeaveTypeCode === 'DUTY') {
+                 return { pass: true, message: `Duty leave — ${dur} day(s) official company duty.` };
+             }
+             if (this.selectedLeaveTypeCode === 'SHORT') {
+                 if ({{ (int)($monthlyShortLeavesUsed ?? 0) }} >= 2) {
+                     return { pass: false, message: 'Short leave monthly quota exceeded (2/2 already used this month).' };
+                 }
+                 return { pass: true, message: `Balance — uses 1 short leave. {{ max(0, 2 - (int)($monthlyShortLeavesUsed ?? 0) - 1) }} left after this.` };
+             }
+             
+             const item = (this.leaveCatalog || []).find(c => c.code === this.selectedLeaveTypeCode);
+             const avail = item ? Number(item.available) : 0;
+             
+             if (dur <= avail) {
+                 const remaining = (avail - dur);
+                 const remStr = remaining % 1 === 0.5 ? Math.floor(remaining) + '½' : (remaining === 0.5 ? '½' : remaining);
+                 return { pass: true, message: `Balance — uses ${dur} day${dur === 1 ? '' : 's'}. ${remStr} left after this.` };
+             } else {
+                 return { pass: false, message: `Balance — insufficient quota: requested ${dur} day${dur === 1 ? '' : 's'}, only ${avail} available.` };
+             }
+         },
+
+         checkConsecutiveDays() {
+             const dur = this.calculateNetWorkingDays();
+             if (dur <= 0) {
+                 return { pass: false, message: 'Working days — selected period contains no working days.' };
+             }
+             if (this.selectedLeaveTypeCode === 'CASUAL' && dur > 3) {
+                 return { pass: false, message: `Consecutive days — casual leave limited to 3 days (${dur} requested).` };
+             }
+             const daysLabel = dur === 0.2 ? '0.2 days (Short leave)' : (dur === 0.5 ? '0.5 days (Half day)' : `${dur} working day${dur === 1 ? '' : 's'}`);
+             return { pass: true, message: `Consecutive working days — ${daysLabel} calculated.` };
+         },
+
+         checkCovering() {
+             if (this.coveringEmployeeId && this.coveringEmployeeId !== '') {
+                 const empName = this.employeesMap[this.coveringEmployeeId] || 'Assigned colleague';
+                 return { pass: true, message: `Covering colleague — ${empName}` };
+             }
+             return { pass: false, message: 'Covering colleague — choose who will cover for you.' };
+         },
+
+         checkHandoverNotes() {
+             if (this.handoverNotes && this.handoverNotes.trim().length >= 3) {
+                 return { pass: true, message: 'Handover notes — details provided for live work.' };
+             }
+             return { pass: false, message: 'Handover notes — live jobs, deadlines & files needed.' };
+         },
+
+         allChecksPass() {
+             return this.checkClash().pass &&
+                    this.checkNoticePeriod().pass &&
+                    this.checkBalance().pass &&
+                    this.checkConsecutiveDays().pass &&
+                    this.checkCovering().pass &&
+                    this.checkHandoverNotes().pass;
+         },
+
+         openApplyModal(code) {
+             let targetCode = (code || 'ANNUAL').toUpperCase();
+             const targetItem = (this.leaveCatalog || []).find(l => l.code === targetCode);
+             if (targetItem) {
+                 this.selectLeaveType(targetCode, targetItem.id);
+             } else {
+                 this.selectLeaveType(targetCode, this.leaveTypesMap[targetCode] || '');
+             }
+             this.applyLeaveModal = true;
+             this.$nextTick(() => { 
+                 if (window.lucide) lucide.createIcons(); 
+             });
+         },
+
+         getLeaveTypeColor(nameOrCode) {
+             const s = String(nameOrCode || '').toUpperCase();
+             if (s.includes('ANNUAL') || s.includes('VACATION')) return { text: 'text-sky-700 dark:text-sky-300', badge: 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/60', avatar: 'bg-sky-400' };
+             if (s.includes('CASUAL')) return { text: 'text-purple-700 dark:text-purple-300', badge: 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200/80 dark:border-purple-800/60', avatar: 'bg-purple-400' };
+             if (s.includes('MED') || s.includes('SICK')) return { text: 'text-emerald-700 dark:text-emerald-300', badge: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60', avatar: 'bg-emerald-400' };
+             if (s.includes('SHORT')) return { text: 'text-amber-800 dark:text-amber-300', badge: 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60', avatar: 'bg-amber-400' };
+             if (s.includes('DUTY')) return { text: 'text-indigo-700 dark:text-indigo-300', badge: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60', avatar: 'bg-indigo-400' };
+             if (s.includes('LIEU') || s.includes('HALF')) return { text: 'text-teal-700 dark:text-teal-300', badge: 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200/80 dark:border-teal-800/60', avatar: 'bg-teal-400' };
+             return { text: 'text-slate-600 dark:text-slate-300', badge: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700', avatar: 'bg-slate-400' };
+         },
+
          openQuotaModal(code, name, icon, color, total, used, available, carryForward, unit) {
              let targetCode = (code || '').toUpperCase();
              this.selectedQuota = {
@@ -99,6 +380,12 @@
              };
              this.quotaModalOpen = true;
              this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+         },
+
+         getSelectedDayLeaves() {
+             if (!this.selectedDay || !this.selectedDay.leaves) return [];
+             if (Array.isArray(this.selectedDay.leaves)) return this.selectedDay.leaves;
+             return Object.values(this.selectedDay.leaves);
          }
      }">
 
@@ -149,60 +436,115 @@
 
     $dutyData = $getQuotaData('DUTY', 30, 'days');
     $lieuData = $getQuotaData('LIEU', 2, 'days');
+
+    $lieuDaysList = [
+        [
+            'type' => 'Full day',
+            'worked' => 'worked Saturday 15 Aug',
+            'status' => 'used',
+            'subtext' => 'Taken Mon 24 Aug',
+            'days_left' => 0,
+        ],
+        [
+            'type' => 'Half day',
+            'worked' => 'worked Saturday 5 Sept',
+            'status' => 'expired',
+            'subtext' => 'Expired Mon 5 Oct',
+            'days_left' => 0,
+        ],
+        [
+            'type' => 'Full day',
+            'worked' => 'worked Saturday 26 Sept',
+            'status' => 'available',
+            'expiry_date' => 'Mon 26 Oct',
+            'code' => 'LI-2612',
+            'days_left' => 4,
+        ],
+        [
+            'type' => 'Half day',
+            'worked' => 'worked Saturday 10 Oct',
+            'status' => 'available',
+            'expiry_date' => 'Mon 9 Nov',
+            'code' => 'LI-2615',
+            'days_left' => 18,
+        ],
+    ];
+
+    $getLeaveTypeMeta = function($nameOrCode) {
+        $s = strtoupper($nameOrCode ?? '');
+        if (str_contains($s, 'ANNUAL') || str_contains($s, 'VACATION')) {
+            return [
+                'dot' => 'bg-sky-400',
+                'badge' => 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/60',
+                'label' => 'Annual'
+            ];
+        }
+        if (str_contains($s, 'CASUAL')) {
+            return [
+                'dot' => 'bg-purple-400',
+                'badge' => 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200/80 dark:border-purple-800/60',
+                'label' => 'Casual'
+            ];
+        }
+        if (str_contains($s, 'MED') || str_contains($s, 'SICK')) {
+            return [
+                'dot' => 'bg-emerald-400',
+                'badge' => 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60',
+                'label' => 'Medical'
+            ];
+        }
+        if (str_contains($s, 'SHORT')) {
+            return [
+                'dot' => 'bg-amber-400',
+                'badge' => 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60',
+                'label' => 'Short'
+            ];
+        }
+        if (str_contains($s, 'DUTY')) {
+            return [
+                'dot' => 'bg-indigo-400',
+                'badge' => 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60',
+                'label' => 'Duty'
+            ];
+        }
+        if (str_contains($s, 'LIEU') || str_contains($s, 'HALF')) {
+            return [
+                'dot' => 'bg-teal-400',
+                'badge' => 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200/80 dark:border-teal-800/60',
+                'label' => 'Lieu'
+            ];
+        }
+        return [
+            'dot' => 'bg-slate-400',
+            'badge' => 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+            'label' => 'Leave'
+        ];
+    };
 @endphp
-
-    <!-- Page Header (Matching Reference UI) -->
-    <div class="shrink-0 flex items-center justify-between pb-0.5">
-        <div>
-            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">Leave Management</h1>
-        </div>
-
-        <!-- Right Controls: Dynamic Date Badge + Today + Month Chevrons -->
-        <div class="flex items-center gap-2">
-            <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs">
-                <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
-                <span>{{ \Carbon\Carbon::now('Asia/Colombo')->format('D, d M Y') }}</span>
-            </div>
-
-            <a href="{{ route('dashboard') }}" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-[#111927] dark:hover:bg-slate-800 border border-slate-200/90 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs transition-colors">
-                Today
-            </a>
-
-            <div class="flex items-center rounded-xl bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 shadow-2xs overflow-hidden">
-                <a href="{{ route('dashboard', ['year' => $prevMonthDate->year, 'month' => $prevMonthDate->month]) }}" class="p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors" title="Previous Month">
-                    <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
-                </a>
-                <div class="w-px h-3.5 bg-slate-200 dark:bg-slate-800"></div>
-                <a href="{{ route('dashboard', ['year' => $nextMonthDate->year, 'month' => $nextMonthDate->month]) }}" class="p-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors" title="Next Month">
-                    <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-                </a>
-            </div>
-        </div>
-    </div>
 
     <!-- Top Leave Summary Cards (6 Quotas - Sleek Linear Micro-Meters) -->
     <div class="shrink-0 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
         
         <!-- 1. Annual Leave -->
-        <div @click="openQuotaModal('ANNUAL', 'Annual Leave', 'plane', 'blue', {{ $annualData['total'] }}, {{ $annualData['used'] }}, {{ $annualData['available'] }}, {{ $annualData['cf'] }}, 'days')"
-             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-blue-400 dark:hover:border-blue-500/70 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
+        <div @click="openQuotaModal('ANNUAL', 'Annual Leave', 'plane', 'sky', {{ $annualData['total'] }}, {{ $annualData['used'] }}, {{ $annualData['available'] }}, {{ $annualData['cf'] }}, 'days')"
+             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-sky-300 dark:hover:border-sky-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
             <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100/80 dark:border-blue-900/40">
+                <div class="w-6 h-6 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 border border-sky-100 dark:border-sky-900/60">
                     <i data-lucide="plane" class="w-3.5 h-3.5"></i>
                 </div>
-                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">Annual Leave</span>
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">Annual Leave</span>
             </div>
 
             <div class="my-1 flex items-baseline gap-1.5">
-                <span class="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white leading-none tracking-tight">{{ $annualData['available'] }}</span>
-                <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/70 px-1.5 py-0.5 rounded">days left</span>
+                <span class="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 leading-none tracking-tight">{{ $annualData['available'] }}</span>
+                <span class="text-[10px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/60 px-1.5 py-0.5 rounded border border-sky-200/80 dark:border-sky-900/40">days left</span>
             </div>
 
             <div class="space-y-1">
-                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-500" style="width: {{ $annualData['pct'] }}%"></div>
+                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden">
+                    <div class="h-full bg-sky-400 dark:bg-sky-500 rounded-full transition-all duration-500" style="width: {{ $annualData['pct'] }}%"></div>
                 </div>
-                <div class="flex items-center justify-between text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                <div class="flex items-center justify-between text-[9px] font-medium text-slate-400 dark:text-slate-500">
                     <span>{{ $annualData['used'] }} used</span>
                     <span>{{ $annualData['pct'] }}% left</span>
                 </div>
@@ -211,24 +553,24 @@
 
         <!-- 2. Casual Leave -->
         <div @click="openQuotaModal('CASUAL', 'Casual Leave', 'calendar-check', 'purple', {{ $casualData['total'] }}, {{ $casualData['used'] }}, {{ $casualData['available'] }}, {{ $casualData['cf'] }}, 'days')"
-             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-purple-400 dark:hover:border-purple-500/70 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
+             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
             <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-purple-50 dark:bg-purple-950/70 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-100/80 dark:border-purple-900/40">
+                <div class="w-6 h-6 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/60">
                     <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
                 </div>
-                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">Casual Leave</span>
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">Casual Leave</span>
             </div>
 
             <div class="my-1 flex items-baseline gap-1.5">
-                <span class="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white leading-none tracking-tight">{{ $casualData['available'] }}</span>
-                <span class="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/70 px-1.5 py-0.5 rounded">days left</span>
+                <span class="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 leading-none tracking-tight">{{ $casualData['available'] }}</span>
+                <span class="text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-200/80 dark:border-purple-900/40">days left</span>
             </div>
 
             <div class="space-y-1">
-                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-purple-600 dark:bg-purple-500 rounded-full transition-all duration-500" style="width: {{ $casualData['pct'] }}%"></div>
+                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden">
+                    <div class="h-full bg-purple-400 dark:bg-purple-500 rounded-full transition-all duration-500" style="width: {{ $casualData['pct'] }}%"></div>
                 </div>
-                <div class="flex items-center justify-between text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                <div class="flex items-center justify-between text-[9px] font-medium text-slate-400 dark:text-slate-500">
                     <span>{{ $casualData['used'] }} used</span>
                     <span>{{ $casualData['pct'] }}% left</span>
                 </div>
@@ -237,24 +579,24 @@
 
         <!-- 3. Medical Leave -->
         <div @click="openQuotaModal('MEDICAL', 'Medical Leave', 'activity', 'emerald', {{ $medicalData['total'] }}, {{ $medicalData['used'] }}, {{ $medicalData['available'] }}, {{ $medicalData['cf'] }}, 'days')"
-             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-500/70 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
+             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
             <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100/80 dark:border-emerald-900/40">
+                <div class="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-900/60">
                     <i data-lucide="activity" class="w-3.5 h-3.5"></i>
                 </div>
-                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">Medical Leave</span>
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">Medical Leave</span>
             </div>
 
             <div class="my-1 flex items-baseline gap-1.5">
-                <span class="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white leading-none tracking-tight">{{ $medicalData['available'] }}</span>
-                <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/70 px-1.5 py-0.5 rounded">days left</span>
+                <span class="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 leading-none tracking-tight">{{ $medicalData['available'] }}</span>
+                <span class="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200/80 dark:border-emerald-900/40">days left</span>
             </div>
 
             <div class="space-y-1">
-                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-emerald-600 dark:bg-emerald-500 rounded-full transition-all duration-500" style="width: {{ $medicalData['pct'] }}%"></div>
+                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden">
+                    <div class="h-full bg-emerald-400 dark:bg-emerald-500 rounded-full transition-all duration-500" style="width: {{ $medicalData['pct'] }}%"></div>
                 </div>
-                <div class="flex items-center justify-between text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                <div class="flex items-center justify-between text-[9px] font-medium text-slate-400 dark:text-slate-500">
                     <span>{{ $medicalData['used'] }} used</span>
                     <span>{{ $medicalData['pct'] }}% left</span>
                 </div>
@@ -263,24 +605,24 @@
 
         <!-- 4. Short Leave -->
         <div @click="openQuotaModal('SHORT', 'Short Leave', 'clock', 'amber', {{ $shortData['total'] }}, {{ $shortData['used'] }}, {{ $shortData['available'] }}, {{ $shortData['cf'] }}, 'per month')"
-             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-amber-400 dark:hover:border-amber-500/70 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
+             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
             <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-100/80 dark:border-amber-900/40">
+                <div class="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-900/60">
                     <i data-lucide="clock" class="w-3.5 h-3.5"></i>
                 </div>
-                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">Short Leave</span>
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">Short Leave</span>
             </div>
 
             <div class="my-1 flex items-baseline gap-1.5">
-                <span class="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white leading-none tracking-tight">{{ $shortData['available'] }}</span>
-                <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/70 px-1.5 py-0.5 rounded">/ month</span>
+                <span class="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 leading-none tracking-tight">{{ $shortData['available'] }}</span>
+                <span class="text-[10px] font-semibold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200/80 dark:border-amber-900/40">/ month</span>
             </div>
 
             <div class="space-y-1">
-                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-amber-500 dark:bg-amber-400 rounded-full transition-all duration-500" style="width: {{ $shortData['pct'] }}%"></div>
+                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden">
+                    <div class="h-full bg-amber-400 dark:bg-amber-500 rounded-full transition-all duration-500" style="width: {{ $shortData['pct'] }}%"></div>
                 </div>
-                <div class="flex items-center justify-between text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                <div class="flex items-center justify-between text-[9px] font-medium text-slate-400 dark:text-slate-500">
                     <span>{{ $shortData['used'] }} used</span>
                     <span>{{ $shortData['pct'] }}% left</span>
                 </div>
@@ -288,25 +630,25 @@
         </div>
 
         <!-- 5. Duty Leave -->
-        <div @click="openQuotaModal('DUTY', 'Duty Leave', 'briefcase', 'rose', {{ $dutyData['total'] }}, {{ $dutyData['used'] }}, {{ $dutyData['available'] }}, {{ $dutyData['cf'] }}, 'days')"
-             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-rose-400 dark:hover:border-rose-500/70 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
+        <div @click="openQuotaModal('DUTY', 'Duty Leave', 'briefcase', 'indigo', {{ $dutyData['total'] }}, {{ $dutyData['used'] }}, {{ $dutyData['available'] }}, {{ $dutyData['cf'] }}, 'days')"
+             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
             <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-rose-50 dark:bg-rose-950/70 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-100/80 dark:border-rose-900/40">
+                <div class="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/60">
                     <i data-lucide="briefcase" class="w-3.5 h-3.5"></i>
                 </div>
-                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">Duty Leave</span>
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">Duty Leave</span>
             </div>
 
             <div class="my-1 flex items-baseline gap-1.5">
-                <span class="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white leading-none tracking-tight">{{ $dutyData['available'] }}</span>
-                <span class="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/70 px-1.5 py-0.5 rounded">days left</span>
+                <span class="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 leading-none tracking-tight">{{ $dutyData['available'] }}</span>
+                <span class="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-200/80 dark:border-indigo-900/40">days left</span>
             </div>
 
             <div class="space-y-1">
-                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-rose-500 dark:bg-rose-400 rounded-full transition-all duration-500" style="width: {{ $dutyData['pct'] }}%"></div>
+                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden">
+                    <div class="h-full bg-indigo-400 dark:bg-indigo-500 rounded-full transition-all duration-500" style="width: {{ $dutyData['pct'] }}%"></div>
                 </div>
-                <div class="flex items-center justify-between text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                <div class="flex items-center justify-between text-[9px] font-medium text-slate-400 dark:text-slate-500">
                     <span>{{ $dutyData['used'] }} used</span>
                     <span>{{ $dutyData['pct'] }}% left</span>
                 </div>
@@ -315,24 +657,24 @@
 
         <!-- 6. Lieu Leave -->
         <div @click="openQuotaModal('LIEU', 'Lieu Leave', 'refresh-cw', 'teal', {{ $lieuData['total'] }}, {{ $lieuData['used'] }}, {{ $lieuData['available'] }}, {{ $lieuData['cf'] }}, 'days')"
-             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-teal-400 dark:hover:border-teal-500/70 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
+             class="group bg-white dark:bg-[#111927] p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-teal-300 dark:hover:border-teal-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-0.5 min-h-[105px]">
             <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-lg bg-teal-50 dark:bg-teal-950/70 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-100/80 dark:border-teal-900/40">
+                <div class="w-6 h-6 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-100 dark:border-teal-900/60">
                     <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                 </div>
-                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">Lieu Leave</span>
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">Lieu Leave</span>
             </div>
 
             <div class="my-1 flex items-baseline gap-1.5">
-                <span class="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white leading-none tracking-tight">{{ $lieuData['available'] }}</span>
-                <span class="text-[10px] font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/70 px-1.5 py-0.5 rounded">days left</span>
+                <span class="text-2xl lg:text-3xl font-black text-slate-800 dark:text-slate-100 leading-none tracking-tight">{{ $lieuData['available'] }}</span>
+                <span class="text-[10px] font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-1.5 py-0.5 rounded border border-teal-200/80 dark:border-teal-900/40">days left</span>
             </div>
 
             <div class="space-y-1">
-                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div class="h-full bg-teal-500 dark:bg-teal-400 rounded-full transition-all duration-500" style="width: {{ $lieuData['pct'] }}%"></div>
+                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden">
+                    <div class="h-full bg-teal-400 dark:bg-teal-500 rounded-full transition-all duration-500" style="width: {{ $lieuData['pct'] }}%"></div>
                 </div>
-                <div class="flex items-center justify-between text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                <div class="flex items-center justify-between text-[9px] font-medium text-slate-400 dark:text-slate-500">
                     <span>{{ $lieuData['used'] }} used</span>
                     <span>{{ $lieuData['pct'] }}% left</span>
                 </div>
@@ -352,7 +694,10 @@
                 <div class="flex flex-wrap items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800 gap-3">
                     <!-- Month Title & Quick Nav -->
                     <div class="flex items-center gap-3">
-                        <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">{{ $selectedDate->format('F Y') }}</h2>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">{{ $selectedDate->format('F Y') }}</h2>
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200/60 dark:border-slate-700/60">Holiday Calendar</span>
+                        </div>
                         <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
                             <a href="{{ route('dashboard', ['year' => $prevMonthDate->year, 'month' => $prevMonthDate->month]) }}" class="w-7 h-7 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/70 rounded-md flex items-center justify-center transition-colors cursor-pointer" title="Previous Month">
                                 <i data-lucide="chevron-left" class="w-4 h-4"></i>
@@ -395,7 +740,7 @@
 
                 <!-- MODE 1: UNIFIED SAAS GRID VIEW -->
                 <div x-show="viewMode === 'grid'" class="mt-3.5">
-                    <div class="border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-100/60 dark:bg-[#080d19] p-2.5">
+                    <div class="border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-100/80 dark:bg-[#080d19] p-2.5">
                         <!-- Weekday Headers -->
                         <div class="grid grid-cols-7 mb-2 text-[11px] font-bold uppercase tracking-wider py-1 text-center select-none">
                             <div class="text-slate-600 dark:text-slate-400">Mon</div>
@@ -407,26 +752,29 @@
                             <div class="text-rose-500/90 dark:text-rose-400 font-extrabold">Sun</div>
                         </div>
 
-                        <!-- Days Grid (Every cell has subtle blue coloring, drop shadow and distinct outline) -->
+                        <!-- Days Grid (Sleek SaaS elevated cards with clean outlines and drop shadows) -->
                         <div class="grid grid-cols-7 gap-1.5">
                             @foreach($calendarDays as $cell)
-                                <div @click="selectedDay = {{ json_encode($cell) }}; dayModalOpen = true"
-                                     :class="selectedDay && selectedDay.date === '{{ $cell['date'] }}' ? 'ring-2 ring-blue-500 border-blue-500 dark:border-blue-400 shadow-md z-10' : ''"
-                                     class="min-h-[92px] sm:min-h-[100px] p-2 rounded-xl flex flex-col justify-between transition-all duration-150 cursor-pointer relative group border shadow-xs hover:shadow-md hover:-translate-y-0.5
+                                <div @click="selectedDay = {{ json_encode($cell) }}; $nextTick(() => window.lucide && lucide.createIcons())"
+                                     @dblclick="dayModalOpen = true"
+                                     :class="selectedDay && selectedDay.date === '{{ $cell['date'] }}' ? '!border-blue-600 dark:!border-blue-400 ring-2 ring-blue-500/20 shadow-md z-10' : ''"
+                                     class="min-h-[92px] sm:min-h-[100px] p-2 rounded-xl flex flex-col justify-between transition-all duration-150 cursor-pointer relative group border shadow-2xs hover:shadow-md hover:-translate-y-0.5
                                      {{ !$cell['is_current_month'] ? 'bg-slate-100/40 dark:bg-[#090e1c]/40 border-slate-200/50 dark:border-slate-800/40 shadow-none opacity-40' : '' }}
-                                     {{ $cell['is_current_month'] && $cell['is_today'] ? 'bg-blue-100/70 dark:bg-blue-950/60 border-2 border-blue-500 dark:border-blue-400 shadow-sm' : '' }}
+                                     {{ $cell['is_current_month'] && $cell['is_today'] ? 'bg-blue-50/80 dark:bg-blue-950/40 border-2 border-blue-600 dark:border-blue-500 shadow-sm' : '' }}
                                      {{ $cell['is_current_month'] && !$cell['is_today'] && $cell['is_weekend'] ? 'bg-slate-50/90 dark:bg-[#0d1526] border-slate-200/80 dark:border-[#1a2947] hover:bg-slate-100 dark:hover:bg-[#121c32]' : '' }}
-                                     {{ $cell['is_current_month'] && !$cell['is_today'] && !$cell['is_weekend'] ? 'bg-blue-50/45 dark:bg-[#111c33] border-blue-200/60 dark:border-[#20355c] hover:bg-blue-50/80 dark:hover:bg-[#162544] hover:border-blue-300 dark:hover:border-blue-500/70' : '' }}
+                                     {{ $cell['is_current_month'] && !$cell['is_today'] && !$cell['is_weekend'] ? 'bg-white dark:bg-[#111927] border-slate-200/90 dark:border-slate-800 hover:bg-slate-50/80 dark:hover:bg-[#162544] hover:border-blue-300 dark:hover:border-blue-500/70' : '' }}
                                 ">
-                                    <!-- Day Header: Date Number -->
+                                    <!-- Day Header: Date Number & Badges -->
                                     <div class="flex items-center justify-between mb-1.5">
                                         @if($cell['is_today'] && $cell['is_current_month'])
                                             <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">{{ $cell['day'] }}</span>
                                             <span class="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Today</span>
                                         @elseif(!$cell['is_current_month'])
                                             <span class="text-xs font-medium text-slate-400 dark:text-slate-600 pl-0.5">{{ $cell['day'] }}</span>
+                                        @elseif($cell['is_weekend'])
+                                            <span class="text-xs sm:text-sm font-semibold text-rose-500 dark:text-rose-400 pl-0.5">{{ $cell['day'] }}</span>
                                         @else
-                                            <span class="text-xs font-semibold {{ $cell['is_weekend'] ? 'text-rose-500 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200' }} pl-0.5">{{ $cell['day'] }}</span>
+                                            <span class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 pl-0.5">{{ $cell['day'] }}</span>
                                         @endif
                                     </div>
 
@@ -439,7 +787,7 @@
                                                     $isCompany = $cell['holiday']->type === 'Company';
                                                     $hTitle = $cell['holiday']->title;
                                                 @endphp
-                                                <div class="truncate px-1.5 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 {{ $isCompany ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/60' : 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border border-amber-200/70 dark:border-amber-800/60' }}" title="{{ $hTitle }} ({{ $cell['holiday']->category ?? $cell['holiday']->type }})">
+                                                <div class="truncate px-1.5 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 shadow-2xs {{ $isCompany ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-900/60' : 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border border-amber-200/80 dark:border-amber-800/60' }}" title="{{ $hTitle }} ({{ $cell['holiday']->category ?? $cell['holiday']->type }})">
                                                     <span class="shrink-0 text-[10px]">{{ $cell['is_poya'] ? '🌕' : ($isCompany ? '🏢' : '🏛️') }}</span>
                                                     <span class="truncate">{{ $hTitle }}</span>
                                                 </div>
@@ -448,19 +796,32 @@
                                             <!-- Birthday Pill -->
                                             @if(isset($cell['birthdays']) && count($cell['birthdays']) > 0)
                                                 @foreach($cell['birthdays'] as $bdayName)
-                                                    <div class="truncate px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-pink-50 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 border border-pink-200/60 dark:border-pink-900/60 flex items-center gap-1" title="🎂 {{ $bdayName }}'s Birthday">
+                                                    <div class="truncate px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-pink-50 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 border border-pink-200/80 dark:border-pink-900/60 flex items-center gap-1 shadow-2xs" title="🎂 {{ $bdayName }}'s Birthday">
                                                         <span class="shrink-0 text-[10px]">🎂</span>
                                                         <span class="truncate">{{ $bdayName }}</span>
                                                     </div>
                                                 @endforeach
                                             @endif
 
-                                            <!-- Leave Pill -->
+                                            <!-- Leave Pills (Grouped by Type with Non-Neon Palettes) -->
                                             @if($cell['leaves']->count() > 0)
-                                                <div class="truncate px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/60 flex items-center gap-1" title="{{ $cell['leaves']->count() }} staff scheduled on leave">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
-                                                    <span class="truncate">{{ $cell['leaves']->count() }} {{ Str::plural('Leave', $cell['leaves']->count()) }}</span>
-                                                </div>
+                                                @php
+                                                    $leavesByType = $cell['leaves']->groupBy(function($lv) {
+                                                        return $lv->leaveType->code ?? $lv->leaveType->name ?? 'LEAVE';
+                                                    });
+                                                @endphp
+                                                @foreach($leavesByType as $typeCode => $typedLeaves)
+                                                    @php
+                                                        $firstLv = $typedLeaves->first();
+                                                        $meta = $getLeaveTypeMeta($typeCode ?: ($firstLv->leaveType->name ?? 'LEAVE'));
+                                                        $count = $typedLeaves->count();
+                                                        $label = $count === 1 ? ($firstLv->employee->user->name ?? $meta['label']) : ($count . ' ' . $meta['label']);
+                                                    @endphp
+                                                    <div class="truncate px-1.5 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1.5 border shadow-2xs {{ $meta['badge'] }}" title="{{ $count }} {{ Str::plural($meta['label'] . ' Leave', $count) }}">
+                                                        <span class="w-1.5 h-1.5 rounded-full {{ $meta['dot'] }} shrink-0"></span>
+                                                        <span class="truncate">{{ $label }}</span>
+                                                    </div>
+                                                @endforeach
                                             @endif
                                         @endif
                                     </div>
@@ -502,14 +863,18 @@
 
             </div>
 
-            <!-- Legend Bar (Clean SaaS Minimal Legend) -->
-            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400 shrink-0 gap-3">
-                <div class="flex items-center gap-4 flex-wrap">
-                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Today</span>
-                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Staff Leave</span>
-                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Public Holiday</span>
-                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Company Holiday</span>
-                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-pink-500"></span> Birthday</span>
+            <!-- Legend Bar (Clean SaaS Minimal Legend with Leave Types) -->
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400 shrink-0 gap-y-2 gap-x-4">
+                <div class="flex items-center gap-3.5 flex-wrap">
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> <span class="font-semibold text-slate-700 dark:text-slate-300">Today</span></span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-sky-400"></span> Annual</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-purple-400"></span> Casual</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> Medical</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Short</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-indigo-400"></span> Duty</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-teal-400"></span> Lieu</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-400"></span> Holiday</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-pink-400"></span> Birthday</span>
                 </div>
             </div>
         </div>
@@ -535,67 +900,101 @@
                 @endif
             </div>
 
-            <!-- Pending Approvals Card -->
-            <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-xs flex flex-col space-y-3">
+            <!-- Who's on Leave Card (Shows Today by default, updates when date selected on calendar) -->
+            <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-md dark:shadow-none flex flex-col space-y-3">
                 <div class="flex items-center justify-between shrink-0">
                     <div class="flex items-center gap-2">
-                        <i data-lucide="bookmark" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
-                        <h3 class="text-xs font-bold text-slate-800 dark:text-slate-100">Pending Approval Requests</h3>
+                        <div class="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center border border-sky-100 dark:border-sky-900/60">
+                            <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-800 dark:text-slate-100">Who's on Leave</h3>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium" 
+                               x-text="selectedDay ? (selectedDay.is_today ? ('Today • ' + selectedDay.formatted_date) : selectedDay.formatted_date) : 'Today'"></p>
+                        </div>
                     </div>
-                    <span class="bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full">{{ count($pendingRequests) }}</span>
+                    <div class="flex items-center gap-1.5">
+                        <template x-if="selectedDay && !selectedDay.is_today">
+                            <button type="button" 
+                                    @click="selectedDay = todayCell; $nextTick(() => window.lucide && lucide.createIcons())" 
+                                    title="Reset view to Today"
+                                    class="text-[10px] font-bold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 hover:underline px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/60 border border-sky-200/80 dark:border-sky-800/60 transition-all cursor-pointer">
+                                Today
+                            </button>
+                        </template>
+                        <span class="bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/60 text-[10px] font-bold px-2 py-0.5 rounded-full" 
+                              x-text="getSelectedDayLeaves().length"></span>
+                        <button type="button" 
+                                @click="dayModalOpen = true; $nextTick(() => window.lucide && lucide.createIcons())" 
+                                title="View Day Summary Details" 
+                                class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+                            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Approval Requests List -->
-                <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
-                    @php
-                        $userSystemRole = session('current_role', Auth::user()?->employee?->system_role ?? 'Employee');
-                        $isManagerOrAdmin = in_array($userSystemRole, ['HR Lead', 'Super (Admin)', 'Super Admin', 'Manager (Team Approvals)', 'HOD / Manager']);
-                    @endphp
-                    
-                    @forelse($pendingRequests as $req)
-                        <div class="bg-slate-50/70 hover:bg-slate-100/80 dark:bg-[#0f172a] dark:hover:bg-[#182338] border border-slate-200/70 dark:border-slate-800 p-3 rounded-xl flex items-center justify-between text-xs transition-colors">
-                            <div>
-                                <div class="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                                    <span>{{ $req->employee->user->name ?? 'Employee' }}</span>
-                                    <span class="text-slate-400">•</span>
-                                    <span class="text-blue-600 dark:text-blue-400 font-bold">{{ $req->leaveType->name ?? 'Leave' }}</span>
+                <!-- Leaves List for Selected Day / Today -->
+                <div class="space-y-2 max-h-72 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                    <template x-if="getSelectedDayLeaves().length > 0">
+                        <div class="space-y-2">
+                            <template x-for="lv in getSelectedDayLeaves()" :key="'day-' + lv.id">
+                                <div class="bg-slate-50/80 hover:bg-slate-100/80 dark:bg-[#0f172a] dark:hover:bg-[#182338] border border-slate-200/70 dark:border-slate-800 p-2.5 rounded-xl flex items-center justify-between text-xs transition-all shadow-xs dark:shadow-none">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <!-- Avatar with Pastel Leave Type Color -->
+                                        <div class="w-8 h-8 rounded-full text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs uppercase"
+                                             :class="getLeaveTypeColor(lv.leave_type?.code || lv.leave_type?.name || lv.leaveType?.code || lv.leaveType?.name).avatar"
+                                             x-text="lv.employee?.user?.name ? lv.employee.user.name.charAt(0) : (lv.employee_name ? lv.employee_name.charAt(0) : 'E')">
+                                        </div>
+                                        
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="font-bold text-slate-900 dark:text-slate-100 truncate text-xs" x-text="lv.employee?.user?.name || lv.employee_name || 'Employee'"></span>
+                                                <span class="text-slate-300 dark:text-slate-600">•</span>
+                                                <span class="font-bold text-[11px]"
+                                                      :class="getLeaveTypeColor(lv.leave_type?.code || lv.leave_type?.name || lv.leaveType?.code || lv.leaveType?.name).text"
+                                                      x-text="lv.leave_type?.name || lv.leaveType?.name || lv.leave_type_name || 'Leave'"></span>
+                                            </div>
+                                            <div class="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                                                <span x-text="lv.is_half_day ? ('Half Day (' + (lv.half_day_slot || 'Slot') + ')') : (lv.is_short_leave ? ('Short Leave (' + (lv.short_leave_slot || '') + ')') : (parseFloat(lv.duration) === 1 ? '1 day' : parseFloat(lv.duration) + ' days'))"></span>
+                                                <template x-if="lv.employee?.department?.name || lv.department">
+                                                    <span>• <span x-text="lv.employee?.department?.name || lv.department"></span></span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Duration / Badge -->
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0"
+                                          :class="getLeaveTypeColor(lv.leave_type?.code || lv.leave_type?.name || lv.leaveType?.code || lv.leaveType?.name).badge"
+                                          x-text="lv.is_half_day ? 'Half Day' : (lv.is_short_leave ? 'Short' : (parseFloat(lv.duration) === 1 ? '1 Day' : parseFloat(lv.duration) + ' Days'))">
+                                    </span>
                                 </div>
-                                <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
-                                    {{ $req->is_half_day ? 'Half Day' : ($req->is_short_leave ? 'Short Leave' : ((float)$req->duration == 1 ? '1 day' : (float)$req->duration . ' days')) }} • {{ $req->start_date }}
-                                </div>
-                            </div>
-                            @if($isManagerOrAdmin)
-                                <a href="{{ route('approvals.index') }}" class="bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg transition-colors shadow-2xs flex items-center gap-1 shrink-0 cursor-pointer">
-                                    <span>Review</span>
-                                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                                </a>
-                            @else
-                                <span class="bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-2 py-1 rounded-lg border border-amber-200/80 dark:border-amber-800/60 shrink-0">
-                                    {{ $req->status ?? 'Pending Approval' }}
-                                </span>
-                            @endif
+                            </template>
                         </div>
-                    @empty
-                        <div class="text-[10px] text-slate-400 dark:text-slate-500 italic py-4 text-center bg-slate-50/50 dark:bg-[#0f172a] rounded-xl border border-slate-200/80 dark:border-slate-800">
-                            {{ $isManagerOrAdmin ? 'No pending approval requests.' : 'You have no pending leave applications.' }}
+                    </template>
+
+                    <template x-if="getSelectedDayLeaves().length === 0">
+                        <div class="text-[11px] text-slate-400 dark:text-slate-500 italic py-6 text-center bg-slate-50/50 dark:bg-[#0f172a] rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col items-center justify-center gap-1.5">
+                            <i data-lucide="user-check" class="w-5 h-5 text-slate-300 dark:text-slate-600"></i>
+                            <span x-text="selectedDay?.is_today ? 'No employees on leave today.' : 'No employees on leave on this day.'"></span>
                         </div>
-                    @endforelse
+                    </template>
                 </div>
             </div>
 
-            <!-- BOTTOM CARD: TODAY'S EVENTS & BIRTHDAYS (COMPACT CARD FOR TODAY) -->
-            <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-3.5 shadow-xs flex flex-col space-y-2">
+            <!-- Events & Birthdays Card -->
+            <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-md dark:shadow-none flex flex-col space-y-2">
                 <div class="flex items-center justify-between shrink-0">
                     <div class="flex items-center gap-2">
                         <i data-lucide="sparkles" class="w-4 h-4 text-amber-500 dark:text-amber-400"></i>
-                        <h3 class="text-xs font-bold text-slate-800 dark:text-slate-100">Today's Events & Birthdays</h3>
+                        <h3 class="text-xs font-bold text-slate-800 dark:text-slate-100">Events & Birthdays</h3>
                     </div>
                     <span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-slate-200/80 dark:border-slate-700" x-text="selectedDay ? selectedDay.formatted_date : '{{ \Carbon\Carbon::now('Asia/Colombo')->format('M d, Y') }}'"></span>
                 </div>
 
-                <!-- Selected Day / Today Event & Birthday Details -->
+                <!-- Selected Day Event & Birthday Details -->
                 <div class="space-y-2 max-h-48 overflow-y-auto">
-                    <!-- 1. Employee Birthdays (Matching Celebratory Pink Card in Reference Mockup) -->
+                    <!-- 1. Employee Birthdays -->
                     <template x-if="selectedDay?.birthdays && selectedDay?.birthdays.length > 0">
                         <div class="p-3 bg-rose-50/80 dark:bg-rose-950/30 rounded-xl border border-rose-200/80 dark:border-rose-900/50 space-y-1">
                             <div class="text-[10px] font-black uppercase text-rose-600 dark:text-rose-400 tracking-wider flex items-center gap-1.5">
@@ -627,6 +1026,90 @@
                             </template>
                         </div>
                     </template>
+                </div>
+            </div>
+
+            <!-- Lieu Days Card (Matching Reference UI) -->
+            <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-md dark:shadow-none flex flex-col space-y-3.5">
+                <!-- Header -->
+                <div>
+                    <h3 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-snug">Lieu days</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                        Added automatically when weekend or holiday work is approved. Expire after 30 days.
+                    </p>
+                </div>
+
+                <!-- Lieu Days List -->
+                <div class="divide-y divide-slate-100 dark:divide-slate-800/80">
+                    @foreach($lieuDaysList as $item)
+                        <div class="py-3 first:pt-1 last:pb-1 flex items-center justify-between gap-3 text-xs">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <!-- Left Indicator (Ring for Active, Dash for Used/Expired) -->
+                                @if($item['status'] === 'available')
+                                    <div class="relative w-10 h-10 shrink-0 flex items-center justify-center">
+                                        <svg class="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+                                            <!-- Background Track -->
+                                            <circle cx="18" cy="18" r="14" fill="none" class="stroke-slate-100 dark:stroke-slate-800" stroke-width="2.5" />
+                                            <!-- Progress Ring -->
+                                            <circle cx="18" cy="18" r="14" fill="none" 
+                                                    class="{{ $item['days_left'] <= 7 ? 'stroke-rose-400' : 'stroke-amber-400' }}" 
+                                                    stroke-width="2.5" 
+                                                    stroke-dasharray="88" 
+                                                    stroke-dashoffset="{{ round(88 - (88 * ($item['days_left'] / 30))) }}" 
+                                                    stroke-linecap="round" />
+                                        </svg>
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                            <span class="text-[11px] font-black text-slate-900 dark:text-slate-100 leading-none">{{ $item['days_left'] }}</span>
+                                            <span class="text-[7.5px] font-bold text-slate-400 dark:text-slate-500 leading-none mt-0.5 uppercase">days</span>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#161f30] border border-slate-200/70 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold text-sm shrink-0">
+                                        <span>—</span>
+                                    </div>
+                                @endif
+
+                                <!-- Details -->
+                                <div class="min-w-0">
+                                    <div class="font-extrabold text-slate-900 dark:text-slate-100 text-xs truncate">
+                                        <span>{{ $item['type'] }}</span>
+                                        <span class="text-slate-300 dark:text-slate-600 font-normal mx-0.5">•</span>
+                                        <span class="font-bold text-slate-700 dark:text-slate-300">{{ $item['worked'] }}</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                                        @if($item['status'] === 'used')
+                                            <span>{{ $item['subtext'] }}</span>
+                                        @elseif($item['status'] === 'expired')
+                                            <span>{{ $item['subtext'] }}</span>
+                                        @else
+                                            <span>Use by {{ $item['expiry_date'] }}</span>
+                                            <span class="text-slate-300 dark:text-slate-600 mx-0.5">•</span>
+                                            <span class="font-semibold text-slate-600 dark:text-slate-400">{{ $item['code'] }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Action / Status Badge -->
+                            <div class="shrink-0">
+                                @if($item['status'] === 'used')
+                                    <span class="bg-slate-100 dark:bg-[#1a2333] text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-800 text-[11px] font-bold px-3 py-1.5 rounded-xl">
+                                        Used
+                                    </span>
+                                @elseif($item['status'] === 'expired')
+                                    <span class="bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200/70 dark:border-rose-900/50 text-[11px] font-bold px-3 py-1.5 rounded-xl">
+                                        Expired
+                                    </span>
+                                @else
+                                    <button type="button" 
+                                            @click="openApplyModal('LIEU')" 
+                                            class="bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer">
+                                        Book it
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
 
@@ -712,23 +1195,29 @@
                     <!-- Staff on Leave Card -->
                     <div class="space-y-2">
                         <h4 class="text-xs font-black text-slate-700 dark:text-slate-400 uppercase tracking-wider">Employees Scheduled on Leave</h4>
-                        <template x-if="selectedDay.leaves && selectedDay.leaves.length > 0">
+                        <template x-if="getSelectedDayLeaves().length > 0">
                             <div class="space-y-2">
-                                <template x-for="lv in selectedDay.leaves" :key="lv.id">
+                                <template x-for="lv in getSelectedDayLeaves()" :key="lv.id">
                                     <div class="p-3 bg-slate-50 dark:bg-[#1c2128] rounded-xl border border-slate-200 dark:border-[#30363d] flex items-center justify-between text-xs">
                                         <div class="flex items-center gap-2.5">
-                                            <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold" x-text="lv.employee?.user?.name ? lv.employee.user.name.charAt(0) : 'E'"></div>
+                                            <div class="w-8 h-8 rounded-full text-white flex items-center justify-center font-bold"
+                                                 :class="getLeaveTypeColor(lv.leave_type?.code || lv.leave_type?.name || lv.leaveType?.code || lv.leaveType?.name).avatar"
+                                                 x-text="lv.employee?.user?.name ? lv.employee.user.name.charAt(0) : (lv.employee_name ? lv.employee_name.charAt(0) : 'E')"></div>
                                             <div>
-                                                <div class="font-bold text-slate-900 dark:text-slate-100" x-text="lv.employee?.user?.name || 'Employee'"></div>
-                                                <div class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold" x-text="lv.leave_type?.name || 'Leave'"></div>
+                                                <div class="font-bold text-slate-900 dark:text-slate-100" x-text="lv.employee?.user?.name || lv.employee_name || 'Employee'"></div>
+                                                <div class="text-[10px] font-semibold"
+                                                     :class="getLeaveTypeColor(lv.leave_type?.code || lv.leave_type?.name || lv.leaveType?.code || lv.leaveType?.name).text"
+                                                     x-text="lv.leave_type?.name || lv.leaveType?.name || lv.leave_type_name || 'Leave'"></div>
                                             </div>
                                         </div>
-                                        <span class="bg-white dark:bg-[#21262d] text-purple-800 dark:text-purple-300 text-[10px] font-bold px-2 py-1 rounded-lg border border-purple-200 dark:border-purple-900" x-text="parseFloat(lv.duration) + (parseFloat(lv.duration) === 1 ? ' Day' : ' Days')"></span>
+                                        <span class="text-[10px] font-bold px-2.5 py-1 rounded-lg border shadow-2xs"
+                                              :class="getLeaveTypeColor(lv.leave_type?.code || lv.leave_type?.name || lv.leaveType?.code || lv.leaveType?.name).badge"
+                                              x-text="parseFloat(lv.duration) + (parseFloat(lv.duration) === 1 ? ' Day' : ' Days')"></span>
                                     </div>
                                 </template>
                             </div>
                         </template>
-                        <template x-if="!selectedDay.leaves || selectedDay.leaves.length === 0">
+                        <template x-if="getSelectedDayLeaves().length === 0">
                             <div class="p-3 text-xs text-slate-400 dark:text-slate-500 italic bg-slate-50 dark:bg-[#1c2128] rounded-xl border border-slate-200 dark:border-[#30363d]">No employees scheduled on leave for this date.</div>
                         </template>
                     </div>
@@ -742,156 +1231,298 @@
         </div>
     </div>
 
-    <!-- APPLY FOR LEAVE MODAL (LOOPS HR LEAVE BRIEF COMPLIANT) -->
-    <div x-show="applyLeaveModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-white dark:bg-[#161b22] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto border border-slate-100 dark:border-[#30363d]" @click.away="applyLeaveModal = false">
+    <!-- APPLY FOR LEAVE MODAL (COMPACT ADAPTIVE - NO SCROLLBAR) -->
+    <div x-show="applyLeaveModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md overflow-hidden">
+        <div class="bg-white dark:bg-[#111622] text-slate-800 dark:text-slate-100 rounded-2xl max-w-5xl w-full p-4 sm:p-5 lg:p-6 shadow-2xl border border-slate-200/90 dark:border-slate-800 my-auto relative max-h-[96vh] flex flex-col overflow-hidden" 
+             @click.away="applyLeaveModal = false">
             
-            <div class="flex items-center justify-between border-b border-slate-100 dark:border-[#21262d] pb-3">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
-                        <i class="ph ph-airplane-tilt text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-black text-sm text-slate-900 dark:text-slate-100">Apply for Leave</h3>
-                        <p class="text-[11px] text-slate-600 dark:text-slate-400 font-bold">Submit a new leave application</p>
-                    </div>
-                </div>
-                <button @click="applyLeaveModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph ph-x text-base"></i></button>
-            </div>
+            <!-- Close Button Top Right -->
+            <button @click="applyLeaveModal = false" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/60 z-20">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Error Banner -->
             @if($errors->any())
-                <div class="bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300 p-3 rounded-xl text-xs space-y-1">
+                <div class="mb-2 bg-rose-50 dark:bg-rose-950/80 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 p-2 rounded-lg text-xs space-y-0.5">
                     @foreach($errors->all() as $err)
-                        <div class="flex items-center gap-1.5"><i class="ph ph-warning-circle text-rose-600 dark:text-rose-400"></i> <span>{{ $err }}</span></div>
+                        <div class="flex items-center gap-1.5"><i data-lucide="alert-circle" class="w-3.5 h-3.5 text-rose-500 dark:text-rose-400 shrink-0"></i> <span>{{ $err }}</span></div>
                     @endforeach
                 </div>
             @endif
 
-            <form action="{{ route('leave.store') }}" method="POST" enctype="multipart/form-data" class="space-y-3.5 text-xs font-semibold">
+            <!-- Modal Form with 2-Column Layout (Scrollbar hidden) -->
+            <form action="{{ route('leave.store') }}" method="POST" enctype="multipart/form-data" class="flex-1 min-h-0 flex flex-col justify-between overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 @csrf
                 
-                <!-- Leave Type Selection -->
-                <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Select Leave Type *</label>
-                    <select name="leave_type_id" 
-                            x-model="selectedLeaveTypeId"
-                            x-on:change="
-                                selectedLeaveTypeCode = leaveCodeMap[selectedLeaveTypeId] || 'ANNUAL';
-                                if (selectedLeaveTypeCode === 'SHORT') {
-                                    isHalfDay = false;
-                                    isShortLeave = true;
-                                    targetEndDate = targetStartDate;
-                                } else {
-                                    isShortLeave = false;
-                                }
-                            "
-                            class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:ring-2 focus:ring-blue-500/30 focus:outline-none">
-                        @foreach($leaveBalances as $lb)
-                            @if(!in_array(strtolower($lb->leaveType->name ?? ''), ['half day leave', 'half day', 'maternity leave', 'maternity', 'paternity leave', 'paternity']) && !in_array(strtoupper($lb->leaveType->code ?? ''), ['HALF', 'MATERNITY', 'PATERNITY', 'MAT', 'PAT']))
-                            @php
-                                $isShort = strtoupper($lb->leaveType->code) === 'SHORT';
-                                $availText = $isShort ? ($shortData['available'] . ' / 2 available this month') : (max(0, ($lb->allocated + $lb->carried_forward) - $lb->used) . ' days available');
-                            @endphp
-                            <option value="{{ (string)$lb->leave_type_id }}" data-code="{{ strtoupper($lb->leaveType->code) }}" class="bg-white dark:bg-[#1c2128] text-slate-900 dark:text-slate-200">
-                                {{ $lb->leaveType->name }} ({{ $availText }})
-                            </option>
-                            @endif
-                        @endforeach
-                    </select>
-                </div>
+                <!-- Hidden inputs to submit all needed data -->
+                <input type="hidden" name="leave_type_id" :value="selectedLeaveTypeId">
+                <input type="hidden" name="is_half_day" :value="isHalfDay ? '1' : '0'">
+                <input type="hidden" name="half_day_slot" :value="halfDaySlot">
+                <input type="hidden" name="is_short_leave" :value="isShortLeave || selectedLeaveTypeCode === 'SHORT' ? '1' : '0'">
+                <input type="hidden" name="short_leave_slot" :value="shortLeaveSlot">
 
-                <!-- Date Inputs -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Start Date *</label>
-                        <input type="date" name="start_date" x-model="targetStartDate" 
-                               @change="if (selectedLeaveTypeCode === 'SHORT' || isHalfDay || !targetEndDate || targetEndDate < targetStartDate) targetEndDate = targetStartDate"
-                               class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-1">
+                    
+                    <!-- Left Column: Form Details (8 cols) -->
+                    <div class="lg:col-span-7 xl:col-span-8 space-y-3">
+                        
+                        <!-- Header -->
+                        <div>
+                            <h2 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">Apply for leave</h2>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400">Every rule is checked as you fill this in.</p>
+                        </div>
+
+                        <!-- 12 Leave Type Selection Cards -->
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                                <template x-for="item in leaveCatalog" :key="item.code">
+                                    <div @click="selectLeaveType(item.code, item.id)"
+                                         :class="selectedLeaveTypeCode === item.code 
+                                            ? 'bg-amber-500/10 border-amber-500 dark:border-amber-400/90 ring-1 ring-amber-500/40 dark:ring-amber-400/40 shadow-xs' 
+                                            : 'bg-slate-50 hover:bg-slate-100/80 dark:bg-[#182030]/80 dark:hover:bg-[#1e283d] border-slate-200/90 hover:border-slate-300 dark:border-slate-800/80 dark:hover:border-slate-700'"
+                                         class="px-2.5 py-1.5 rounded-lg border text-left cursor-pointer transition-all flex flex-col justify-between min-h-[46px]">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="item.dotColor"></span>
+                                            <span class="text-[11px] font-bold truncate leading-tight" :class="selectedLeaveTypeCode === item.code ? 'text-amber-900 dark:text-amber-300' : 'text-slate-800 dark:text-slate-200'" x-text="item.name"></span>
+                                        </div>
+                                        <span class="text-[10px] font-medium pl-3 truncate leading-tight" :class="selectedLeaveTypeCode === item.code ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'" x-text="item.subtext"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Dates Row: FIRST DAY and LAST DAY -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                    <i data-lucide="calendar" class="w-3 h-3 text-slate-400"></i>
+                                    <span>First day</span>
+                                </label>
+                                <input type="date" name="start_date" x-model="targetStartDate" 
+                                       @change="
+                                           if (selectedLeaveTypeCode === 'SHORT' || isHalfDay || !targetEndDate || targetEndDate < targetStartDate) {
+                                               targetEndDate = targetStartDate;
+                                           }
+                                       "
+                                       class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all" required>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                    <i data-lucide="calendar" class="w-3 h-3 text-slate-400"></i>
+                                    <span>Last day</span>
+                                </label>
+                                <input type="date" name="end_date" x-model="targetEndDate" 
+                                       :disabled="selectedLeaveTypeCode === 'SHORT' || isHalfDay"
+                                       class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed" required>
+                            </div>
+                        </div>
+
+                        <!-- Half Day & Short Leave Options -->
+                        <div class="space-y-2">
+                            <!-- Half Day Toggle -->
+                            <div x-show="selectedLeaveTypeCode !== 'SHORT'" class="p-2 bg-slate-50/80 dark:bg-[#182030]/60 rounded-lg border border-slate-200/90 dark:border-slate-800 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                                        <input type="checkbox" x-model="isHalfDay" 
+                                               @change="if (isHalfDay) targetEndDate = targetStartDate;" 
+                                               class="rounded bg-white dark:bg-[#111622] border-slate-300 dark:border-slate-700 text-amber-500 focus:ring-amber-400/30 w-3.5 h-3.5">
+                                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Apply as Half Day (0.5 days)</span>
+                                    </label>
+                                    <span class="text-[10px] text-slate-500 dark:text-slate-400 font-semibold" x-show="isHalfDay">Single date application</span>
+                                </div>
+
+                                <div x-show="isHalfDay" class="grid grid-cols-2 gap-2 pt-0.5">
+                                    <label class="flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] cursor-pointer transition-all"
+                                           :class="halfDaySlot === 'Morning' ? 'bg-amber-500/10 border-amber-500/70 text-amber-900 dark:text-amber-300 font-semibold' : 'bg-white dark:bg-[#141b29] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'">
+                                        <input type="radio" x-model="halfDaySlot" value="Morning" class="text-amber-500 w-3 h-3">
+                                        <span class="font-semibold">Morning (9:00 AM – 1:00 PM)</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] cursor-pointer transition-all"
+                                           :class="halfDaySlot === 'Afternoon' ? 'bg-amber-500/10 border-amber-500/70 text-amber-900 dark:text-amber-300 font-semibold' : 'bg-white dark:bg-[#141b29] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'">
+                                        <input type="radio" x-model="halfDaySlot" value="Afternoon" class="text-amber-500 w-3 h-3">
+                                        <span class="font-semibold">Afternoon (1:00 PM – 5:00 PM)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Short Leave Slot Selector -->
+                            <div x-show="selectedLeaveTypeCode === 'SHORT'" class="p-2 bg-amber-50/70 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-lg space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                                        <i data-lucide="clock" class="w-3.5 h-3.5"></i> Short Leave Slot Selection
+                                    </span>
+                                    <span class="text-[10px] font-black text-amber-800 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-500/30">0.2 Days · Max 2 / Month</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] cursor-pointer transition-all"
+                                           :class="shortLeaveSlot === '9:30 AM–10:00 AM' ? 'bg-amber-500/20 border-amber-500 text-amber-950 dark:text-white font-bold' : 'bg-white dark:bg-[#141b29] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'">
+                                        <input type="radio" x-model="shortLeaveSlot" value="9:30 AM–10:00 AM" class="text-amber-500 w-3 h-3">
+                                        <span class="font-semibold">Morning (9:30 AM – 10:00 AM)</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] cursor-pointer transition-all"
+                                           :class="shortLeaveSlot === '3:30 PM–5:00 PM' ? 'bg-amber-500/20 border-amber-500 text-amber-950 dark:text-white font-bold' : 'bg-white dark:bg-[#141b29] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'">
+                                        <input type="radio" x-model="shortLeaveSlot" value="3:30 PM–5:00 PM" class="text-amber-500 w-3 h-3">
+                                        <span class="font-semibold">Evening (3:30 PM – 5:00 PM)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Duty Leave Project/Client Input -->
+                            <div x-show="selectedLeaveTypeCode === 'DUTY'" class="space-y-1">
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Project / Client Name *</label>
+                                <input type="text" name="project_client_name" x-model="projectClientName" placeholder="e.g. Dialog Enterprise Offsite Client Meeting" class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:border-amber-500 dark:focus:border-amber-400">
+                            </div>
+
+                            <!-- Medical Certificate Upload -->
+                            <div x-show="selectedLeaveTypeCode === 'MEDICAL'" class="p-2 bg-slate-50/80 dark:bg-[#182030]/60 rounded-lg border border-slate-200/90 dark:border-slate-800 space-y-1">
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Upload Medical Certificate</label>
+                                <p class="text-[10px] text-slate-500 dark:text-slate-400">Required if sick leave exceeds 3 consecutive working days (PDF, JPG, PNG).</p>
+                                <input type="file" name="medical_certificate_file" class="w-full text-xs text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400">
+                            </div>
+                        </div>
+
+                        <!-- Covering Colleague -->
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Covering for you</label>
+                            <div class="relative">
+                                <select name="covering_employee_id" x-model="coveringEmployeeId"
+                                        @change="coveringEmployeeName = employeesMap[coveringEmployeeId] || ''"
+                                        class="w-full appearance-none bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer">
+                                    <option value="" class="bg-white dark:bg-[#141b29] text-slate-400">Choose...</option>
+                                    @foreach($allEmployees ?? [] as $empOpt)
+                                        <option value="{{ $empOpt->id }}" class="bg-white dark:bg-[#141b29] text-slate-800 dark:text-white">
+                                            {{ $empOpt->user->name ?? 'Employee' }} ({{ $empOpt->employee_id_number }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+                            </div>
+                        </div>
+
+                        <!-- Handover Notes & Anything Else Side-by-Side (Saves massive vertical space) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div class="space-y-1">
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Handover notes</label>
+                                <textarea name="handover_notes" x-model="handoverNotes" rows="2" 
+                                          placeholder="Live jobs, deadlines, file locations..."
+                                          class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg p-2 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none transition-all"></textarea>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Anything else (optional)</label>
+                                <textarea name="anything_else" x-model="anythingElse" rows="2" 
+                                          placeholder="Details or context for your manager..."
+                                          class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg p-2 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none transition-all"></textarea>
+                            </div>
+                        </div>
+
                     </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">End Date *</label>
-                        <input type="date" name="end_date" x-model="targetEndDate" 
-                               :disabled="selectedLeaveTypeCode === 'SHORT' || isHalfDay"
-                               class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-60">
+
+                    <!-- Right Column: Policy Check (4 cols) -->
+                    <div class="lg:col-span-5 xl:col-span-4 flex flex-col justify-between space-y-3 pt-1 lg:pt-0 lg:border-l lg:border-slate-200/90 dark:lg:border-slate-800 lg:pl-5">
+                        
+                        <div class="space-y-3">
+                            <!-- Policy Check Header -->
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Policy check</h3>
+                            </div>
+
+                            <!-- Live Summary Card -->
+                            <div class="p-2.5 bg-slate-50 dark:bg-[#182030] border border-slate-200/90 dark:border-slate-800 rounded-xl flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400 animate-pulse"></span>
+                                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" x-text="formatDateRangeSummary()"></span>
+                            </div>
+
+                            <!-- Policy Checklist Items (Dynamic Checkmarks & Crosses) -->
+                            <div class="space-y-2 text-[11px]">
+                                
+                                <!-- 1. Clash Check -->
+                                <div class="flex items-start gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5 border"
+                                          :class="checkClash().pass ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40' : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40'"
+                                          x-text="checkClash().pass ? '✓' : '✕'"></span>
+                                    <span class="font-medium leading-snug" 
+                                          :class="checkClash().pass ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-300 font-semibold'" 
+                                          x-text="checkClash().message"></span>
+                                </div>
+
+                                <!-- 2. Notice Period -->
+                                <div class="flex items-start gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5 border"
+                                          :class="checkNoticePeriod().pass ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40' : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40'"
+                                          x-text="checkNoticePeriod().pass ? '✓' : '✕'"></span>
+                                    <span class="font-medium leading-snug" 
+                                          :class="checkNoticePeriod().pass ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-300 font-semibold'" 
+                                          x-text="checkNoticePeriod().message"></span>
+                                </div>
+
+                                <!-- 3. Balance Check -->
+                                <div class="flex items-start gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5 border"
+                                          :class="checkBalance().pass ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40' : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40'"
+                                          x-text="checkBalance().pass ? '✓' : '✕'"></span>
+                                    <span class="font-medium leading-snug" 
+                                          :class="checkBalance().pass ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-300 font-semibold'" 
+                                          x-text="checkBalance().message"></span>
+                                </div>
+
+                                <!-- 4. Consecutive Working Days -->
+                                <div class="flex items-start gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5 border"
+                                          :class="checkConsecutiveDays().pass ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40' : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40'"
+                                          x-text="checkConsecutiveDays().pass ? '✓' : '✕'"></span>
+                                    <span class="font-medium leading-snug" 
+                                          :class="checkConsecutiveDays().pass ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-300 font-semibold'" 
+                                          x-text="checkConsecutiveDays().message"></span>
+                                </div>
+
+                                <!-- 5. Covering Colleague -->
+                                <div class="flex items-start gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5 border"
+                                          :class="checkCovering().pass ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40' : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40'"
+                                          x-text="checkCovering().pass ? '✓' : '✕'"></span>
+                                    <span class="font-medium leading-snug" 
+                                          :class="checkCovering().pass ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-300 font-semibold'" 
+                                          x-text="checkCovering().message"></span>
+                                </div>
+
+                                <!-- 6. Handover Notes -->
+                                <div class="flex items-start gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5 border"
+                                          :class="checkHandoverNotes().pass ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40' : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40'"
+                                          x-text="checkHandoverNotes().pass ? '✓' : '✕'"></span>
+                                    <span class="font-medium leading-snug" 
+                                          :class="checkHandoverNotes().pass ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-300 font-semibold'" 
+                                          x-text="checkHandoverNotes().message"></span>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Action Submit Section -->
+                        <div class="space-y-1.5 pt-2">
+                            <button type="submit"
+                                    class="w-full py-2.5 px-4 bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-400/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                                <span>Send to {{ $managerName }}</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+
+                            <template x-if="allChecksPass()">
+                                <p class="text-[10px] text-center font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1">
+                                    <i data-lucide="check" class="w-3 h-3"></i> All checks verified. Ready to send.
+                                </p>
+                            </template>
+                            <template x-if="!allChecksPass()">
+                                <p class="text-[10px] text-center font-bold text-slate-500 dark:text-slate-400">
+                                    Fix the items marked ✕ to send.
+                                </p>
+                            </template>
+                        </div>
+
                     </div>
-                </div>
 
-                <!-- Live Duration Preview Notice (Weekends & Holidays Excluded) -->
-                <div class="p-2.5 bg-blue-50/70 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900/60 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <i class="ph ph-calendar-blank text-blue-600 dark:text-blue-400 text-sm"></i>
-                        <span class="text-[11px] text-slate-600 dark:text-slate-400 font-semibold">Total Leave Days:</span>
-                    </div>
-                    <span class="text-xs font-black text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded-lg" x-text="calculateDuration() + (selectedLeaveTypeCode === 'SHORT' || isHalfDay ? '' : ' Day(s)')"></span>
-                </div>
-
-                <!-- Half Day Toggle & Slot Selector (Disabled for Short Leave) -->
-                <div x-show="selectedLeaveTypeCode !== 'SHORT'" class="p-3 bg-slate-50 dark:bg-[#21262d] rounded-xl border border-slate-200 dark:border-[#30363d] space-y-2">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" name="is_half_day" value="1" x-model="isHalfDay" @change="if (isHalfDay) targetEndDate = targetStartDate" class="rounded text-blue-600 focus:ring-blue-500">
-                        <span class="font-bold text-slate-800 dark:text-slate-200">Apply as Half Day Leave (0.5 Days)</span>
-                    </label>
-
-                    <div x-show="isHalfDay" class="grid grid-cols-2 gap-2 pt-1">
-                        <label class="flex items-center gap-1.5 p-2 bg-white dark:bg-[#1c2128] rounded-lg border border-slate-200 dark:border-[#30363d] text-[11px] text-slate-800 dark:text-slate-200 cursor-pointer">
-                            <input type="radio" name="half_day_slot" value="Morning" checked class="text-blue-600">
-                            <span>Morning (9 AM–1 PM)</span>
-                        </label>
-                        <label class="flex items-center gap-1.5 p-2 bg-white dark:bg-[#1c2128] rounded-lg border border-slate-200 dark:border-[#30363d] text-[11px] text-slate-800 dark:text-slate-200 cursor-pointer">
-                            <input type="radio" name="half_day_slot" value="Afternoon" class="text-blue-600">
-                            <span>Afternoon (1 PM–5 PM)</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Short Leave Slot Selector -->
-                <div x-show="selectedLeaveTypeCode === 'SHORT'" class="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-xl space-y-2">
-                    <span class="font-bold text-amber-900 dark:text-amber-300 text-xs block">Short Leave Slot (Max 2 per month)</span>
-                    <input type="hidden" name="is_short_leave" value="1" :disabled="selectedLeaveTypeCode !== 'SHORT'">
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="flex items-center gap-1.5 p-2 bg-white dark:bg-[#1c2128] rounded-lg border border-amber-200 dark:border-amber-800 text-[11px] text-slate-800 dark:text-slate-200 cursor-pointer">
-                            <input type="radio" name="short_leave_slot" value="9:30 AM–10:00 AM" checked :disabled="selectedLeaveTypeCode !== 'SHORT'" class="text-amber-600">
-                            <span>9:30 AM–10:00 AM (Morning)</span>
-                        </label>
-                        <label class="flex items-center gap-1.5 p-2 bg-white dark:bg-[#1c2128] rounded-lg border border-amber-200 dark:border-amber-800 text-[11px] text-slate-800 dark:text-slate-200 cursor-pointer">
-                            <input type="radio" name="short_leave_slot" value="3:30 PM–5:00 PM" :disabled="selectedLeaveTypeCode !== 'SHORT'" class="text-amber-600">
-                            <span>3:30 PM–5:00 PM (Evening)</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Duty Leave Project / Client Name Field -->
-                <div x-show="selectedLeaveTypeCode === 'DUTY'" class="space-y-1">
-                    <label class="block font-bold text-slate-700 dark:text-slate-300">Project / Client Name *</label>
-                    <input type="text" name="project_client_name" placeholder="e.g. Dialog Enterprise Offsite Project" class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
-                </div>
-
-                <!-- Medical Certificate Upload (Required for > 3 days) -->
-                <div x-show="selectedLeaveTypeCode === 'MEDICAL'" class="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 rounded-xl space-y-1.5">
-                    <label class="block font-bold text-blue-900 dark:text-blue-300">Upload Medical Certificate</label>
-                    <p class="text-[10px] text-blue-700 dark:text-blue-400 font-medium">Required if sick leave exceeds 3 consecutive days (PDF, JPG, PNG).</p>
-                    <input type="file" name="medical_certificate_file" class="w-full text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
-                </div>
-
-                <!-- Optional Covering Person Selection -->
-                <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Covering Employee (Optional)</label>
-                    <select name="covering_employee_id" class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-bold p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
-                        <option value="" class="bg-white dark:bg-[#1c2128] text-slate-900 dark:text-slate-200">No covering person required</option>
-                        @foreach($allEmployees ?? [] as $empOpt)
-                            <option value="{{ $empOpt->id }}" class="bg-white dark:bg-[#1c2128] text-slate-900 dark:text-slate-200">{{ $empOpt->user->name ?? 'Employee' }} ({{ $empOpt->employee_id_number }})</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Reason for Leave -->
-                <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Reason for Leave *</label>
-                    <textarea name="reason" rows="2" class="w-full border border-slate-200 dark:border-[#30363d] bg-slate-50 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 rounded-xl text-xs font-medium p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="State reason for leave..." required></textarea>
-                </div>
-
-                <div class="pt-2 flex justify-end gap-2">
-                    <button type="button" @click="applyLeaveModal = false" class="px-4 py-2 bg-slate-100 dark:bg-[#21262d] text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-[#2d333b] transition-colors border border-slate-200 dark:border-[#30363d]">Cancel</button>
-                    <button type="submit" class="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 shadow-md shadow-emerald-500/20 transition-colors">Submit Request</button>
                 </div>
             </form>
         </div>

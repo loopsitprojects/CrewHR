@@ -175,6 +175,8 @@ test('admin can upload and process summary machine logs csv', function () {
         ->withSession(['active_role' => 'Super Admin'])
         ->post(route('attendance.import'), [
             'csv_file' => $file,
+            'target_month' => 9,
+            'target_year' => 2026,
         ]);
 
     $response->assertRedirect(route('attendance.index', ['tab' => 'monthly', 'month' => 9, 'year' => 2026]));
@@ -290,6 +292,8 @@ test('employees can only see personal attendance and cannot access admin operati
         ->withSession(['active_role' => 'Employee'])
         ->post(route('attendance.import'), [
             'csv_file' => $file,
+            'target_month' => 9,
+            'target_year' => 2026,
         ]);
 
     $unauthImport->assertStatus(403);

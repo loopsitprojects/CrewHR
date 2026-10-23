@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Crew HR - Module Settings Hub', 'breadcrumb' => 'Settings'])
+@extends('layouts.app', ['title' => 'Loops HR - Module Settings Hub', 'breadcrumb' => 'Settings'])
 
 @php
     $userSystemRole = session('current_role', Auth::user()?->employee?->system_role ?? 'Employee');

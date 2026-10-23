@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? 'Crew HR - Enterprise Portal' }}</title>
+    <title>{{ $title ?? 'Loops HR - Enterprise Portal' }}</title>
 
     <script>
         if (localStorage.getItem('theme') === 'dark') {
@@ -397,11 +397,17 @@
         
         <!-- Header Bar (Matching Reference Shell UI) -->
         <header class="h-16 bg-[#0b132b] dark:bg-[#070e1b] border-b border-slate-800/80 px-5 flex items-center justify-between shrink-0 z-10 transition-colors duration-200">
-            <!-- Left Controls: Sidebar Toggle Button -->
-            <div class="flex items-center gap-3">
+            <!-- Left Controls: Sidebar Toggle Button & Page Title -->
+            <div class="flex items-center gap-3.5">
                 <button @click="toggleSidebar()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer" title="Toggle Sidebar">
                     <i data-lucide="panel-left" class="w-5 h-5"></i>
                 </button>
+                @if(isset($pageTitle) || isset($breadcrumb))
+                    <div class="h-5 w-px bg-slate-800 hidden sm:block"></div>
+                    <h1 class="text-base sm:text-lg font-black text-white tracking-tight leading-none">
+                        {{ $pageTitle ?? $breadcrumb }}
+                    </h1>
+                @endif
             </div>
 
             <!-- Right Toolbar Controls: User Avatar + Bell + Theme + Sign Out -->

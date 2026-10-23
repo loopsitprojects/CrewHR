@@ -118,14 +118,67 @@ class LeaveDashboardController extends Controller
         });
 
         // Fetch Leave Requests for selected year/month
+        $startOfMonth = $selectedDate->copy()->startOfMonth()->toDateString();
+        $endOfMonth = $selectedDate->copy()->endOfMonth()->toDateString();
+
         $monthLeaves = LeaveRequest::with(['employee.user', 'employee.department', 'leaveType'])
-            ->where(function ($q) use ($year, $month) {
-                $q->whereYear('start_date', $year)->whereMonth('start_date', $month)
-                  ->orWhere(function ($q2) use ($year, $month) {
-                      $q2->whereYear('end_date', $year)->whereMonth('end_date', $month);
-                  });
+            ->whereNotIn('status', ['Rejected', 'Canceled', 'Cancelled'])
+            ->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                $q->where('start_date', '<=', $endOfMonth)
+                  ->where('end_date', '>=', $startOfMonth);
             })
+            ->orderBy('start_date')
             ->get();
+
+        // Build all on leave list for the Who's on Leave view
+        $allMonthLeaves = $monthLeaves->map(function ($lv) use ($todayStr) {
+            $startDate = Carbon::parse($lv->start_date);
+            $endDate = Carbon::parse($lv->end_date);
+            $isToday = ($todayStr >= $lv->start_date && $todayStr <= $lv->end_date);
+            $isUpcoming = ($lv->start_date > $todayStr);
+            $isPast = ($lv->end_date < $todayStr);
+
+            $formattedDates = $startDate->format('M d');
+            if ($lv->start_date !== $lv->end_date) {
+                $formattedDates .= ' – ' . $endDate->format('M d');
+            }
+
+            $durationLabel = (float)$lv->duration === 1.0 ? '1 Day' : ((float)$lv->duration . ' Days');
+            if ($lv->is_half_day) {
+                $durationLabel = 'Half Day (' . ($lv->half_day_slot ?: 'Slot') . ')';
+            } elseif ($lv->is_short_leave) {
+                $durationLabel = 'Short Leave (' . ($lv->short_leave_slot ?: 'Slot') . ')';
+            }
+
+            return [
+                'id' => $lv->id,
+                'employee_name' => $lv->employee?->user?->name ?? 'Employee',
+                'employee_id' => $lv->employee?->employee_id_number ?? '',
+                'department' => $lv->employee?->department?->name ?? 'General',
+                'leave_type_name' => $lv->leaveType?->name ?? 'Leave',
+                'leave_type_code' => strtoupper($lv->leaveType?->code ?? ''),
+                'start_date' => $lv->start_date,
+                'end_date' => $lv->end_date,
+                'duration' => (float)$lv->duration,
+                'duration_label' => $durationLabel,
+                'formatted_dates' => $formattedDates,
+                'is_half_day' => (bool)$lv->is_half_day,
+                'half_day_slot' => $lv->half_day_slot,
+                'is_short_leave' => (bool)$lv->is_short_leave,
+                'short_leave_slot' => $lv->short_leave_slot,
+                'is_today' => $isToday,
+                'is_upcoming' => $isUpcoming,
+                'is_past' => $isPast,
+                'status' => $lv->status ?? 'Approved',
+                'reason' => $lv->reason,
+            ];
+        })->sort(function ($a, $b) {
+            if ($a['is_today'] && !$b['is_today']) return -1;
+            if (!$a['is_today'] && $b['is_today']) return 1;
+            if ($a['is_upcoming'] && !$b['is_upcoming']) return -1;
+            if (!$a['is_upcoming'] && $b['is_upcoming']) return 1;
+            return strcmp($a['start_date'], $b['start_date']);
+        })->values();
 
         // Build Sri Lanka Calendar Month Grid
         $daysInMonth = $selectedDate->daysInMonth;
@@ -148,8 +201,8 @@ class LeaveDashboardController extends Controller
                 'is_weekend' => $prevCarbon->isSaturday() || $prevCarbon->isSunday(),
                 'is_today' => false,
                 'holiday' => null,
-                'holidays' => collect(),
-                'leaves' => collect(),
+                'holidays' => collect()->values(),
+                'leaves' => collect()->values(),
                 'birthdays' => [],
                 'is_poya' => false,
                 'pbm_flags' => [],
@@ -178,10 +231,10 @@ class LeaveDashboardController extends Controller
             $isWeekend = ($isSat && $satOff === '1') || ($isSun && $sunOff === '1');
             $isToday = ($dateStr === $todayStr);
 
-            // Filter leaves spanning this day
+            // Filter leaves spanning this day and reindex with values()
             $dayLeaves = $monthLeaves->filter(function ($leave) use ($dateStr) {
                 return $dateStr >= $leave->start_date && $dateStr <= $leave->end_date;
-            });
+            })->values();
 
             // Birthdays on this day
             $dayBirthdays = $allEmployees->filter(function ($emp) use ($currentCarbon) {
@@ -196,7 +249,7 @@ class LeaveDashboardController extends Controller
                 $dayBirthdays = $sampleBirthdays[$d];
             }
 
-            $dayHolidays = $holidaysGrouped->get($dateStr, collect());
+            $dayHolidays = $holidaysGrouped->get($dateStr, collect())->values();
             $firstHoliday = $dayHolidays->first();
 
             $isPoya = $firstHoliday ? str_contains(strtolower($firstHoliday->title), 'poya') : false;
@@ -237,8 +290,8 @@ class LeaveDashboardController extends Controller
                 'is_weekend' => $nextCarbon->isSaturday() || $nextCarbon->isSunday(),
                 'is_today' => false,
                 'holiday' => null,
-                'holidays' => collect(),
-                'leaves' => collect(),
+                'holidays' => collect()->values(),
+                'leaves' => collect()->values(),
                 'birthdays' => [],
                 'is_poya' => false,
                 'pbm_flags' => [],
@@ -286,6 +339,19 @@ class LeaveDashboardController extends Controller
 
         $todayCell = collect($calendarDays)->firstWhere('is_today', true) ?? collect($calendarDays)->firstWhere('is_current_month', true);
 
+        // Determine Reporting Manager Name
+        $managerEmp = null;
+        if ($employee && $employee->reporting_person_id) {
+            $managerEmp = Employee::with('user')->find($employee->reporting_person_id);
+        }
+        if (!$managerEmp && $employee && $employee->department_id) {
+            $managerEmp = Employee::with('user')->where('department_id', $employee->department_id)
+                ->where('id', '!=', $employee->id)
+                ->whereIn('system_role', ['Manager (Team Approvals)', 'HOD / Manager'])
+                ->first();
+        }
+        $managerName = $managerEmp?->user?->name ?? 'Nadeesha Perera';
+
         // List all holidays as Y-m-d strings for front-end dynamic net working days calculation
         $allHolidaysList = Holiday::pluck('date')->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))->unique()->values()->toArray();
 
@@ -309,18 +375,33 @@ class LeaveDashboardController extends Controller
             'monthsList',
             'yearsList',
             'allEmployees',
+            'allMonthLeaves',
             'upcomingBirthdays',
-            'allHolidaysList'
+            'allHolidaysList',
+            'managerName'
         ));
     }
 
     public function storeLeaveRequest(Request $request)
     {
+        // Handle Handover Notes and Additional Notes
+        $handoverNotes = $request->input('handover_notes');
+        $anythingElse = $request->input('anything_else') ?? $request->input('reason');
+        if (!$request->filled('reason') && $request->filled('handover_notes')) {
+            $request->merge(['reason' => $handoverNotes]);
+        } elseif ($request->filled('handover_notes') && $request->filled('anything_else')) {
+            $request->merge(['reason' => "Handover Notes: {$handoverNotes}\n\nAdditional Notes: {$anythingElse}"]);
+        } elseif (!$request->filled('reason')) {
+            $request->merge(['reason' => 'Leave applied']);
+        }
+
         $request->validate([
             'leave_type_id' => 'required|exists:leave_types,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'required|string',
+            'reason' => 'nullable|string',
+            'handover_notes' => 'nullable|string',
+            'anything_else' => 'nullable|string',
             'medical_certificate_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5012',
             'project_client_name' => 'nullable|string|max:255',
             'covering_employee_id' => 'nullable|exists:employees,id',

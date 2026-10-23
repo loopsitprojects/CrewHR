@@ -291,7 +291,7 @@
     @endif
 
     <div class="footer">
-        Crew HRIS • Confidential • Department Leave Audit Statement
+        Loops HRIS • Confidential • Department Leave Audit Statement
     </div>
 
 </body>

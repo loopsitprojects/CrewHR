@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Crew HR - Loan Management Sub-Module', 'breadcrumb' => 'Loan Management'])
+@extends('layouts.app', ['title' => 'Loops HR - Loan Management Sub-Module', 'breadcrumb' => 'Loan Management'])
 
 @section('content')
 <div class="space-y-6" x-data="{ 

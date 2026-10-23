@@ -207,6 +207,10 @@ class DatabaseSeeder extends Seeder
         $ltLieu = LeaveType::updateOrCreate(['code' => 'LIEU'], ['name' => 'Lieu Leave', 'days' => 5]);
         $ltMaternity = LeaveType::updateOrCreate(['code' => 'MATERNITY'], ['name' => 'Maternity Leave', 'days' => 84]);
         $ltPaternity = LeaveType::updateOrCreate(['code' => 'PATERNITY'], ['name' => 'Paternity Leave', 'days' => 5]);
+        $ltHosp = LeaveType::updateOrCreate(['code' => 'HOSPITALISATION'], ['name' => 'Hospitalisation Leave', 'days' => 7]);
+        $ltElection = LeaveType::updateOrCreate(['code' => 'ELECTION'], ['name' => 'Election Leave', 'days' => 1]);
+        $ltReligious = LeaveType::updateOrCreate(['code' => 'RELIGIOUS'], ['name' => 'Religious Holiday', 'days' => 2]);
+        $ltNoPay = LeaveType::updateOrCreate(['code' => 'NO_PAY'], ['name' => 'No Pay Leave', 'days' => 365]);
 
         // 5. Leave Balances
         // Sahan Wickramasinghe: Annual: 11 left, Casual: 3 left, Medical: 8 left, Paternity: 5 left
