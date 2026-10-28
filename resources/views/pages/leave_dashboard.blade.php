@@ -824,18 +824,32 @@
                                              @if(isset($cell['birthdays']) && count($cell['birthdays']) > 0)
                                                  @foreach($cell['birthdays'] as $bdayName)
                                                      <div class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.05] border border-slate-200/60 dark:border-white/[0.08] text-[10px] font-medium text-slate-700 dark:text-[#E2E8F0] flex items-center gap-1.5 leading-tight min-w-0 tracking-tight" title="🎂 {{ $bdayName }}'s Birthday">
-                                                         <span class="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0"></span>
+                                                         <i data-lucide="cake" class="w-3 h-3 text-purple-500 dark:text-purple-400 shrink-0"></i>
                                                          <span class="truncate block min-w-0 font-medium">{{ $bdayName }}</span>
                                                      </div>
                                                  @endforeach
                                              @endif
 
-                                             <!-- Employee Leaves Pill in Calendar Cell -->
-                                             @if(isset($cell['leaves']) && count($cell['leaves']) > 0)
-                                                 @php $dayLeaveCount = count($cell['leaves']); @endphp
-                                                 <div class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.05] border border-slate-200/60 dark:border-white/[0.08] text-[10px] font-medium text-slate-700 dark:text-[#E2E8F0] flex items-center gap-1.5 leading-tight min-w-0" title="{{ $dayLeaveCount }} on leave">
+                                             <!-- My Leaves Pill in Calendar Cell (Only show logged-in employee's leaves) -->
+                                             @php
+                                                 $currentEmpId = $employee->id ?? null;
+                                                 $currentUserId = Auth::id();
+                                                 $myCellLeaves = collect($cell['leaves'] ?? [])->filter(function($l) use ($currentEmpId, $currentUserId) {
+                                                     $empId = is_array($l) ? ($l['employee_id'] ?? null) : ($l->employee_id ?? null);
+                                                     $userId = is_array($l) ? ($l['employee']['user_id'] ?? null) : ($l->employee?->user_id ?? null);
+                                                     return ($currentEmpId && $empId == $currentEmpId) || ($currentUserId && $userId == $currentUserId);
+                                                 })->values();
+                                             @endphp
+                                             @if($myCellLeaves->count() > 0)
+                                                 @php
+                                                     $myFirstLeave = $myCellLeaves->first();
+                                                     $myLeaveTitle = is_array($myFirstLeave) 
+                                                         ? ($myFirstLeave['employee_name'] ?? 'My Leave') 
+                                                         : ($myFirstLeave->employee?->user?->name ?? 'My Leave');
+                                                 @endphp
+                                                 <div class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.05] border border-slate-200/60 dark:border-white/[0.08] text-[10px] font-medium text-slate-700 dark:text-[#E2E8F0] flex items-center gap-1.5 leading-tight min-w-0" title="{{ $myLeaveTitle }} (On Leave)">
                                                      <span class="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
-                                                     <span class="truncate block min-w-0 font-medium">{{ $dayLeaveCount == 1 ? ($cell['leaves'][0]->employee?->user?->name ?? '1 on leave') : "$dayLeaveCount on leave" }}</span>
+                                                     <span class="truncate block min-w-0 font-medium">{{ $myLeaveTitle }}</span>
                                                  </div>
                                              @endif
                                          @endif
@@ -884,7 +898,7 @@
                     <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> <span class="font-medium text-slate-600 dark:text-slate-300">Employee Leave</span></span>
                     <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> <span class="font-medium text-slate-600 dark:text-slate-300">Public / Mercantile Holiday</span></span>
                     <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> <span class="font-medium text-slate-600 dark:text-slate-300">Company Holiday</span></span>
-                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> <span class="font-medium text-slate-600 dark:text-slate-300">Birthday</span></span>
+                    <span class="flex items-center gap-1.5"><i data-lucide="cake" class="w-3.5 h-3.5 text-purple-500 dark:text-purple-400 shrink-0"></i> <span class="font-medium text-slate-600 dark:text-slate-300">Birthday</span></span>
                 </div>
                 <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
                     <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-400"></i>

@@ -54,6 +54,8 @@ class ApprovalController extends Controller
         $status = $request->query('status', $defaultStatus);
         $deptId = $request->query('department_id');
         $search = $request->query('search');
+        $month = $request->query('month');
+        $year = $request->query('year');
 
         $query = LeaveRequest::with(['employee.user', 'employee.department', 'leaveType', 'coveringEmployee.user', 'managerEmployee.user']);
 
@@ -96,6 +98,26 @@ class ApprovalController extends Controller
             });
         }
 
+        if ($month) {
+            $query->where(function ($q) use ($month, $year) {
+                $q->where(function ($mq) use ($month) {
+                    $mq->whereMonth('start_date', $month)
+                       ->orWhereMonth('end_date', $month);
+                });
+                if ($year) {
+                    $q->where(function ($yq) use ($year) {
+                        $yq->whereYear('start_date', $year)
+                           ->orWhereYear('end_date', $year);
+                    });
+                }
+            });
+        } elseif ($year) {
+            $query->where(function ($q) use ($year) {
+                $q->whereYear('start_date', $year)
+                   ->orWhereYear('end_date', $year);
+            });
+        }
+
         if ($status === 'pending_covering') {
             $query->where('covering_status', 'Pending');
             if ($role === 'Employee' && $activeEmployee) {
@@ -119,8 +141,8 @@ class ApprovalController extends Controller
         $leaveRequests = $query->latest()->get();
         $departments = Department::all();
 
-        // Count query helper with assigned approver scoping
-        $countQuery = function ($statusType) use ($role, $activeEmployee, $activeEmpId) {
+        // Count query helper with assigned approver scoping and active month/year filters
+        $countQuery = function ($statusType) use ($role, $activeEmployee, $activeEmpId, $month, $year, $deptId, $search) {
             $q = LeaveRequest::query();
             if ($role === 'HOD / Manager' && $activeEmployee) {
                 $q->where(function ($subQ) use ($activeEmpId, $activeEmployee) {
@@ -138,6 +160,45 @@ class ApprovalController extends Controller
                 });
             } elseif ($role === 'Employee' && $activeEmployee) {
                 $q->where('covering_employee_id', $activeEmpId);
+            }
+
+            if ($search) {
+                $q->where(function ($subQ) use ($search) {
+                    $subQ->whereHas('employee.user', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%");
+                    })->orWhere('req_number', 'like', "%{$search}%")
+                      ->orWhere('reason', 'like', "%{$search}%")
+                      ->orWhereHas('leaveType', function ($tq) use ($search) {
+                          $tq->where('name', 'like', "%{$search}%")
+                             ->orWhere('code', 'like', "%{$search}%");
+                      });
+                });
+            }
+
+            if ($deptId && in_array($role, ['Super (Admin)', 'HR Lead'])) {
+                $q->whereHas('employee', function ($dq) use ($deptId) {
+                    $dq->where('department_id', $deptId);
+                });
+            }
+
+            if ($month) {
+                $q->where(function ($mq) use ($month, $year) {
+                    $mq->where(function ($mqq) use ($month) {
+                        $mqq->whereMonth('start_date', $month)
+                            ->orWhereMonth('end_date', $month);
+                    });
+                    if ($year) {
+                        $mq->where(function ($yq) use ($year) {
+                            $yq->whereYear('start_date', $year)
+                               ->orWhereYear('end_date', $year);
+                        });
+                    }
+                });
+            } elseif ($year) {
+                $q->where(function ($yq) use ($year) {
+                    $yq->whereYear('start_date', $year)
+                       ->orWhereYear('end_date', $year);
+                });
             }
 
             return match($statusType) {
@@ -161,7 +222,14 @@ class ApprovalController extends Controller
             'all' => $countQuery('all'),
         ];
 
-        return view('pages.approvals', compact('leaveRequests', 'departments', 'counts', 'status', 'role', 'activeEmployee'));
+        $monthsList = [
+            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+        ];
+        $yearsList = range(now()->year - 2, now()->year + 2);
+
+        return view('pages.approvals', compact('leaveRequests', 'departments', 'counts', 'status', 'role', 'activeEmployee', 'monthsList', 'yearsList', 'month', 'year', 'deptId', 'search'));
     }
 
     public function action(Request $request, $id)

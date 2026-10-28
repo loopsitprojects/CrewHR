@@ -7,38 +7,72 @@
     <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-wrap items-center justify-between gap-3">
         <!-- Filters & Search -->
         <div class="flex flex-wrap items-center gap-3">
-            <form action="{{ route('approvals.index') }}" method="GET" class="flex items-center gap-2">
+            <form action="{{ route('approvals.index') }}" method="GET" class="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="status" value="{{ $status }}">
+
                 <div class="relative">
                     <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Search employee / ID..." class="pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 w-48">
+                    <input type="text" name="search" value="{{ $search }}" placeholder="Search employee / ID..." class="pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 w-48">
+                </div>
+
+                <!-- Month Filter -->
+                <div class="relative">
+                    <select name="month" onchange="this.form.submit()" class="appearance-none [background-image:none]! border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer">
+                        <option value="">All Months</option>
+                        @foreach($monthsList as $mNum => $mName)
+                            <option value="{{ $mNum }}" {{ (string)$month === (string)$mNum ? 'selected' : '' }}>{{ $mName }}</option>
+                        @endforeach
+                    </select>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-300 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                </div>
+
+                <!-- Year Filter -->
+                <div class="relative">
+                    <select name="year" onchange="this.form.submit()" class="appearance-none [background-image:none]! border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer">
+                        <option value="">All Years</option>
+                        @foreach($yearsList as $y)
+                            <option value="{{ $y }}" {{ (string)$year === (string)$y ? 'selected' : '' }}>{{ $y }}</option>
+                        @endforeach
+                    </select>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-300 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                 </div>
 
                 @if(in_array($role, ['Super (Admin)', 'HR Lead']))
-                    <select name="department_id" onchange="this.form.submit()" class="border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
-                        <option value="">All Depts</option>
-                        @foreach($departments as $dept)
-                            <option value="{{ $dept->id }}" {{ request('department_id') == $dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
-                        @endforeach
-                    </select>
+                    <div class="relative">
+                        <select name="department_id" onchange="this.form.submit()" class="appearance-none [background-image:none]! border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer">
+                            <option value="">All Depts</option>
+                            @foreach($departments as $dept)
+                                <option value="{{ $dept->id }}" {{ (string)$deptId === (string)$dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
+                            @endforeach
+                        </select>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-300 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                    </div>
                 @else
                     <div class="px-3 py-1.5 bg-slate-100/90 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-xs rounded-xl border border-slate-200/90 dark:border-slate-700">
-                        Department: {{ $activeEmployee->department->name ?? 'My Department' }}
+                        Dept: {{ $activeEmployee->department->name ?? 'My Department' }}
                     </div>
+                @endif
+
+                @if($month || $year || $deptId || $search)
+                    <a href="{{ route('approvals.index', ['status' => $status]) }}" class="px-2.5 py-1.5 text-xs font-bold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 flex items-center gap-1 transition-colors" title="Clear all filters">
+                        <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                        <span>Clear</span>
+                    </a>
                 @endif
             </form>
 
             <!-- Status Tabs -->
             <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700/60">
-                <a href="{{ route('approvals.index', ['status' => 'pending_manager']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'pending_manager' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
+                <a href="{{ route('approvals.index', array_filter(['status' => 'pending_manager', 'month' => $month, 'year' => $year, 'department_id' => $deptId, 'search' => $search])) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'pending_manager' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
                     Pending Approval ({{ $counts['pending_manager'] }})
                 </a>
-                <a href="{{ route('approvals.index', ['status' => 'approved']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'approved' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
+                <a href="{{ route('approvals.index', array_filter(['status' => 'approved', 'month' => $month, 'year' => $year, 'department_id' => $deptId, 'search' => $search])) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'approved' ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
                     Approved ({{ $counts['approved'] }})
                 </a>
-                <a href="{{ route('approvals.index', ['status' => 'rejected']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'rejected' ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
+                <a href="{{ route('approvals.index', array_filter(['status' => 'rejected', 'month' => $month, 'year' => $year, 'department_id' => $deptId, 'search' => $search])) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'rejected' ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
                     Rejected ({{ $counts['rejected'] }})
                 </a>
-                <a href="{{ route('approvals.index', ['status' => 'all']) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'all' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
+                <a href="{{ route('approvals.index', array_filter(['status' => 'all', 'month' => $month, 'year' => $year, 'department_id' => $deptId, 'search' => $search])) }}" class="px-3 py-1.5 rounded-lg {{ $status === 'all' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 shadow-sm font-black' : 'hover:text-slate-900 dark:hover:text-white' }}">
                     All ({{ $counts['all'] }})
                 </a>
             </div>
@@ -129,7 +163,7 @@
                         <form action="{{ route('approvals.action', $req->id) }}" method="POST" class="inline">
                             @csrf
                             <input type="hidden" name="action_type" value="manager_approve">
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer">
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer">
                                 <i class="ph ph-check text-sm font-bold"></i>
                                 Approve
                             </button>
