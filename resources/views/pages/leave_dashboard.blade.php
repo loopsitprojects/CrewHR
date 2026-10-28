@@ -724,7 +724,6 @@
                     <div class="flex items-center gap-3">
                         <div class="flex items-center gap-2">
                             <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">{{ $selectedDate->format('F Y') }}</h2>
-                            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200/60 dark:border-slate-700/60">Holiday Calendar</span>
                         </div>
                         <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
                             <a href="{{ route('dashboard', ['year' => $prevMonthDate->year, 'month' => $prevMonthDate->month]) }}" class="w-7 h-7 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/70 rounded-md flex items-center justify-center transition-colors cursor-pointer" title="Previous Month">

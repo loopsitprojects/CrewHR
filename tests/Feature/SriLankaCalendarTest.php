@@ -48,7 +48,6 @@ class SriLankaCalendarTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('August 2026');
-        $response->assertSee('Holiday Calendar');
     }
 
     public function test_leave_duration_calculation_excludes_weekends_and_poya_days()
