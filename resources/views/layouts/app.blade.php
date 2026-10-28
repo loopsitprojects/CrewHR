@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? 'Loops HR - Enterprise Portal' }}</title>
+    <title>{{ $title ?? 'Crew HR - Enterprise Portal' }}</title>
 
     <script>
         if (localStorage.getItem('theme') === 'dark') {
@@ -39,7 +39,7 @@
         [x-cloak] { display: none !important; }
     </style>
 </head>
-<body class="h-screen overflow-hidden antialiased text-slate-800 bg-[#f4f6fa] dark:bg-[#070b14] dark:text-slate-200 transition-colors duration-200"
+<body class="h-screen overflow-hidden antialiased text-slate-800 bg-[#eef2f6] dark:bg-[#070b14] dark:text-slate-200 transition-colors duration-200"
       x-data="{ 
           role: '{{ session('current_role', 'Super (Admin)') }}', 
           theme: localStorage.getItem('theme') || 'light',
@@ -87,7 +87,7 @@
                     <!-- Collapsed Mode: Icon Only -->
                     <img x-show="sidebarCollapsed" 
                          src="{{ asset('loops-icon.png') }}" 
-                         class="w-8 h-8 object-contain shrink-0 group-hover:scale-105 transition-all mx-auto" 
+                         class="w-8 h-8 rounded-xl object-contain shrink-0 group-hover:scale-105 transition-all mx-auto shadow-sm" 
                          alt="Loops HR Icon">
 
                     <!-- Expanded Mode: Loops Brand Logo -->
@@ -133,9 +133,9 @@
                             @click="toggleModule('leave')" 
                             title="Leave Management"
                             :class="{ 'justify-center': sidebarCollapsed }"
-                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isLeaveActive ? 'bg-blue-600 dark:bg-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isLeaveActive ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <div class="flex items-center gap-2">
-                            <i data-lucide="calendar" class="w-4 h-4 shrink-0 {{ $isLeaveActive ? 'text-white' : 'text-blue-400 dark:text-sky-400' }}"></i>
+                            <i data-lucide="calendar" class="w-4 h-4 shrink-0 {{ $isLeaveActive ? 'text-white' : 'text-blue-400' }}"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider {{ $isLeaveActive ? 'text-white' : 'text-slate-300' }}">Leave Management</span>
                         </div>
                         <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isLeaveActive ? 'text-white' : 'text-slate-400' }}" :class="openModules.leave ? 'rotate-180' : ''"></i>
@@ -143,49 +143,49 @@
                     <div x-show="openModules.leave" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         @if($isModuleActive('Leave') && $canAccess('Leave'))
                         <a href="{{ route('dashboard') }}" 
-                           title="Leave Dashboard"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('dashboard', 'leave.dashboard') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            title="Leave Dashboard"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('dashboard', 'leave.dashboard') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Dashboard</span>
                             @if(request()->routeIs('dashboard', 'leave.dashboard'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         <a href="{{ route('my-leaves.index') }}" 
-                           title="Leave Record Directory"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('my-leaves.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            title="Leave Record Directory"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('my-leaves.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Record Directory</span>
                             @if(request()->routeIs('my-leaves.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
 
                         @if($isModuleActive('Approvals') && $canAccess('Approvals'))
                         <a href="{{ route('approvals.index') }}" 
-                           title="Leave Approvals"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('approvals.index') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            title="Leave Approvals"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('approvals.index') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="check-square" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Approvals</span>
                             @if(request()->routeIs('approvals.index'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
 
                         @if($isModuleActive('Analytics') && $canAccess('Analytics'))
                         <a href="{{ route('analytics.index') }}" 
-                           title="Leave Analytics"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('analytics.index') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            title="Leave Analytics"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('analytics.index') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Reports & Analytics</span>
                             @if(request()->routeIs('analytics.index'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
@@ -202,7 +202,7 @@
                             @click="toggleModule('employees')" 
                             title="Employees & Workforce"
                             :class="{ 'justify-center': sidebarCollapsed }"
-                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isEmployeesActive ? 'bg-blue-600 dark:bg-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isEmployeesActive ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <div class="flex items-center gap-2">
                             <i data-lucide="users" class="w-4 h-4 shrink-0 {{ $isEmployeesActive ? 'text-white' : 'text-indigo-400 dark:text-cyan-400' }}"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider {{ $isEmployeesActive ? 'text-white' : 'text-slate-300' }}">Employees & Workforce</span>
@@ -212,26 +212,26 @@
                     <div x-show="openModules.employees" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         @if($isModuleActive('Employee') && $canAccess('Employee'))
                         <a href="{{ route('employee.index') }}" 
-                           title="Employee Directory"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('employee.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            title="Employee Directory"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('employee.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="contact" class="w-3.5 h-3.5 shrink-0 text-indigo-400 dark:text-cyan-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Employee Directory</span>
                             @if(request()->routeIs('employee.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
 
                         @if($isModuleActive('Attendance') && $canAccess('Attendance'))
                         <a href="{{ route('attendance.index') }}" 
-                           title="Attendance Tracking"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('attendance.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            title="Attendance Tracking"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('attendance.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-indigo-400 dark:text-cyan-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Attendance Tracking</span>
                             @if(request()->routeIs('attendance.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
@@ -248,9 +248,9 @@
                             @click="toggleModule('payroll')" 
                             title="Payroll & Payslips"
                             :class="{ 'justify-center': sidebarCollapsed }"
-                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isPayrollActive ? 'bg-blue-600 dark:bg-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isPayrollActive ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <div class="flex items-center gap-2">
-                            <i data-lucide="file-text" class="w-4 h-4 shrink-0 {{ $isPayrollActive ? 'text-white' : 'text-emerald-400' }}"></i>
+                            <i data-lucide="file-text" class="w-4 h-4 shrink-0 {{ $isPayrollActive ? 'text-white' : 'text-blue-400' }}"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider {{ $isPayrollActive ? 'text-white' : 'text-slate-300' }}">Payroll & Payslips</span>
                         </div>
                         <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isPayrollActive ? 'text-white' : 'text-slate-400' }}" :class="openModules.payroll ? 'rotate-180' : ''"></i>
@@ -258,58 +258,58 @@
                     <div x-show="openModules.payroll" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         @if($normalizedRole !== 'Employee')
                         <a href="{{ route('payroll.index') }}" 
-                           title="Monthly Payroll Master Register"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.index') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
-                            <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
+                            title="Monthly Payroll Master Register"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.index') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Payroll Master</span>
                             @if(request()->routeIs('payroll.index'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                         @endif
 
                         <a href="{{ route('payroll.my_payslips') }}" 
-                           title="My Monthly Payslips"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.my_payslips') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
-                            <i data-lucide="receipt" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
+                            title="My Monthly Payslips"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.my_payslips') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="receipt" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">My Payslips</span>
                             @if(request()->routeIs('payroll.my_payslips'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
 
                         <a href="{{ route('payroll.advances.index') }}" 
-                           title="Salary Advances & Applications"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.advances.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
-                            <i data-lucide="hand-coins" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
+                            title="Salary Advances & Applications"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.advances.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="hand-coins" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Salary Advances</span>
                             @if(request()->routeIs('payroll.advances.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
 
                         <a href="{{ route('payroll.overtime.index') }}" 
-                           title="Overtime Claims & Tracking"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.overtime.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
-                            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
+                            title="Overtime Claims & Tracking"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.overtime.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Overtime</span>
                             @if(request()->routeIs('payroll.overtime.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
 
                         <a href="{{ route('payroll.loans.index') }}" 
-                           title="Staff Loans & EMI Schedules"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.loans.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
-                            <i data-lucide="landmark" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
+                            title="Staff Loans & EMI Schedules"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('payroll.loans.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="landmark" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Loan Management</span>
                             @if(request()->routeIs('payroll.loans.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                     </div>
@@ -325,7 +325,7 @@
                             @click="toggleModule('recruitment')" 
                             title="Recruitment (ATS)"
                             :class="{ 'justify-center': sidebarCollapsed }"
-                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isRecruitmentActive ? 'bg-blue-600 dark:bg-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isRecruitmentActive ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <div class="flex items-center gap-2">
                             <i data-lucide="briefcase" class="w-4 h-4 shrink-0 {{ $isRecruitmentActive ? 'text-white' : 'text-purple-400 dark:text-fuchsia-400' }}"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider {{ $isRecruitmentActive ? 'text-white' : 'text-slate-300' }}">Recruitment (ATS)</span>
@@ -334,13 +334,13 @@
                     </button>
                     <div x-show="openModules.recruitment" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         <a href="{{ route('recruitment.index') }}" 
-                           title="Recruitment ATS"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('recruitment.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            title="Recruitment ATS"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('recruitment.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="briefcase" class="w-3.5 h-3.5 shrink-0 text-purple-400 dark:text-fuchsia-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Recruitment (ATS)</span>
                             @if(request()->routeIs('recruitment.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                     </div>
@@ -356,7 +356,7 @@
                             @click="toggleModule('performance')" 
                             title="Performance"
                             :class="{ 'justify-center': sidebarCollapsed }"
-                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isPerformanceActive ? 'bg-blue-600 dark:bg-indigo-600 text-white shadow-md shadow-blue-500/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 {{ $isPerformanceActive ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                         <div class="flex items-center gap-2">
                             <i data-lucide="award" class="w-4 h-4 shrink-0 {{ $isPerformanceActive ? 'text-white' : 'text-amber-400 dark:text-yellow-400' }}"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider {{ $isPerformanceActive ? 'text-white' : 'text-slate-300' }}">Performance</span>
@@ -365,13 +365,13 @@
                     </button>
                     <div x-show="openModules.performance" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         <a href="{{ route('appraisal.index') }}" 
-                           title="Appraisal System"
-                           :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                           class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            title="Appraisal System"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-amber-400 dark:text-yellow-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Appraisal System</span>
                             @if(request()->routeIs('appraisal.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-emerald-400 ml-auto shrink-0 stroke-[3]"></i>
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
                     </div>
@@ -385,7 +385,7 @@
             <a href="{{ route('settings.index') }}" 
                title="Settings"
                :class="{ 'justify-center': sidebarCollapsed }"
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 {{ request()->routeIs('settings.index') ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/25' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
+               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 {{ request()->routeIs('settings.index') ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-600/25' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
                 <i data-lucide="settings" class="w-5 h-5 shrink-0 text-slate-300"></i>
                 <span x-show="!sidebarCollapsed" x-cloak class="truncate font-bold">Settings</span>
             </a>
@@ -483,7 +483,7 @@
                                 <!-- Drawer Top Header -->
                                 <div class="px-5 py-4 bg-[#0f172a] text-white flex items-center justify-between shrink-0 shadow-md border-b border-slate-800">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-xl bg-blue-600/30 border border-blue-500/40 text-blue-400 flex items-center justify-center font-bold">
+                                        <div class="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center font-bold">
                                             <i data-lucide="bell" class="w-5 h-5"></i>
                                         </div>
                                         <div>
@@ -519,7 +519,7 @@
                                     <template x-for="item in notifications.filter(n => filterTab === 'all' || (filterTab === 'unread' && !n.is_read))" :key="item.id">
                                         <div @click="markAsRead(item.id, item.link)" 
                                              class="p-3.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700 flex items-start gap-3 relative group"
-                                             :class="!item.is_read ? 'bg-blue-50/40 dark:bg-blue-950/40 font-semibold border-blue-100/80 dark:border-blue-900/60 shadow-2xs' : 'opacity-80'">
+                                             :class="!item.is_read ? 'bg-blue-50/50 dark:bg-blue-950/30 font-semibold border-blue-100/80 dark:border-blue-900/50 shadow-2xs' : 'opacity-80'">
                                             
                                             <div class="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" :class="!item.is_read ? 'bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-900/50' : 'bg-slate-300 dark:bg-slate-600'"></div>
 

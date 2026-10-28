@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Loops HR - Loan Management Sub-Module', 'breadcrumb' => 'Loan Management'])
+@extends('layouts.app', ['title' => 'Loops HR - Staff Loan Management', 'breadcrumb' => 'Staff Loans'])
 
 @section('content')
 <div class="space-y-6" x-data="{ 
@@ -11,16 +11,10 @@
     selectedLoanLedger: null
 }">
 
-
-
-    <!-- Header Banner -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- Action Toolbar -->
+    <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2.5">
-                <i class="ph ph-landmark text-2xl text-purple-600"></i>
-                <h1 class="text-xl font-black text-slate-900 tracking-tight">Staff Loan Management Sub-Module</h1>
-            </div>
-            <p class="text-xs font-semibold text-slate-500 mt-1">Loan Types • Applications & Multi-Tier Approvals • Payroll Auto-Deductions • Repayment Transaction Ledger.</p>
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Loan Types • Applications & Multi-Tier Approvals • Payroll Auto-Deductions • Repayment Transaction Ledger.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">

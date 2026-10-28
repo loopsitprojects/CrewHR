@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Loops HR - Monthly Payroll & Payslips', 'breadcrumb' => 'Payroll'])
+@extends('layouts.app', ['title' => 'Loops HR - Monthly Payroll & Payslips', 'breadcrumb' => 'Payroll & Payslips'])
 
 @section('content')
 <div class="space-y-6" x-data="{ 
@@ -30,18 +30,10 @@
 
 
 
-    <!-- Header Banner & Top Controls -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- Payroll Top Controls Bar -->
+    <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                    <i class="ph ph-receipt text-2xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-black text-slate-900 tracking-tight">Enterprise Payroll & Statutory Engine</h1>
-                    <p class="text-xs font-semibold text-slate-500">Sri Lanka Shop & Office Act Compliant • Total for EPF Separation • APIT IRD Slabs • Balanced Double-Entry Journal</p>
-                </div>
-            </div>
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Sri Lanka Shop & Office Act Compliant • Total for EPF Separation • APIT IRD Slabs • Balanced Double-Entry Journal</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
@@ -50,7 +42,7 @@
                 @csrf
                 <input type="hidden" name="month" value="{{ $month }}">
                 <input type="hidden" name="year" value="{{ $year }}">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/25 transition-all">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-600/20 transition-all">
                     <i class="ph ph-lightning text-base"></i>
                     <span>Process {{ $monthName }} {{ $year }} Payroll</span>
                 </button>
@@ -61,7 +53,7 @@
 
 
     <!-- Filters & Export Toolbar -->
-    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-3">
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-wrap items-center justify-between gap-3">
         <form action="{{ route('payroll.index') }}" method="GET" class="flex flex-wrap items-center gap-3 w-full md:w-auto text-xs font-bold text-slate-600">
             <div class="flex items-center gap-1.5">
                 <span class="text-slate-400 font-semibold">Cycle:</span>
@@ -100,7 +92,7 @@
         <div class="flex flex-wrap items-center gap-2" x-data="{ exportOpen: false }">
             @if($payroll)
                 <div class="relative">
-                    <button @click="exportOpen = !exportOpen" @click.away="exportOpen = false" class="bg-blue-600 hover:bg-blue-700 text-white shadow-xs px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer">
+                    <button @click="exportOpen = !exportOpen" @click.away="exportOpen = false" class="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer">
                         <i class="ph ph-download-simple text-base"></i>
                         <span>Download Report</span>
                         <i class="ph ph-caret-down text-xs ml-0.5"></i>
@@ -122,10 +114,10 @@
     </div>
 
     <!-- Monthly Salary Master Register Table -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] overflow-hidden">
         <div class="p-4 border-b border-slate-100 flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <i class="ph ph-list-numbers text-lg text-blue-600"></i>
+                <i class="ph ph-list-numbers text-lg text-emerald-600"></i>
                 <h3 class="text-sm font-black text-slate-800">Monthly Salary Master Register & Statutory Breakdown</h3>
             </div>
             <div class="text-xs font-semibold text-slate-400">
@@ -233,7 +225,7 @@
                                     {{ number_format($ps->net_salary, 2) }}
                                 </td>
                                 <td class="p-3 text-center">
-                                    <button @click="viewPayslip({{ json_encode($ps) }}, {{ json_encode($emp) }})" class="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-all" title="View Pay Advice">
+                                    <button @click="viewPayslip({{ json_encode($ps) }}, {{ json_encode($emp) }})" class="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-all" title="View Pay Advice">
                                         <i class="ph ph-file-text text-base"></i>
                                     </button>
                                 </td>
@@ -303,7 +295,7 @@
                 <!-- Printable/Modal Header -->
                 <div class="flex items-center justify-between pb-2 border-b-2 border-slate-900 relative shrink-0">
                     <div class="flex items-center shrink-0">
-                        <img src="{{ asset('crew.jpeg') }}" alt="Crew Logo" class="h-7 sm:h-8 w-auto object-contain rounded">
+                        <img src="{{ asset('LoopsBlack.png') }}" alt="LOOPS Logo" class="h-7 sm:h-8 w-auto object-contain">
                     </div>
                     <div class="text-center flex-1 px-2">
                         <h2 class="text-xs sm:text-sm font-black tracking-wider uppercase text-slate-900 leading-tight">LOOPS DIGITAL (PVT) LTD</h2>

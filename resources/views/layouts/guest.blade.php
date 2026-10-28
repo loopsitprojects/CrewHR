@@ -22,8 +22,8 @@
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
             <div>
-                <a href="/" class="flex flex-col items-center gap-2">
-                    <img src="{{ asset('LoopsBlack.png') }}" class="h-12 w-auto max-w-[200px] object-contain" alt="Loops HR Logo">
+                <a href="/" class="flex items-center">
+                    <img src="{{ asset('LoopsBlack.png') }}" class="h-10 w-auto object-contain" alt="Loops HR Logo">
                 </a>
             </div>
 

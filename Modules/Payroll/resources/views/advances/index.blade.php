@@ -7,20 +7,10 @@
     selectedAdvanceForReject: null
 }">
 
-
-
-    <!-- Header Banner -->
-    <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- Action Toolbar -->
+    <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-600 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
-                    <i class="ph ph-hand-coins text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tight">Salary Advances & Approvals</h1>
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Mid-Month Advance Requests • Multi-Tier Approval Workflow • Automatic Payroll Deductions & Recovery.</p>
-                </div>
-            </div>
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">Mid-Month Advance Requests • Multi-Tier Approval Workflow • Automatic Payroll Deductions & Recovery.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">

@@ -48,23 +48,11 @@
     }
 }">
 
-    <!-- ==================== 1. TOP HEADER & NAVIGATION ==================== -->
-    <div class="bg-white/90 dark:bg-[#111827]/90 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 md:p-6 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-all">
-        <div class="flex items-center gap-3.5">
-            <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/25 shrink-0">
-                <i class="ph ph-chart-polar text-2xl font-bold"></i>
-            </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/40">
-                        Loops Digital
-                    </span>
-                    <span class="text-xs font-semibold text-slate-400 dark:text-slate-500">1 Apr – 31 Aug 2026</span>
-                </div>
-                <h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
-                    Leave Reports & Analytics
-                </h1>
-            </div>
+    <!-- ==================== 1. TOP NAVIGATION & ACTIONS ==================== -->
+    <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-wrap items-center justify-between gap-4 transition-all">
+        <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <i class="ph ph-calendar text-sm text-emerald-600 dark:text-emerald-400"></i>
+            <span>Reporting Period: <strong class="text-slate-800 dark:text-slate-200">1 Apr – 31 Aug 2026</strong></span>
         </div>
 
         <!-- Mode Switcher Tabs & Actions -->
@@ -72,21 +60,21 @@
             <div class="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 text-xs font-bold">
                 <button type="button" 
                         @click="activeTab = 'executive'" 
-                        :class="activeTab === 'executive' ? 'bg-white dark:bg-[#1e293b] text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'"
+                        :class="activeTab === 'executive' ? 'bg-white dark:bg-[#111927] text-blue-600 dark:text-blue-400 shadow-sm font-black' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'"
                         class="px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer">
                     <i class="ph ph-presentation-chart text-sm"></i>
                     <span>Executive Analysis</span>
                 </button>
                 <button type="button" 
                         @click="activeTab = 'department'" 
-                        :class="activeTab === 'department' ? 'bg-white dark:bg-[#1e2d4d] text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'"
+                        :class="activeTab === 'department' ? 'bg-white dark:bg-[#111927] text-blue-600 dark:text-blue-400 shadow-sm font-black' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'"
                         class="px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer">
                     <i class="ph ph-buildings text-sm"></i>
                     <span>Department Quotas</span>
                 </button>
                 <button type="button" 
                         @click="activeTab = 'individual'" 
-                        :class="activeTab === 'individual' ? 'bg-white dark:bg-[#1e2d4d] text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'"
+                        :class="activeTab === 'individual' ? 'bg-white dark:bg-[#111927] text-blue-600 dark:text-blue-400 shadow-sm font-black' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'"
                         class="px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer">
                     <i class="ph ph-user text-sm"></i>
                     <span>Individual Records</span>
@@ -976,9 +964,9 @@
                                 </td>
                                 <td class="p-3 text-center">
                                     @if($req->status === 'Approved')
-                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">Approved</span>
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 dark:bg-white/[0.05] text-slate-700 dark:text-[#E2E8F0] border border-slate-200/80 dark:border-white/[0.08]"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span> Approved</span>
                                     @else
-                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">{{ $req->status }}</span>
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 dark:bg-white/[0.05] text-slate-700 dark:text-[#E2E8F0] border border-slate-200/80 dark:border-white/[0.08]"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span> {{ $req->status }}</span>
                                     @endif
                                 </td>
                             </tr>

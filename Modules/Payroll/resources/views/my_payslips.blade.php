@@ -31,22 +31,11 @@
     }
 }">
 
-    <!-- Header Banner -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xl">
-                    <i class="ph ph-receipt"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl font-black text-slate-900 tracking-tight">My Salary Payslips & Pay Advice</h1>
-                    <p class="text-xs font-semibold text-slate-500 mt-0.5">View, filter, and download all your official monthly employee payroll slips and statutory statements.</p>
-                </div>
-            </div>
-        </div>
-
-        @if($employee)
-            <div class="bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold flex flex-wrap items-center gap-3">
+    <!-- Employee Info Bar -->
+    @if($employee)
+    <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-wrap items-center justify-between gap-3">
+        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">View, filter, and download all your official monthly employee payroll slips and statutory statements.</p>
+        <div class="bg-slate-50 dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold flex flex-wrap items-center gap-3">
                 <div>
                     <span class="text-slate-400 block text-[10px] uppercase font-bold">Employee ID</span>
                     <span class="font-extrabold text-slate-900">{{ $employee->employee_id_number ?? 'EMP-'.$employee->id }}</span>
@@ -54,7 +43,7 @@
                 <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
                 <div>
                     <span class="text-slate-400 block text-[10px] uppercase font-bold">EPF Reg No</span>
-                    <span class="font-extrabold text-blue-700">{{ $employee->epf_registration_no ?? 'EPF-'.$employee->id }}</span>
+                    <span class="font-extrabold text-emerald-700">{{ $employee->epf_registration_no ?? 'EPF-'.$employee->id }}</span>
                 </div>
                 <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
                 <div>
@@ -68,12 +57,12 @@
 
 
     <!-- Payslip History Section -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
+    <div class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] space-y-4">
         <!-- Controls & Filters -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
                 <h2 class="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                    <i class="ph ph-list-dashes text-blue-600"></i> Monthly Employee Payroll Slips
+                    <i class="ph ph-list-dashes text-emerald-600"></i> Monthly Employee Payroll Slips
                 </h2>
                 <p class="text-xs text-slate-400 font-medium">All monthly salary advices generated for your profile</p>
             </div>
@@ -85,12 +74,12 @@
                     <input type="text" 
                            x-model="searchQuery" 
                            placeholder="Search month..." 
-                           class="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white w-36 sm:w-44">
+                           class="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white w-36 sm:w-44">
                 </div>
 
                 <!-- Year Filter Dropdown -->
                 <form method="GET" action="{{ route('payroll.my_payslips') }}" class="flex items-center">
-                    <select name="year" onchange="this.form.submit()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                    <select name="year" onchange="this.form.submit()" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
                         <option value="All" {{ ($yearFilter ?? 'All') === 'All' ? 'selected' : '' }}>All Years</option>
                         @foreach($availableYears as $yr)
                             <option value="{{ $yr }}" {{ (string)($yearFilter ?? '') === (string)$yr ? 'selected' : '' }}>{{ $yr }}</option>
@@ -128,7 +117,7 @@
                         <tr class="hover:bg-slate-50/70 transition-colors" x-show="!searchQuery || '{{ strtolower($monthName . ' ' . $ps->year) }}'.includes(searchQuery.toLowerCase())">
                             <td class="p-3 font-extrabold text-slate-900">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
                                         <i class="ph ph-calendar-blank"></i>
                                     </div>
                                     <div>
@@ -147,8 +136,8 @@
                                 LKR {{ number_format($ps->net_salary, 2) }}
                             </td>
                             <td class="p-3 text-center">
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Disbursed
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold bg-slate-100 dark:bg-white/[0.05] text-slate-700 dark:text-[#E2E8F0] border border-slate-200/80 dark:border-white/[0.08]">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span> Disbursed
                                 </span>
                             </td>
                             <td class="p-3 text-right">
@@ -156,7 +145,7 @@
                                     <button type="button" 
                                             @click="openAndPrint({{ json_encode($ps) }})" 
                                             title="Download / Print Payslip PDF"
-                                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 transition-all cursor-pointer">
+                                            class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-1 transition-all cursor-pointer">
                                         <i class="ph ph-download-simple text-sm"></i> Download Slip
                                     </button>
                                     <button type="button" 
@@ -190,7 +179,7 @@
                 <!-- Printable/Modal Header -->
                 <div class="flex items-center justify-between pb-2 border-b-2 border-slate-900 relative shrink-0">
                     <div class="flex items-center shrink-0">
-                        <img src="{{ asset('crew.jpeg') }}" alt="Crew Logo" class="h-7 sm:h-8 w-auto object-contain rounded">
+                        <img src="{{ asset('LoopsBlack.png') }}" alt="LOOPS Logo" class="h-7 sm:h-8 w-auto object-contain">
                     </div>
                     <div class="text-center flex-1 px-2">
                         <h2 class="text-xs sm:text-sm font-black tracking-wider uppercase text-slate-900 leading-tight">LOOPS DIGITAL (PVT) LTD</h2>

@@ -8,16 +8,11 @@
 @section('content')
 <div class="space-y-4" x-data="{ viewMode: 'grid' }">
 
-    <!-- Compact Action Header Bar -->
-    <div class="bg-white dark:bg-[#152038] rounded-xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900/60">
-                <i class="ph ph-users text-lg"></i>
-            </div>
-            <div>
-                <h1 class="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Employees Directory ({{ $employees->total() }})</h1>
-                <p class="text-[11px] font-medium text-slate-400 dark:text-slate-400">Search and view company employees, department assignments, and contact details.</p>
-            </div>
+    <!-- Action Toolbar -->
+    <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-3.5 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Total Workforce:</span>
+            <span class="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-black px-2.5 py-0.5 rounded-full border border-blue-200/60 dark:border-blue-500/20">{{ $employees->total() }} Employees</span>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
@@ -34,7 +29,7 @@
             <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-bold shadow-2xs">
                 <button type="button" 
                         @click="viewMode = 'grid'" 
-                        :class="viewMode === 'grid' ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm font-extrabold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'" 
+                        :class="viewMode === 'grid' ? 'bg-white dark:bg-[#111927] text-blue-600 dark:text-blue-400 shadow-sm font-extrabold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'" 
                         class="flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all cursor-pointer" 
                         title="Switch to Grid View">
                     <i class="ph ph-squares-four text-sm"></i>
@@ -42,7 +37,7 @@
                 </button>
                 <button type="button" 
                         @click="viewMode = 'list'" 
-                        :class="viewMode === 'list' ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm font-extrabold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'" 
+                        :class="viewMode === 'list' ? 'bg-white dark:bg-[#111927] text-blue-600 dark:text-blue-400 shadow-sm font-extrabold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'" 
                         class="flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all cursor-pointer" 
                         title="Switch to List View">
                     <i class="ph ph-list text-sm"></i>
@@ -52,7 +47,7 @@
 
             <!-- Add Employee Button (Admin / HR Lead Only) -->
             @if($isHrOrAdmin)
-            <a href="{{ route('employee.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all">
+            <a href="{{ route('employee.create') }}" class="bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition-all">
                 <i class="ph ph-user-plus text-sm"></i>
                 <span>Add Employee Profile</span>
             </a>
@@ -63,12 +58,12 @@
     <!-- Department Filter Pills -->
     <div class="flex flex-wrap items-center gap-1.5">
         <a href="{{ route('employee.index', array_filter(['search' => $search])) }}" 
-           class="px-3 py-1 text-[11px] font-bold rounded-full transition-all {{ !$deptId || $deptId === 'all' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white dark:bg-[#152038] border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+           class="px-3 py-1 text-[11px] font-bold rounded-full transition-all {{ !$deptId || $deptId === 'all' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800' }}">
             All Staff ({{ $employees->total() }})
         </a>
         @foreach($departments as $dept)
             <a href="{{ route('employee.index', array_filter(['department_id' => $dept->id, 'search' => $search])) }}" 
-               class="px-3 py-1 text-[11px] font-bold rounded-full transition-all {{ (string)$deptId === (string)$dept->id ? 'bg-blue-600 text-white shadow-sm' : 'bg-white dark:bg-[#152038] border border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800' }}">
+               class="px-3 py-1 text-[11px] font-bold rounded-full transition-all {{ (string)$deptId === (string)$dept->id ? 'bg-blue-600 text-white shadow-sm' : 'bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800' }}">
                 {{ $dept->name }} ({{ $dept->employees_count ?? 0 }})
             </a>
         @endforeach
@@ -77,20 +72,20 @@
     <!-- GRID VIEW -->
     <div x-show="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         @forelse($employees as $emp)
-            <div class="bg-white dark:bg-[#152038] rounded-xl border border-slate-200/80 dark:border-slate-800 p-3.5 shadow-sm hover:border-blue-300 dark:hover:border-blue-500/50 hover:shadow-md transition-all flex flex-col justify-between space-y-3 group">
+            <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08)] hover:border-blue-300 dark:hover:border-blue-500/50 hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col justify-between space-y-3 group">
                 <!-- Header Info Row -->
                 <div class="flex items-start justify-between gap-2">
                     <div class="flex items-center gap-2.5">
                         @if($emp->profile_picture)
                             <img src="{{ $emp->profile_picture }}" class="w-9 h-9 rounded-full object-cover border border-blue-500 shrink-0" alt="Avatar">
                         @else
-                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-xs flex items-center justify-center border border-blue-400 shrink-0 uppercase shadow-xs">
+                            <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center border border-blue-400 shrink-0 uppercase shadow-xs">
                                 {{ substr($emp->user->name ?? 'EM', 0, 2) }}
                             </div>
                         @endif
                         <div class="leading-tight">
                             <h3 class="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ $emp->title ?? 'Mr.' }} {{ $emp->user->name ?? 'Employee' }}</h3>
-                            <p class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                            <p class="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
                                 {{ $emp->designation->name ?? 'Staff' }} <span class="text-slate-300 dark:text-slate-700 mx-0.5">•</span> <span class="text-slate-400 dark:text-slate-400 font-normal">{{ $emp->department->name ?? 'General' }}</span>
                                 @if($emp->user->username)
                                     <span class="text-slate-400 dark:text-slate-500 font-mono text-[10px] block">@ {{ $emp->user->username }}</span>
@@ -98,7 +93,7 @@
                             </p>
                         </div>
                     </div>
-                    <span class="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/60 text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0">
+                    <span class="bg-slate-100 dark:bg-white/[0.05] text-slate-700 dark:text-[#E2E8F0] border border-slate-200/80 dark:border-white/[0.08] text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0">
                         {{ $emp->employee_id_number }}
                     </span>
                 </div>
@@ -130,7 +125,7 @@
                 </div>
             </div>
         @empty
-            <div class="col-span-full py-8 text-center bg-white dark:bg-[#152038] rounded-xl border border-slate-200/80 dark:border-slate-800">
+            <div class="col-span-full py-8 text-center bg-white dark:bg-[#111927] rounded-2xl border border-dashed border-slate-300 dark:border-slate-800">
                 <i class="ph ph-users text-3xl text-slate-300 dark:text-slate-600 mb-1"></i>
                 <h3 class="text-xs font-bold text-slate-900 dark:text-white">No employees found</h3>
                 <p class="text-[11px] text-slate-400 mt-0.5">Try adjusting your search query or department filter.</p>

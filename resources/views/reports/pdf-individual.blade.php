@@ -104,7 +104,7 @@
                     @if($logoBase64)
                         <img src="{{ $logoBase64 }}" alt="Loops Logo" style="height: 38px; width: auto; object-fit: contain;">
                     @else
-                        <div class="company-name">LOOPS HR</div>
+                        <div class="company-name">CREW HR</div>
                     @endif
                 </td>
                 <td style="vertical-align: middle; padding-left: 15px;">
@@ -239,7 +239,7 @@
     </table>
 
     <div class="footer">
-        Loops HRIS • Confidential • Individual Leave Statement
+        Crew HRIS • Confidential • Individual Leave Statement
     </div>
 
 </body>

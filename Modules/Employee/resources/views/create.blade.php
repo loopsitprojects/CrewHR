@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Loops HR - Add New Employee Profile'])
+@extends('layouts.app', ['title' => 'Loops HR - Add New Employee Profile', 'breadcrumb' => 'Add Employee'])
 
 @section('breadcrumbs')
     <span class="text-slate-300">/</span>
@@ -94,22 +94,14 @@
     }
 }">
 
-    <!-- Top Header -->
+    <!-- Top Action Bar -->
     <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <a href="{{ route('employee.index') }}" class="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center shadow-sm">
-                <i class="ph ph-arrow-left text-lg"></i>
-            </a>
-            <div>
-                <div class="flex items-center gap-2">
-                    <i class="ph ph-user-plus text-xl text-blue-600"></i>
-                    <h1 class="text-xl font-black text-gray-900">Add New Employee Profile</h1>
-                </div>
-                <p class="text-xs font-bold text-gray-500 mt-0.5">Create a new employee profile, EPF registration, system role, and salary details.</p>
-            </div>
-        </div>
+        <a href="{{ route('employee.index') }}" class="px-3.5 py-2 rounded-xl bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 text-xs font-bold shadow-2xs transition-all">
+            <i class="ph ph-arrow-left text-base"></i>
+            <span>Back to Employees</span>
+        </a>
 
-        <button form="createEmployeeForm" type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all">
+        <button form="createEmployeeForm" type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all cursor-pointer">
             <i class="ph ph-plus-circle text-base"></i>
             <span>Create Profile & Save</span>
         </button>

@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Loops HR - Edit Employee Profile'])
+@extends('layouts.app', ['title' => 'Loops HR - Edit Employee Profile', 'breadcrumb' => 'Edit Employee'])
 
 @section('breadcrumbs')
     <span class="text-slate-300">/</span>
@@ -118,23 +118,22 @@
 }">
 
     <!-- Top Action Header Bar -->
-    <div class="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('employee.index') }}" class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center justify-center transition-all shadow-sm">
-                <i class="ph ph-arrow-left text-lg"></i>
+    <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a href="{{ route('employee.index') }}" class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center justify-center transition-all shadow-sm">
+                <i class="ph ph-arrow-left text-base"></i>
             </a>
-            <div>
-                <div class="flex items-center gap-2.5">
-                    <h1 class="text-xl font-black text-slate-900 tracking-tight">Edit Employee Profile</h1>
-                    <span class="bg-blue-50 text-blue-700 border border-blue-200/80 text-xs font-extrabold px-2.5 py-0.5 rounded-full">{{ $employee->employee_id_number }}</span>
-                </div>
-                <p class="text-xs font-bold text-slate-500 mt-0.5">{{ $employee->title ?? 'Mr.' }} {{ $employee->user->name ?? 'Employee' }} <span class="text-slate-300 mx-1">•</span> <span class="text-blue-600 font-extrabold">{{ $employee->designation->name ?? 'Staff' }}</span></p>
+            <div class="flex items-center gap-2">
+                <span class="bg-blue-50 text-blue-700 border border-blue-200/80 text-xs font-extrabold px-2.5 py-0.5 rounded-full">{{ $employee->employee_id_number }}</span>
+                <span class="text-xs font-bold text-slate-700">{{ $employee->title ?? 'Mr.' }} {{ $employee->user->name ?? 'Employee' }}</span>
+                <span class="text-slate-300 mx-0.5">•</span>
+                <span class="text-blue-600 font-extrabold text-xs">{{ $employee->designation->name ?? 'Staff' }}</span>
             </div>
         </div>
 
         <div class="flex items-center gap-3">
             <a href="{{ route('employee.index') }}" class="px-5 py-2.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-200 transition-all">Cancel</a>
-            <button form="editEmployeeForm" type="submit" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/25 transition-all">
+            <button form="editEmployeeForm" type="submit" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/25 transition-all cursor-pointer">
                 <i class="ph ph-floppy-disk text-base"></i>
                 <span>Update Profile & Save</span>
             </button>
