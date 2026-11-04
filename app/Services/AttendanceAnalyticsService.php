@@ -95,7 +95,7 @@ class AttendanceAnalyticsService
             if ($inMins <= 9 * 60) {
                 $arriveBefore9Count++;
             }
-            if ($inMins > 9 * 60 + 30) {
+            if ($att->status === 'Late' || ($att->status !== 'Present' && $inMins > 9 * 60 + 30)) {
                 $lateDaysCount++;
             }
             if ($outMins < 17 * 60) {
@@ -295,7 +295,7 @@ class AttendanceAnalyticsService
                 $totalHoursSum += (float) $a->total_hours;
                 $extraHoursSum += (float) $a->late_ot_hours;
 
-                if ($inMins > 9 * 60 + 30) {
+                if ($a->status === 'Late' || ($a->status !== 'Present' && $inMins > 9 * 60 + 30)) {
                     $lateCount++;
                     $lateMinutesSum += ($inMins - (9 * 60 + 30));
                 }
@@ -672,7 +672,7 @@ class AttendanceAnalyticsService
             foreach ($dayAtts as $a) {
                 $in = Carbon::parse($a->clock_in);
                 $out = Carbon::parse($a->clock_out);
-                if ($in->hour * 60 + $in->minute > 9 * 60 + 30) {
+                if ($a->status === 'Late' || ($a->status !== 'Present' && $in->hour * 60 + $in->minute > 9 * 60 + 30)) {
                     $lateCount++;
                 }
                 if ($out->hour * 60 + $out->minute >= 18 * 60 + 30) {
@@ -719,7 +719,7 @@ class AttendanceAnalyticsService
 
                 $inMinsSum += $inMins;
                 $outMinsSum += $outMins;
-                if ($inMins > 9 * 60 + 30) {
+                if ($a->status === 'Late' || ($a->status !== 'Present' && $inMins > 9 * 60 + 30)) {
                     $lateCount++;
                 }
             }

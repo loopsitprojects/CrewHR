@@ -6,12 +6,14 @@ use Illuminate\Http\Request;
 use Modules\Leave\Models\LeaveType;
 use Modules\Leave\Models\EmployeeLeaveBalance;
 use Modules\Leave\Models\LeaveRequest;
+use Modules\Leave\Models\LieuLeaveClaim;
 use Modules\Leave\Models\Holiday;
 use Modules\Employee\Models\Employee;
 use Modules\Employee\Models\Department;
 use Modules\Leave\Services\LeavePolicyService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class LeaveDashboardController extends Controller
@@ -144,7 +146,15 @@ class LeaveDashboardController extends Controller
             }
 
             $durationLabel = (float)$lv->duration === 1.0 ? '1 Day' : ((float)$lv->duration . ' Days');
-            if ($lv->is_half_day) {
+            if ($lv->leaveType?->code === 'NIGHT_SHIFT_RECOVERY') {
+                $durationLabel = match($lv->concession_category) {
+                    'report_10am' => 'Night Shift (Report 10 AM)',
+                    'report_11am' => 'Night Shift (Report 11 AM)',
+                    'half_day_off' => 'Night Shift (Half Day Off)',
+                    'full_day_off' => 'Night Shift (Full Day Off)',
+                    default => 'Night Shift Recovery'
+                };
+            } elseif ($lv->is_half_day) {
                 $durationLabel = 'Half Day (' . ($lv->half_day_slot ?: 'Slot') . ')';
             } elseif ($lv->is_short_leave) {
                 $durationLabel = 'Short Leave (' . ($lv->short_leave_slot ?: 'Slot') . ')';
@@ -355,6 +365,107 @@ class LeaveDashboardController extends Controller
         // List all holidays as Y-m-d strings for front-end dynamic net working days calculation
         $allHolidaysList = Holiday::pluck('date')->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))->unique()->values()->toArray();
 
+        // Build added lieu days for current employee (automatically added when weekend or holiday work claims are approved)
+        $lieuDaysList = [];
+        if ($employee) {
+            $claims = LieuLeaveClaim::with('leaveRequest')
+                ->where('employee_id', $employee->id)
+                ->orderByDesc('worked_date')
+                ->get();
+
+            if ($claims->isNotEmpty()) {
+                foreach ($claims as $claim) {
+                    $workedDate = Carbon::parse($claim->worked_date);
+                    $approvedDate = $claim->approved_at ? Carbon::parse($claim->approved_at) : $workedDate;
+                    $expiryDate = $claim->expires_at ? Carbon::parse($claim->expires_at) : $approvedDate->copy()->addDays(30);
+                    $daysLeft = (int) max(0, $now->diffInDays($expiryDate, false));
+                    $isExpired = $now->greaterThan($expiryDate);
+
+                    if ($claim->is_used) {
+                        $status = 'used';
+                        $subtext = 'Taken ' . ($claim->leaveRequest ? Carbon::parse($claim->leaveRequest->start_date)->format('D j M') : 'used');
+                    } elseif ($claim->status === 'Pending Manager Approval') {
+                        $status = 'pending';
+                        $subtext = 'Pending Approval';
+                    } elseif ($claim->status === 'Rejected') {
+                        $status = 'rejected';
+                        $subtext = 'Claim Rejected';
+                    } elseif ($isExpired) {
+                        $status = 'expired';
+                        $subtext = 'Expired ' . $expiryDate->format('D j M');
+                    } else {
+                        $status = 'available';
+                        $subtext = null;
+                    }
+
+                    $durationLabel = $claim->duration_type === 'half_day' ? 'Half day (4h)' : 'Full day (8h)';
+
+                    $lieuDaysList[] = [
+                        'id' => $claim->id,
+                        'type' => $durationLabel,
+                        'worked' => 'worked ' . $workedDate->format('l j M'),
+                        'status' => $status,
+                        'subtext' => $subtext,
+                        'expiry_date' => $expiryDate->format('D j M'),
+                        'code' => $claim->claim_number,
+                        'days_left' => $status === 'available' ? $daysLeft : 0,
+                    ];
+                }
+            } else {
+                // Fallback to legacy overtime_records if no claims created yet
+                $otRecords = DB::table('overtime_records')
+                    ->where('employee_id', $employee->id)
+                    ->where('status', 'Approved')
+                    ->where(function($q) {
+                        $q->where('rate_multiplier_type', 'like', '%Holiday%')
+                          ->orWhere('rate_multiplier_type', 'like', '%Weekend%')
+                          ->orWhereRaw('DAYOFWEEK(ot_date) IN (1, 7)');
+                    })
+                    ->orderByDesc('ot_date')
+                    ->get();
+
+                $lieuLeavesTaken = LeaveRequest::where('employee_id', $employee->id)
+                    ->whereHas('leaveType', fn($t) => $t->where('code', 'LIEU'))
+                    ->whereNotIn('status', ['Rejected', 'Canceled', 'Cancelled'])
+                    ->orderBy('start_date')
+                    ->get();
+
+                $usedIndex = 0;
+                foreach ($otRecords as $ot) {
+                    $workedDate = Carbon::parse($ot->ot_date);
+                    $approvedDate = $ot->approved_at ? Carbon::parse($ot->approved_at) : $workedDate;
+                    $expiryDate = $approvedDate->copy()->addDays(30);
+                    $daysLeft = (int) max(0, $now->diffInDays($expiryDate, false));
+                    $isExpired = $now->greaterThan($expiryDate);
+
+                    $usedLeave = $lieuLeavesTaken->get($usedIndex);
+                    if ($usedLeave) {
+                        $status = 'used';
+                        $subtext = 'Taken ' . Carbon::parse($usedLeave->start_date)->format('D j M');
+                        $usedIndex++;
+                    } elseif ($isExpired) {
+                        $status = 'expired';
+                        $subtext = 'Expired ' . $expiryDate->format('D j M');
+                    } else {
+                        $status = 'available';
+                        $subtext = null;
+                    }
+
+                    $lieuDaysList[] = [
+                        'type' => ((float)$ot->hours >= 6) ? 'Full day (8h)' : 'Half day (4h)',
+                        'worked' => 'worked ' . $workedDate->format('l j M'),
+                        'status' => $status,
+                        'subtext' => $subtext,
+                        'expiry_date' => $expiryDate->format('D j M'),
+                        'code' => $ot->ot_number ?? ('LI-' . $ot->id),
+                        'days_left' => $status === 'available' ? $daysLeft : 0,
+                    ];
+                }
+            }
+        }
+
+        $allLeaveTypes = LeaveType::orderBy('id')->get();
+
         return view('pages.leave_dashboard', compact(
             'employee', 
             'leaveBalances', 
@@ -378,7 +489,9 @@ class LeaveDashboardController extends Controller
             'allMonthLeaves',
             'upcomingBirthdays',
             'allHolidaysList',
-            'managerName'
+            'managerName',
+            'lieuDaysList',
+            'allLeaveTypes'
         ));
     }
 
@@ -426,8 +539,68 @@ class LeaveDashboardController extends Controller
         // Calculate Days & Duration
         $isHalfDay = (bool)$request->input('is_half_day', false);
         $isShortLeave = ($typeCode === 'SHORT' || (bool)$request->input('is_short_leave', false));
+        $category = $request->input('concession_category');
+        $signOutTime = $request->input('night_sign_out_time');
+        $reportTime = $request->input('night_report_time');
 
-        if ($isHalfDay) {
+        if ($typeCode === 'NIGHT_SHIFT_RECOVERY') {
+            if ($category === 'report_10am') {
+                $workingDays = 0.0;
+                $isHalfDay = false;
+                $reportTime = '10:00:00';
+            } elseif ($category === 'report_11am') {
+                $workingDays = 0.0;
+                $isHalfDay = false;
+                $reportTime = '11:00:00';
+            } elseif ($category === 'half_day_off') {
+                $workingDays = 0.5;
+                $isHalfDay = true;
+                $reportTime = null;
+            } elseif ($category === 'full_day_off') {
+                $workingDays = 1.0;
+                $isHalfDay = false;
+                $reportTime = null;
+            } else {
+                if ($signOutTime) {
+                    $timeParts = explode(':', $signOutTime);
+                    $hour = (int)$timeParts[0];
+                    $min = isset($timeParts[1]) ? (int)$timeParts[1] : 0;
+                    $mins = $hour * 60 + $min;
+
+                    if ($mins >= 1260 && $mins <= 1350) { // 21:00 to 22:30
+                        $category = 'report_10am';
+                        $reportTime = '10:00:00';
+                        $workingDays = 0.0;
+                        $isHalfDay = false;
+                    } elseif ($mins > 1350 || $mins === 0) { // 22:31 to midnight
+                        $category = 'report_11am';
+                        $reportTime = '11:00:00';
+                        $workingDays = 0.0;
+                        $isHalfDay = false;
+                    } elseif ($mins > 0 && $mins <= 180) { // 00:01 to 03:00
+                        $category = 'half_day_off';
+                        $reportTime = null;
+                        $workingDays = 0.5;
+                        $isHalfDay = true;
+                    } elseif ($mins > 180 && $mins < 720) { // Beyond 03:00
+                        $category = 'full_day_off';
+                        $reportTime = null;
+                        $workingDays = 1.0;
+                        $isHalfDay = false;
+                    } else {
+                        $category = 'report_10am';
+                        $reportTime = '10:00:00';
+                        $workingDays = 0.0;
+                        $isHalfDay = false;
+                    }
+                } else {
+                    $category = 'report_10am';
+                    $reportTime = '10:00:00';
+                    $workingDays = 0.0;
+                    $isHalfDay = false;
+                }
+            }
+        } elseif ($isHalfDay) {
             $workingDays = 0.5;
         } elseif ($isShortLeave) {
             $workingDays = 0.2; // 1.5 hour break
@@ -445,14 +618,14 @@ class LeaveDashboardController extends Controller
         // Validate against Leave Brief rules using LeavePolicyService
         $this->leavePolicyService->validateLeaveApplication($employee, $leaveType, $data, $workingDays);
 
-        // Check if employee has sufficient available balance (Short Leave and Duty Leave are exempt from annual quota pool deductions)
+        // Check if employee has sufficient available balance (Short Leave, Duty Leave and Night Shift Recovery are exempt from annual quota pool deductions)
         $balance = EmployeeLeaveBalance::firstOrCreate(
             ['employee_id' => $employee->id, 'leave_type_id' => $leaveType->id],
             ['allocated' => $leaveType->days, 'used' => 0, 'carried_forward' => 0]
         );
 
         $available = ($balance->allocated + $balance->carried_forward) - $balance->used;
-        if ($workingDays > $available && !in_array($typeCode, ['DUTY', 'LIEU', 'SHORT'])) {
+        if ($workingDays > $available && !in_array($typeCode, ['DUTY', 'SHORT', 'NIGHT_SHIFT_RECOVERY'])) {
             return redirect()->back()->withErrors([
                 'leave_type_id' => "Insufficient leave balance. You have {$available} days available for {$leaveType->name}."
             ]);
@@ -473,13 +646,13 @@ class LeaveDashboardController extends Controller
 
         $initialStatus = 'Pending Manager Approval';
 
-        DB::transaction(function () use ($request, $employee, $leaveType, $workingDays, $certificatePath, $isHalfDay, $isShortLeave, $coveringId, $coveringStatus, $managerId, $initialStatus, $balance, $typeCode) {
+        DB::transaction(function () use ($request, $employee, $leaveType, $workingDays, $certificatePath, $isHalfDay, $isShortLeave, $coveringId, $coveringStatus, $managerId, $initialStatus, $balance, $typeCode, $signOutTime, $reportTime, $category) {
             $leaveReq = LeaveRequest::create([
                 'req_number' => 'REQ-' . rand(1100, 9999),
                 'employee_id' => $employee->id,
                 'leave_type_id' => $leaveType->id,
                 'start_date' => $request->start_date,
-                'end_date' => $request->end_date,
+                'end_date' => $request->end_date ?: $request->start_date,
                 'duration' => $workingDays,
                 'status' => $initialStatus,
                 'reason' => $request->reason,
@@ -490,17 +663,35 @@ class LeaveDashboardController extends Controller
                 'hr_status' => 'Pending',
                 'applied_at' => Carbon::now('Asia/Colombo')->toDateString(),
                 'is_half_day' => $isHalfDay,
-                'half_day_slot' => $isHalfDay ? $request->input('half_day_slot') : null,
+                'half_day_slot' => $isHalfDay ? ($request->input('half_day_slot') ?: 'Morning') : null,
                 'is_short_leave' => $isShortLeave,
                 'short_leave_slot' => $isShortLeave ? $request->input('short_leave_slot') : null,
                 'medical_certificate_path' => $certificatePath,
                 'project_client_name' => $request->input('project_client_name'),
+                'night_sign_out_time' => $signOutTime,
+                'night_report_time' => $reportTime,
+                'concession_category' => $category,
                 'is_refunded' => false,
             ]);
 
             // Immediately deduct days from balance only for standard quota-deductible leaves
-            if (!in_array($typeCode, ['SHORT', 'DUTY'])) {
+            if (!in_array($typeCode, ['SHORT', 'DUTY', 'NIGHT_SHIFT_RECOVERY'])) {
                 $balance->increment('used', $workingDays);
+            }
+
+            // If Lieu Leave is applied, link the oldest active approved claim
+            if ($typeCode === 'LIEU') {
+                $availableClaim = LieuLeaveClaim::where('employee_id', $employee->id)
+                    ->where('status', 'Approved')
+                    ->where('is_used', false)
+                    ->orderBy('worked_date')
+                    ->first();
+                if ($availableClaim) {
+                    $availableClaim->update([
+                        'is_used' => true,
+                        'leave_request_id' => $leaveReq->id,
+                    ]);
+                }
             }
 
             // Dispatch HR Notifications
@@ -508,6 +699,89 @@ class LeaveDashboardController extends Controller
         });
 
         return redirect()->back()->with('success', 'Leave request submitted successfully!');
+    }
+
+    public function storeLieuClaim(Request $request)
+    {
+        $user = auth()->user();
+        $employee = $user ? Employee::where('user_id', $user->id)->first() : null;
+
+        if (!$employee) {
+            return redirect()->back()->with('error', 'Employee profile not found.');
+        }
+
+        $request->validate([
+            'worked_date' => 'required|date|before_or_equal:today',
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        $hours = (float) $request->input('hours_worked', 0);
+        if ($hours <= 0 && $request->input('start_time') && $request->input('end_time')) {
+            $st = Carbon::parse($request->input('start_time'));
+            $et = Carbon::parse($request->input('end_time'));
+            $hours = max(0, $et->diffInMinutes($st) / 60);
+        }
+
+        // Automatically determine lieu leave duration and credit based on hours worked
+        if ($hours >= 8) {
+            $durationType = 'full_day';
+            $creditDays = 1.00;
+        } elseif ($hours >= 4) {
+            $durationType = 'half_day';
+            $creditDays = 0.50;
+        } else {
+            return redirect()->back()->withErrors([
+                'hours_worked' => 'A minimum of 4 hours worked is required to request Lieu Leave (Half Day = 4 hrs, Full Day = 8 hrs).'
+            ]);
+        }
+
+        $workedCarbon = Carbon::parse($request->worked_date);
+
+        // Check if date was a weekend or public holiday
+        $isWeekend = $workedCarbon->isWeekend();
+        $isHoliday = Holiday::whereDate('date', $request->worked_date)->exists();
+
+        if (!$isWeekend && !$isHoliday) {
+            return redirect()->back()->withErrors([
+                'worked_date' => 'Lieu Leave can only be requested for work performed on weekends (Saturday/Sunday) or official public holidays.'
+            ]);
+        }
+
+        $dayType = $isHoliday ? 'Public Holiday' : ($isWeekend ? 'Weekend' : 'Off-day / Non-working Day');
+
+        // Check duplicate active claims on same date
+        $existing = LieuLeaveClaim::where('employee_id', $employee->id)
+            ->whereDate('worked_date', $request->worked_date)
+            ->whereIn('status', ['Pending Manager Approval', 'Approved'])
+            ->first();
+
+        if ($existing) {
+            return redirect()->back()->withErrors([
+                'worked_date' => "A Lieu Leave request for {$request->worked_date} is already {$existing->status}."
+            ]);
+        }
+
+        $startTime = $request->input('start_time') ?: '09:00';
+        $endTime = $request->input('end_time') ?: ($durationType === 'half_day' ? '13:00' : '17:00');
+        $claimNumber = 'LI-' . $workedCarbon->format('Ymd') . '-' . strtoupper(Str::random(4));
+
+        $claim = LieuLeaveClaim::create([
+            'claim_number' => $claimNumber,
+            'employee_id' => $employee->id,
+            'worked_date' => $request->worked_date,
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'day_type' => $dayType,
+            'duration_type' => $durationType,
+            'hours_worked' => $hours,
+            'credit_days' => $creditDays,
+            'reason' => $request->reason,
+            'status' => 'Pending Manager Approval',
+        ]);
+
+        \App\Services\NotificationService::notifyLieuClaimSubmitted($claim);
+
+        return redirect()->back()->with('success', "Lieu Leave request submitted for {$hours} work hours! Sent to Manager for approval (+{$creditDays} day).");
     }
 
     public function storeCompanyLeave(Request $request)
@@ -568,7 +842,7 @@ class LeaveDashboardController extends Controller
      */
     private function ensureEmployeeLeaveBalances(Employee $employee, int $year): void
     {
-        $leaveTypes = LeaveType::all();
+        $leaveTypes = LeaveType::where('is_active', true)->get();
 
         foreach ($leaveTypes as $lt) {
             $code = strtoupper($lt->code);

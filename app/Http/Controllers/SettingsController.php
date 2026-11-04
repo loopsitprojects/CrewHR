@@ -370,6 +370,9 @@ class SettingsController extends Controller
         $userRole = session('current_role', $activeEmp->system_role ?? 'Employee');
         
         if (!in_array($userRole, ['HR Lead', 'Super (Admin)', 'Super Admin'])) {
+            if (request()->wantsJson() || request()->ajax()) {
+                abort(response()->json(['error' => 'Access Denied: Only HR Lead and Super Admin accounts can perform administrative operations. Switch your role in the top bar.'], 403));
+            }
             abort(403, 'Access Denied: Only HR Lead and Super Admin accounts can perform administrative CRUD operations.');
         }
     }
@@ -519,6 +522,14 @@ class SettingsController extends Controller
             'description' => $request->description,
         ]);
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Leave type '{$leaveType->name}' created successfully!",
+                'leave_type' => $leaveType,
+            ]);
+        }
+
         return redirect()->back()->with('success', "Leave type '{$leaveType->name}' created successfully!");
     }
 
@@ -547,6 +558,14 @@ class SettingsController extends Controller
             'description' => $request->description,
         ]);
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Leave type '{$leaveType->name}' updated successfully!",
+                'leave_type' => $leaveType,
+            ]);
+        }
+
         return redirect()->back()->with('success', "Leave type '{$leaveType->name}' updated successfully!");
     }
 
@@ -559,6 +578,16 @@ class SettingsController extends Controller
         $leaveType->save();
 
         $statusStr = $leaveType->is_active ? 'activated' : 'deactivated';
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Leave type '{$leaveType->name}' {$statusStr} successfully!",
+                'is_active' => (bool)$leaveType->is_active,
+                'leave_type' => $leaveType,
+            ]);
+        }
+
         return redirect()->back()->with('success', "Leave type '{$leaveType->name}' {$statusStr} successfully!");
     }
 
@@ -570,11 +599,24 @@ class SettingsController extends Controller
         
         // Prevent deleting core statutory leave types
         if (in_array(strtoupper($leaveType->code), ['ANNUAL', 'CASUAL', 'SHORT', 'MEDICAL'])) {
+            if (request()->wantsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Core statutory leave type '{$leaveType->name}' cannot be deleted. You can deactivate it instead."
+                ], 422);
+            }
             return redirect()->back()->with('error', "Core statutory leave type '{$leaveType->name}' cannot be deleted. You can deactivate it instead.");
         }
 
         $typeName = $leaveType->name;
         $leaveType->delete();
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Leave type '{$typeName}' deleted successfully."
+            ]);
+        }
 
         return redirect()->back()->with('success', "Leave type '{$typeName}' deleted successfully.");
     }

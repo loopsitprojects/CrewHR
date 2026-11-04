@@ -119,6 +119,13 @@ class LeavePolicyService
     {
         $typeCode = strtoupper($leaveType->code);
 
+        // 0. Active Leave Type Rule: Inactive leave types cannot be applied for
+        if (!$leaveType->is_active) {
+            throw ValidationException::withMessages([
+                'leave_type_id' => "The leave type '{$leaveType->name}' is currently deactivated by system administrator."
+            ]);
+        }
+
         // 1. Intern & Probation Restriction Rule
         if ($this->isProbationOrIntern($employee)) {
             if (in_array($typeCode, ['ANNUAL', 'CASUAL', 'MEDICAL'])) {
@@ -185,7 +192,7 @@ class LeavePolicyService
         }
 
         $typeCode = strtoupper($request->leaveType?->code ?? '');
-        if (!in_array($typeCode, ['SHORT', 'DUTY']) && !$request->is_short_leave) {
+        if (!in_array($typeCode, ['SHORT', 'DUTY', 'NIGHT_SHIFT_RECOVERY']) && !$request->is_short_leave) {
             $balance = EmployeeLeaveBalance::where('employee_id', $request->employee_id)
                 ->where('leave_type_id', $request->leave_type_id)
                 ->first();

@@ -35,8 +35,13 @@ class AnalyticsController extends Controller
             return redirect()->route('dashboard')->with('error', 'Access Denied: Reports & Leave Analytics module is restricted to HR Admin, Managers and Super Admin.');
         }
 
-        // Active Report Tab: 'executive' (reference report), 'department', or 'individual'
-        $activeTab = $request->query('tab', 'executive');
+        // Active Report Tab: 'overview', 'behavioral', or 'matrix' (also supports legacy 'executive', 'department', 'individual')
+        $rawTab = $request->query('tab', 'overview');
+        $activeTab = match($rawTab) {
+            'behavioral' => 'behavioral',
+            'matrix', 'department', 'individual' => 'matrix',
+            default => 'overview',
+        };
 
         // Filters: Year, Month, Department ID, Employee ID, Leave Type ID
         $currentYear = (int) Carbon::now('Asia/Colombo')->year;

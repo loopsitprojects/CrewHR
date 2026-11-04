@@ -10,6 +10,8 @@ use App\Http\Controllers\ApprovalController;
 Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+Route::post('/notifications/clear-all', [NotificationController::class, 'clearAll'])->name('notifications.clear-all');
+Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AppraisalController;
@@ -24,6 +26,7 @@ Route::get('/dashboard', [LeaveDashboardController::class, 'index'])->name('dash
 Route::get('/leave-management', [LeaveDashboardController::class, 'index'])->name('leave.dashboard');
 Route::post('/leave/store', [LeaveDashboardController::class, 'storeLeaveRequest'])->name('leave.store');
 Route::post('/leave/company-holiday', [LeaveDashboardController::class, 'storeCompanyLeave'])->name('leave.company_holiday');
+Route::post('/lieu-claims/store', [LeaveDashboardController::class, 'storeLieuClaim'])->name('lieu-claims.store');
 
 // My Leaves Module
 Route::get('/my-leaves', [MyLeavesController::class, 'index'])->name('my-leaves.index');
@@ -93,6 +96,7 @@ Route::get('/recruitments', [RecruitmentController::class, 'index'])->name('recr
 // Approvals & Workflow
 Route::get('/approvals', [ApprovalController::class, 'index'])->name('approvals.index');
 Route::post('/approvals/{id}/action', [ApprovalController::class, 'action'])->name('approvals.action');
+Route::post('/approvals/lieu-claims/{id}/action', [ApprovalController::class, 'actionLieuClaim'])->name('approvals.lieu-action');
 
 // Analytics & Reports
 Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');

@@ -85,4 +85,46 @@ class NotificationController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function clearAll(): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => true]);
+        }
+
+        $userId = $user->id;
+        $currentRole = session('current_role');
+        $activeEmp = \Modules\Employee\Models\Employee::where('user_id', $userId)->first();
+
+        $targetUserIds = [$userId];
+        if ($currentRole && $activeEmp && $activeEmp->system_role !== $currentRole) {
+            $roleEmps = \Modules\Employee\Models\Employee::where('system_role', $currentRole)->get();
+            foreach ($roleEmps as $re) {
+                if ($re->user_id) {
+                    $targetUserIds[] = $re->user_id;
+                }
+            }
+        }
+
+        $targetUserIds = array_unique($targetUserIds);
+
+        HrNotification::where(function ($q) use ($targetUserIds) {
+            $q->whereIn('user_id', $targetUserIds)->orWhereNull('user_id');
+        })->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['success' => true]);
+        }
+
+        HrNotification::where('id', $id)->delete();
+
+        return response()->json(['success' => true]);
+    }
 }

@@ -2,8 +2,6 @@
 
 @section('content')
 @php
-    $desiredCodes = ['CASUAL', 'MEDICAL', 'ANNUAL', 'LIEU', 'SHORT', 'DUTY', 'HOSPITALISATION', 'ELECTION', 'RELIGIOUS', 'PATERNITY', 'MATERNITY', 'NO_PAY'];
-    
     $balancesByCode = collect($leaveBalances ?? [])->keyBy(function($b) {
         return strtoupper($b->leaveType->code ?? '');
     });
@@ -19,34 +17,39 @@
 
     $shortLeftThisMonth = max(0, 2 - (int)($monthlyShortLeavesUsed ?? 0));
 
-    $leaveTypeMap = collect($leaveBalances ?? [])->mapWithKeys(function($b) {
-        return [strtoupper($b->leaveType->code ?? '') => (string)$b->leave_type_id];
-    })->toArray();
-    $leaveCodeMap = collect($leaveBalances ?? [])->mapWithKeys(function($b) {
-        return [(string)$b->leave_type_id => strtoupper($b->leaveType->code ?? '')];
-    })->toArray();
+    // Get all active leave types from DB, excluding HALF_DAY (which is handled as a half-day toggle checkbox)
+    $activeDbLeaveTypes = \Modules\Leave\Models\LeaveType::where('is_active', true)
+        ->get()
+        ->reject(fn($lt) => strtoupper($lt->code ?? '') === 'HALF_DAY');
 
-    $allDbLeaveTypes = \Modules\Leave\Models\LeaveType::all()->keyBy(fn($lt) => strtoupper($lt->code));
-    foreach ($allDbLeaveTypes as $c => $ltObj) {
-        if (!isset($leaveTypeMap[$c])) {
-            $leaveTypeMap[$c] = (string)$ltObj->id;
-        }
-        if (!isset($leaveCodeMap[(string)$ltObj->id])) {
-            $leaveCodeMap[(string)$ltObj->id] = $c;
-        }
+    $leaveTypeMap = [];
+    $leaveCodeMap = [];
+    foreach ($activeDbLeaveTypes as $ltObj) {
+        $c = strtoupper($ltObj->code ?? ('TYPE_' . $ltObj->id));
+        $leaveTypeMap[$c] = (string)$ltObj->id;
+        $leaveCodeMap[(string)$ltObj->id] = $c;
     }
 
     $empMap = collect($allEmployees ?? [])->mapWithKeys(function($emp) {
         return [(string)$emp->id => ($emp->user->name ?? 'Employee') . ' (' . $emp->employee_id_number . ')'];
     })->toArray();
 
-    $leaveCatalog = [];
-    foreach ($desiredCodes as $code) {
-        $bal = $balancesByCode->get($code);
-        $lt = $bal?->leaveType ?? $allDbLeaveTypes->get($code);
-        $typeId = $bal ? (string)$bal->leave_type_id : (string)($lt?->id ?? ($leaveTypeMap[$code] ?? $code));
+    // Standard ordering preference
+    $preferredOrder = ['CASUAL', 'MEDICAL', 'ANNUAL', 'LIEU', 'SHORT', 'DUTY', 'NIGHT_SHIFT_RECOVERY'];
 
-        $allocated = (float)($bal->allocated ?? ($lt?->days ?? 0));
+    $sortedLeaveTypes = $activeDbLeaveTypes->sortBy(function($lt) use ($preferredOrder) {
+        $code = strtoupper($lt->code ?? '');
+        $idx = array_search($code, $preferredOrder);
+        return $idx === false ? 999 : $idx;
+    });
+
+    $leaveCatalog = [];
+    foreach ($sortedLeaveTypes as $lt) {
+        $code = strtoupper($lt->code ?? ('TYPE_' . $lt->id));
+        $bal = $balancesByCode->get($code);
+        $typeId = (string)$lt->id;
+
+        $allocated = (float)($bal->allocated ?? ($lt->days ?? 0));
         $used = (float)($bal->used ?? 0);
         $avail = max(0, $allocated + (float)($bal->carried_forward ?? 0) - $used);
 
@@ -57,13 +60,14 @@
             'LIEU' => $formatNum($avail) . ' to use',
             'SHORT' => $shortLeftThisMonth . ' left this month',
             'DUTY' => 'Late start or off-site',
+            'NIGHT_SHIFT_RECOVERY' => 'Late stay concession',
             'HOSPITALISATION' => $formatNum($avail) . ' of ' . $formatNum($allocated) . ' left',
             'ELECTION' => 'Half day to vote',
             'RELIGIOUS' => 'With HOD approval',
             'PATERNITY' => $formatNum($allocated) . ' days',
             'MATERNITY' => $formatNum($allocated) . ' working days',
             'NO_PAY' => 'Email HOD, copy HR',
-            default => $formatNum($avail) . ' left'
+            default => ($allocated > 0 ? $formatNum($avail) . ' of ' . $formatNum($allocated) . ' left' : ($avail > 0 ? $formatNum($avail) . ' left' : ($lt->description ?: 'Available')))
         };
 
         $dotColor = match($code) {
@@ -73,6 +77,7 @@
             'LIEU' => 'bg-teal-400',
             'SHORT' => 'bg-amber-400',
             'DUTY' => 'bg-indigo-400',
+            'NIGHT_SHIFT_RECOVERY' => 'bg-indigo-500',
             'HOSPITALISATION' => 'bg-rose-400',
             'ELECTION' => 'bg-violet-400',
             'RELIGIOUS' => 'bg-orange-400',
@@ -89,13 +94,14 @@
             'LIEU' => 'Lieu leave',
             'SHORT' => 'Short leave',
             'DUTY' => 'Duty leave',
+            'NIGHT_SHIFT_RECOVERY' => 'Night Shift Recovery',
             'HOSPITALISATION' => 'Hospitalisation leave',
             'ELECTION' => 'Election leave',
             'RELIGIOUS' => 'Religious holiday',
             'PATERNITY' => 'Paternity leave',
             'MATERNITY' => 'Maternity leave',
             'NO_PAY' => 'No pay leave',
-            default => ($lt?->name ?? ucfirst(strtolower($code)) . ' leave')
+            default => ($lt->name ?? ucfirst(strtolower($code)) . ' leave')
         };
 
         $leaveCatalog[] = [
@@ -122,8 +128,8 @@
          leaveCodeMap: {{ json_encode($leaveCodeMap) }},
          leaveCatalog: {{ json_encode($leaveCatalog) }},
          employeesMap: {{ json_encode($empMap) }},
-         selectedLeaveTypeId: '{{ (string)($leaveTypeMap['ANNUAL'] ?? ($leaveBalances->first()->leave_type_id ?? '')) }}',
-         selectedLeaveTypeCode: 'ANNUAL',
+         selectedLeaveTypeId: '{{ (string)($leaveTypeMap['ANNUAL'] ?? ($leaveCatalog[0]['id'] ?? '')) }}',
+         selectedLeaveTypeCode: '{{ isset($leaveTypeMap['ANNUAL']) ? 'ANNUAL' : ($leaveCatalog[0]['code'] ?? '') }}',
          selectedDay: {{ json_encode($todayCell) }}, 
          todayCell: {{ json_encode($todayCell) }}, 
          viewMode: 'grid', 
@@ -139,6 +145,183 @@
          anythingElse: '',
          projectClientName: '',
          allHolidays: {{ json_encode($allHolidaysList ?? []) }},
+         lieuClaimModalOpen: false,
+         lieuWorkedDate: '{{ \Carbon\Carbon::now('Asia/Colombo')->subDay()->toDateString() }}',
+         lieuWorkedHours: 4,
+         lieuStartTime: '09:00',
+         lieuEndTime: '13:00',
+         lieuReason: '',
+         nightSignOutTime: '22:15',
+
+         setQuickHours(h) {
+             this.lieuWorkedHours = h;
+             this.syncEndTimeFromHours();
+         },
+
+         syncEndTimeFromHours() {
+             const hrs = parseFloat(this.lieuWorkedHours);
+             if (isNaN(hrs) || hrs <= 0) return;
+             if (!this.lieuStartTime) this.lieuStartTime = '09:00';
+             const [sh, sm] = this.lieuStartTime.split(':').map(Number);
+             const startMins = sh * 60 + sm;
+             const addMins = Math.round(hrs * 60);
+             const endMins = (startMins + addMins) % (24 * 60);
+             const endH = Math.floor(endMins / 60);
+             const endM = endMins % 60;
+             this.lieuEndTime = String(endH).padStart(2, '0') + ':' + String(endM).padStart(2, '0');
+         },
+
+         onStartTimeChange() {
+             if (this.lieuEndTime) {
+                 this.onTimeChange();
+             } else if (this.lieuWorkedHours && parseFloat(this.lieuWorkedHours) > 0) {
+                 this.syncEndTimeFromHours();
+             }
+         },
+
+         onEndTimeChange() {
+             this.onTimeChange();
+         },
+
+         onTimeChange() {
+             if (!this.lieuStartTime || !this.lieuEndTime) return;
+             const [sh, sm] = this.lieuStartTime.split(':').map(Number);
+             const [eh, em] = this.lieuEndTime.split(':').map(Number);
+             let diff = (eh * 60 + em) - (sh * 60 + sm);
+             if (diff < 0) diff += 24 * 60;
+             const hrs = Math.max(0, diff / 60);
+             this.lieuWorkedHours = hrs % 1 === 0 ? hrs : parseFloat(hrs.toFixed(1));
+         },
+
+         get calculatedLieuDuration() {
+             const h = parseFloat(this.lieuWorkedHours || 0);
+             if (h >= 8) {
+                 return {
+                     type: 'full_day',
+                     credit: 1.0,
+                     label: 'Full Day',
+                     hoursLabel: '8+ hours worked',
+                     creditLabel: '+1.0 Day Credit',
+                     valid: true,
+                     badgeClass: 'bg-emerald-600 text-white',
+                     containerClass: 'border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-950/20'
+                 };
+             } else if (h >= 4) {
+                 return {
+                     type: 'half_day',
+                     credit: 0.5,
+                     label: 'Half Day',
+                     hoursLabel: '4–7 hours worked',
+                     creditLabel: '+0.5 Day Credit',
+                     valid: true,
+                     badgeClass: 'bg-teal-600 text-white',
+                     containerClass: 'border-teal-500/50 bg-teal-50/50 dark:bg-teal-950/20'
+                 };
+             } else {
+                 return {
+                     type: 'half_day',
+                     credit: 0,
+                     label: 'Under 4 hours',
+                     hoursLabel: 'Insufficient hours',
+                     creditLabel: 'No Credit (Min 4 hrs required)',
+                     valid: false,
+                     badgeClass: 'bg-amber-600 text-white',
+                     containerClass: 'border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20'
+                 };
+             }
+         },
+
+         get lieuDateMeta() {
+             if (!this.lieuWorkedDate) return null;
+             const parts = this.lieuWorkedDate.split('-').map(Number);
+             if (parts.length !== 3) return null;
+             const d = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+             const day = d.getDay();
+             const isWeekend = (day === 0 || day === 6);
+             const isHoliday = (this.allHolidays || []).includes(this.lieuWorkedDate);
+             const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+             const isEligible = isWeekend || isHoliday;
+             return {
+                 isWeekend: isWeekend,
+                 isHoliday: isHoliday,
+                 isEligible: isEligible,
+                 dayName: dayName,
+                 label: isHoliday ? 'Public Holiday' : (isWeekend ? (day === 6 ? 'Saturday (Weekend)' : 'Sunday (Weekend)') : 'Regular Weekday')
+             };
+         },
+
+         get nightShiftConcession() {
+             if (!this.nightSignOutTime) return null;
+             const parts = this.nightSignOutTime.split(':').map(Number);
+             if (parts.length !== 2) return null;
+             const mins = parts[0] * 60 + parts[1];
+
+             // Concession 1: Sign out Between 9.00 p.m. - 10.30 p.m. (21:00 - 22:30) -> Report at 10.00 a.m.
+             if (mins >= 1260 && mins <= 1350) {
+                 return {
+                     category: 'report_10am',
+                     label: 'Report to work at 10:00 AM',
+                     reportTime: '10:00:00',
+                     days: 0.0,
+                     isOff: false,
+                     badgeClass: 'text-blue-500 bg-blue-500/10 border-blue-500/30',
+                     description: 'Concession: You can report to work at 10:00 AM next day without affecting your attendance.'
+                 };
+             }
+             // Concession 2: Sign out Between 10.31 p.m. – 12.00 p.m. (midnight) (22:31 - 24:00) -> Report at 11.00 a.m.
+             if (mins > 1350 || mins === 0) {
+                 return {
+                     category: 'report_11am',
+                     label: 'Report to work at 11:00 AM',
+                     reportTime: '11:00:00',
+                     days: 0.0,
+                     isOff: false,
+                     badgeClass: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/30',
+                     description: 'Concession: You can report to work at 11:00 AM next day without affecting your attendance.'
+                 };
+             }
+             // Concession 3: Sign out Between 12.01 – 3.00 a.m. (00:01 - 03:00) -> Half day off
+             if (mins > 0 && mins <= 180) {
+                 return {
+                     category: 'half_day_off',
+                     label: 'Half Day Off',
+                     reportTime: '',
+                     days: 0.5,
+                     isOff: true,
+                     badgeClass: 'text-amber-500 bg-amber-500/10 border-amber-500/30',
+                     description: 'Concession: Half day off granted. Report to work at 1:00 PM for afternoon session without penalty.'
+                 };
+             }
+             // Concession 4: Sign out Beyond 3.00 a.m. (03:01 - 11:59 AM) -> Full day off
+             if (mins > 180 && mins < 720) {
+                 return {
+                     category: 'full_day_off',
+                     label: 'Full Day Off',
+                     reportTime: '',
+                     days: 1.0,
+                     isOff: true,
+                     badgeClass: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30',
+                     description: 'Concession: Full day off granted for next working day to rest & recover without attendance penalty.'
+                 };
+             }
+
+             return {
+                 category: null,
+                 label: 'Outside Concession Window',
+                 reportTime: '',
+                 days: 0.0,
+                 isOff: false,
+                 invalid: true,
+                 badgeClass: 'text-slate-400 bg-slate-500/10 border-slate-500/30',
+                 description: 'Night stay concessions apply for sign-outs between 9:00 PM and morning hours.'
+             };
+         },
+
+         openLieuClaimModal() {
+             this.lieuClaimModalOpen = true;
+             this.syncEndTimeFromHours();
+             this.$nextTick(() => window.lucide && lucide.createIcons());
+         },
 
          selectLeaveType(code, id) {
              this.selectedLeaveTypeCode = code;
@@ -147,6 +330,11 @@
                  this.isHalfDay = false;
                  this.isShortLeave = true;
                  this.targetEndDate = this.targetStartDate;
+             } else if (code === 'NIGHT_SHIFT_RECOVERY') {
+                 this.isHalfDay = false;
+                 this.isShortLeave = false;
+                 this.targetEndDate = this.targetStartDate;
+                 this.$nextTick(() => window.lucide && lucide.createIcons());
              } else {
                  this.isShortLeave = false;
              }
@@ -154,6 +342,9 @@
 
          calculateNetWorkingDays() {
              if (this.selectedLeaveTypeCode === 'SHORT') return 0.2;
+             if (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY') {
+                 return this.nightShiftConcession ? this.nightShiftConcession.days : 0.0;
+             }
              if (this.isHalfDay) return 0.5;
              if (!this.targetStartDate || !this.targetEndDate) return 0;
              
@@ -200,6 +391,12 @@
              const sDay = startDate.getDate();
              const sWeekday = startDate.toLocaleDateString('en-US', { weekday: 'short' });
              
+             if (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY') {
+                 const conc = this.nightShiftConcession;
+                 const concLabel = conc ? conc.label : 'Night Shift Concession';
+                 return `${concLabel} · ${typeName} ${sWeekday} ${sDay} ${sMonth}`;
+             }
+
              if (this.isHalfDay || this.selectedLeaveTypeCode === 'SHORT' || this.targetStartDate === this.targetEndDate) {
                  return `${durText} · ${typeName} ${sWeekday} ${sDay} ${sMonth}`;
              }
@@ -273,6 +470,10 @@
                  return { pass: true, message: 'Short leave — max 2 per calendar month, up to 1.5 hours.' };
              }
 
+             if (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY') {
+                 return { pass: true, message: 'Night Shift Recovery — subject to prior approval from Head of Department (HOD).' };
+             }
+
              return { pass: true, message: 'Notice period — standard leave guidelines met.' };
          },
 
@@ -283,6 +484,11 @@
              }
              if (this.selectedLeaveTypeCode === 'DUTY') {
                  return { pass: true, message: `Duty leave — ${dur} day(s) official company duty.` };
+             }
+             if (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY') {
+                 const conc = this.nightShiftConcession;
+                 const text = conc ? conc.label : 'concession';
+                 return { pass: true, message: `Night shift concession granted (${text}) — non-deductible from standard leave quotas.` };
              }
              if (this.selectedLeaveTypeCode === 'SHORT') {
                  if ({{ (int)($monthlyShortLeavesUsed ?? 0) }} >= 2) {
@@ -304,6 +510,11 @@
          },
 
          checkConsecutiveDays() {
+             if (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY') {
+                 const conc = this.nightShiftConcession;
+                 const label = conc ? conc.label : 'Night Shift Concession';
+                 return { pass: true, message: `Working schedule adjusted: ${label}. Attendance record preserved.` };
+             }
              const dur = this.calculateNetWorkingDays();
              if (dur <= 0) {
                  return { pass: false, message: 'Working days — selected period contains no working days.' };
@@ -325,9 +536,9 @@
 
          checkHandoverNotes() {
              if (this.handoverNotes && this.handoverNotes.trim().length >= 3) {
-                 return { pass: true, message: 'Handover notes — details provided for live work.' };
+                 return { pass: true, message: 'Handover brief — details provided.' };
              }
-             return { pass: false, message: 'Handover notes — live jobs, deadlines & files needed.' };
+             return { pass: false, message: 'Handover brief — live jobs, deadlines & details needed.' };
          },
 
          allChecksPass() {
@@ -402,6 +613,13 @@
                  return isEvening ? 'Half Day (Evening)' : 'Half Day (Morning)';
              }
              return 'Full Day';
+         },
+
+         hasEventsOrBirthdays() {
+             if (!this.selectedDay) return false;
+             const hasBdays = Array.isArray(this.selectedDay.birthdays) && this.selectedDay.birthdays.length > 0;
+             const hasHoli = Boolean(this.selectedDay.holiday) || (Array.isArray(this.selectedDay.holidays) && this.selectedDay.holidays.length > 0);
+             return hasBdays || hasHoli;
          }
      }">
 
@@ -451,40 +669,9 @@
     ];
 
     $dutyData = $getQuotaData('DUTY', 30, 'days');
-    $lieuData = $getQuotaData('LIEU', 2, 'days');
+    $lieuData = $getQuotaData('LIEU', 0, 'days');
 
-    $lieuDaysList = [
-        [
-            'type' => 'Full day',
-            'worked' => 'worked Saturday 15 Aug',
-            'status' => 'used',
-            'subtext' => 'Taken Mon 24 Aug',
-            'days_left' => 0,
-        ],
-        [
-            'type' => 'Half day',
-            'worked' => 'worked Saturday 5 Sept',
-            'status' => 'expired',
-            'subtext' => 'Expired Mon 5 Oct',
-            'days_left' => 0,
-        ],
-        [
-            'type' => 'Full day',
-            'worked' => 'worked Saturday 26 Sept',
-            'status' => 'available',
-            'expiry_date' => 'Mon 26 Oct',
-            'code' => 'LI-2612',
-            'days_left' => 4,
-        ],
-        [
-            'type' => 'Half day',
-            'worked' => 'worked Saturday 10 Oct',
-            'status' => 'available',
-            'expiry_date' => 'Mon 9 Nov',
-            'code' => 'LI-2615',
-            'days_left' => 18,
-        ],
-    ];
+    $lieuDaysList = $lieuDaysList ?? [];
 
     $getLeaveTypeMeta = function($nameOrCode) {
         $s = strtoupper($nameOrCode ?? '');
@@ -729,7 +916,6 @@
                             <a href="{{ route('dashboard', ['year' => $prevMonthDate->year, 'month' => $prevMonthDate->month]) }}" class="w-7 h-7 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/70 rounded-md flex items-center justify-center transition-colors cursor-pointer" title="Previous Month">
                                 <i data-lucide="chevron-left" class="w-4 h-4"></i>
                             </a>
-                            <a href="{{ route('dashboard') }}" class="px-2.5 h-7 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/70 text-xs font-semibold rounded-md flex items-center transition-colors">Today</a>
                             <a href="{{ route('dashboard', ['year' => $nextMonthDate->year, 'month' => $nextMonthDate->month]) }}" class="w-7 h-7 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/70 rounded-md flex items-center justify-center transition-colors cursor-pointer" title="Next Month">
                                 <i data-lucide="chevron-right" class="w-4 h-4"></i>
                             </a>
@@ -998,8 +1184,10 @@
                 </div>
             </div>
 
-            <!-- Events & Birthdays Card -->
-            <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-col space-y-2">
+            <!-- Events & Birthdays Card (Shown only if there are events, holidays, or birthdays) -->
+            <div x-show="hasEventsOrBirthdays()" 
+                 x-cloak
+                 class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-col space-y-2">
                 <div class="flex items-center justify-between shrink-0">
                     <div class="flex items-center gap-2">
                         <i data-lucide="sparkles" class="w-4 h-4 text-amber-500 dark:text-amber-400"></i>
@@ -1023,37 +1211,36 @@
                         </div>
                     </template>
 
-                    <!-- Fallback when no birthday today: Shows Holiday or Friendly Schedule status -->
-                    <template x-if="!selectedDay?.birthdays || selectedDay?.birthdays.length === 0">
-                        <div>
-                            <template x-if="selectedDay?.holiday">
-                                <div class="p-3 bg-slate-50 dark:bg-white/[0.04] rounded-xl border border-slate-200/70 dark:border-white/[0.08] space-y-1.5">
-                                    <div class="text-[10px] font-semibold uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1.5">
-                                        <i data-lucide="landmark" class="w-3.5 h-3.5 text-amber-500 dark:text-amber-400"></i>
-                                        <span>Holiday Scheduled Today</span>
-                                    </div>
-                                    <div class="font-bold text-xs text-slate-800 dark:text-slate-100" x-text="selectedDay?.holiday?.title"></div>
-                                </div>
-                            </template>
-                            <template x-if="!selectedDay?.holiday">
-                                <div class="p-4 bg-slate-100/70 dark:bg-[#0f172a] rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center flex flex-col items-center justify-center gap-1.5 shadow-2xs">
-                                    <i data-lucide="calendar" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
-                                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">No upcoming events or birthdays today.</span>
-                                </div>
-                            </template>
+                    <!-- 2. Holidays / Events Scheduled Today -->
+                    <template x-if="selectedDay?.holiday">
+                        <div class="p-3 bg-slate-50 dark:bg-white/[0.04] rounded-xl border border-slate-200/70 dark:border-white/[0.08] space-y-1.5">
+                            <div class="text-[10px] font-semibold uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="landmark" class="w-3.5 h-3.5 text-amber-500 dark:text-amber-400"></i>
+                                <span>Holiday Scheduled Today</span>
+                            </div>
+                            <div class="font-bold text-xs text-slate-800 dark:text-slate-100" x-text="selectedDay?.holiday?.title"></div>
                         </div>
                     </template>
                 </div>
             </div>
 
-            <!-- Lieu Days Card (Matching Reference UI) -->
+            <!-- Lieu Days Card (Shown only if lieu days are added) -->
+            @if(!empty($lieuDaysList) && count($lieuDaysList) > 0)
             <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 sm:p-5 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-col space-y-3.5">
                 <!-- Header -->
-                <div>
-                    <h3 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-snug">Lieu days</h3>
-                    <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
-                        Added automatically when weekend or holiday work is approved. Expire after 30 days.
-                    </p>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm sm:text-base font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-snug">Lieu days</h3>
+                        <p class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                            Added when weekend or holiday work is approved. Expire after 30 days.
+                        </p>
+                    </div>
+                    <button type="button" 
+                            @click="openLieuClaimModal()" 
+                            class="text-xs font-bold text-teal-700 dark:text-teal-300 hover:text-teal-800 dark:hover:text-teal-200 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-900/40 border border-teal-200 dark:border-teal-700/60 hover:bg-teal-100 transition-all cursor-pointer">
+                        <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[2.5]"></i>
+                        <span>Claim</span>
+                    </button>
                 </div>
 
                 <!-- Lieu Days List -->
@@ -1061,7 +1248,7 @@
                     @foreach($lieuDaysList as $item)
                         <div class="py-3 first:pt-1 last:pb-1 flex items-center justify-between gap-3 text-xs">
                             <div class="flex items-center gap-3 min-w-0">
-                                <!-- Left Indicator (Ring for Active, Dash for Used/Expired) -->
+                                <!-- Left Indicator (Ring for Active, Clock for Pending, Dash for Used/Expired) -->
                                 @if($item['status'] === 'available')
                                     <div class="relative w-10 h-10 shrink-0 flex items-center justify-center">
                                         <svg class="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
@@ -1069,7 +1256,7 @@
                                             <circle cx="18" cy="18" r="14" fill="none" class="stroke-slate-100 dark:stroke-slate-800" stroke-width="2.5" />
                                             <!-- Progress Ring -->
                                             <circle cx="18" cy="18" r="14" fill="none" 
-                                                    class="{{ $item['days_left'] <= 7 ? 'stroke-rose-400' : 'stroke-blue-500' }}" 
+                                                    class="{{ $item['days_left'] <= 7 ? 'stroke-rose-400' : 'stroke-teal-500' }}" 
                                                     stroke-width="2.5" 
                                                     stroke-dasharray="88" 
                                                     stroke-dashoffset="{{ round(88 - (88 * ($item['days_left'] / 30))) }}" 
@@ -1079,6 +1266,10 @@
                                             <span class="text-[11px] font-black text-slate-900 dark:text-slate-100 leading-none">{{ $item['days_left'] }}</span>
                                             <span class="text-[7.5px] font-extrabold text-slate-500 dark:text-slate-300 leading-none mt-0.5 uppercase tracking-wide">days</span>
                                         </div>
+                                    </div>
+                                @elseif($item['status'] === 'pending')
+                                    <div class="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800 flex items-center justify-center text-amber-500 font-bold shrink-0">
+                                        <i data-lucide="clock" class="w-4 h-4"></i>
                                     </div>
                                 @else
                                     <div class="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#161f30] border border-slate-200/70 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-400 font-bold text-sm shrink-0">
@@ -1096,6 +1287,12 @@
                                     <div class="text-[10.5px] text-slate-600 dark:text-slate-300 mt-0.5 font-medium">
                                         @if($item['status'] === 'used')
                                             <span class="text-slate-600 dark:text-slate-300">{{ $item['subtext'] }}</span>
+                                        @elseif($item['status'] === 'pending')
+                                            <span class="text-amber-600 dark:text-amber-400 font-semibold">Awaiting Manager Approval</span>
+                                            <span class="text-slate-300 dark:text-slate-500 mx-0.5">•</span>
+                                            <span class="font-semibold text-slate-500 dark:text-slate-400">{{ $item['code'] }}</span>
+                                        @elseif($item['status'] === 'rejected')
+                                            <span class="text-rose-600 dark:text-rose-400 font-semibold">Claim Rejected</span>
                                         @elseif($item['status'] === 'expired')
                                             <span class="text-slate-500 dark:text-slate-400 font-medium">{{ $item['subtext'] }}</span>
                                         @else
@@ -1113,6 +1310,14 @@
                                     <span class="bg-slate-100 dark:bg-white/[0.05] text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-white/[0.08] text-[11px] font-medium px-2.5 py-1 rounded-lg">
                                         Used
                                     </span>
+                                @elseif($item['status'] === 'pending')
+                                    <span class="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
+                                        Pending
+                                    </span>
+                                @elseif($item['status'] === 'rejected')
+                                    <span class="bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
+                                        Rejected
+                                    </span>
                                 @elseif($item['status'] === 'expired')
                                     <span class="bg-slate-100 dark:bg-white/[0.05] text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-white/[0.08] text-[11px] font-medium px-2.5 py-1 rounded-lg">
                                         Expired
@@ -1129,6 +1334,7 @@
                     @endforeach
                 </div>
             </div>
+            @endif
 
         </div>
 
@@ -1268,10 +1474,13 @@
                 
                 <!-- Hidden inputs to submit all needed data -->
                 <input type="hidden" name="leave_type_id" :value="selectedLeaveTypeId">
-                <input type="hidden" name="is_half_day" :value="isHalfDay ? '1' : '0'">
-                <input type="hidden" name="half_day_slot" :value="halfDaySlot">
+                <input type="hidden" name="is_half_day" :value="isHalfDay || (selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' && nightShiftConcession?.category === 'half_day_off') ? '1' : '0'">
+                <input type="hidden" name="half_day_slot" :value="selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' && nightShiftConcession?.category === 'half_day_off' ? 'Morning' : halfDaySlot">
                 <input type="hidden" name="is_short_leave" :value="isShortLeave || selectedLeaveTypeCode === 'SHORT' ? '1' : '0'">
                 <input type="hidden" name="short_leave_slot" :value="shortLeaveSlot">
+                <input type="hidden" name="night_sign_out_time" :value="selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' ? nightSignOutTime : ''">
+                <input type="hidden" name="night_report_time" :value="selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' && nightShiftConcession ? (nightShiftConcession.reportTime || '') : ''">
+                <input type="hidden" name="concession_category" :value="selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' && nightShiftConcession ? (nightShiftConcession.category || '') : ''">
 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-1">
                     
@@ -1284,7 +1493,7 @@
                             <p class="text-[11px] text-slate-500 dark:text-slate-400">Every rule is checked as you fill this in.</p>
                         </div>
 
-                        <!-- 12 Leave Type Selection Cards -->
+                        <!-- Leave Type Selection Cards -->
                         <div class="space-y-1">
                             <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type</label>
                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
@@ -1326,7 +1535,7 @@
                                     <span>Last day</span>
                                 </label>
                                 <input type="date" name="end_date" x-model="targetEndDate" 
-                                       :disabled="selectedLeaveTypeCode === 'SHORT' || isHalfDay"
+                                       :disabled="selectedLeaveTypeCode === 'SHORT' || selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' || isHalfDay"
                                        class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed" required>
                             </div>
                         </div>
@@ -1334,7 +1543,7 @@
                         <!-- Half Day & Short Leave Options -->
                         <div class="space-y-2">
                             <!-- Half Day Toggle -->
-                            <div x-show="selectedLeaveTypeCode !== 'SHORT'" class="p-2 bg-slate-50/80 dark:bg-[#182030]/60 rounded-lg border border-slate-200/90 dark:border-slate-800 space-y-1.5">
+                            <div x-show="selectedLeaveTypeCode !== 'SHORT' && selectedLeaveTypeCode !== 'NIGHT_SHIFT_RECOVERY'" class="p-2 bg-slate-50/80 dark:bg-[#182030]/60 rounded-lg border border-slate-200/90 dark:border-slate-800 space-y-1.5">
                                 <div class="flex items-center justify-between">
                                     <label class="flex items-center gap-1.5 cursor-pointer select-none">
                                         <input type="checkbox" x-model="isHalfDay" 
@@ -1393,6 +1602,78 @@
                                 <p class="text-[10px] text-slate-500 dark:text-slate-400">Required if sick leave exceeds 3 consecutive working days (PDF, JPG, PNG).</p>
                                 <input type="file" name="medical_certificate_file" class="w-full text-xs text-slate-700 dark:text-slate-300 file:mr-2 file:py-0.5 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400">
                             </div>
+
+                            <!-- Night Shift Recovery Concession Section -->
+                            <div x-show="selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY'" class="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 rounded-xl space-y-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                                        <i data-lucide="moon" class="w-4 h-4 text-indigo-500"></i> Night Work Concession Policy
+                                    </span>
+                                    <span class="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
+                                        HOD Approval Required
+                                    </span>
+                                </div>
+
+                                <!-- Policy Concessions Grid -->
+                                <div class="grid grid-cols-2 gap-1.5 text-[10px]">
+                                    <div class="p-1.5 rounded-lg bg-white/80 dark:bg-[#141b29]/80 border border-indigo-100 dark:border-indigo-900/40">
+                                        <span class="text-slate-500 dark:text-slate-400 block font-medium">9.00 p.m. – 10.30 p.m.</span>
+                                        <span class="font-bold text-indigo-900 dark:text-indigo-300">Report at 10.00 a.m.</span>
+                                    </div>
+                                    <div class="p-1.5 rounded-lg bg-white/80 dark:bg-[#141b29]/80 border border-indigo-100 dark:border-indigo-900/40">
+                                        <span class="text-slate-500 dark:text-slate-400 block font-medium">10.31 p.m. – 12.00 p.m.</span>
+                                        <span class="font-bold text-indigo-900 dark:text-indigo-300">Report at 11.00 a.m.</span>
+                                    </div>
+                                    <div class="p-1.5 rounded-lg bg-white/80 dark:bg-[#141b29]/80 border border-indigo-100 dark:border-indigo-900/40">
+                                        <span class="text-slate-500 dark:text-slate-400 block font-medium">12.01 a.m. – 3.00 a.m.</span>
+                                        <span class="font-bold text-emerald-700 dark:text-emerald-400">Half day off</span>
+                                    </div>
+                                    <div class="p-1.5 rounded-lg bg-white/80 dark:bg-[#141b29]/80 border border-indigo-100 dark:border-indigo-900/40">
+                                        <span class="text-slate-500 dark:text-slate-400 block font-medium">Beyond 3.00 a.m.</span>
+                                        <span class="font-bold text-emerald-700 dark:text-emerald-400">Full day off</span>
+                                    </div>
+                                </div>
+
+                                <!-- Sign Out Time Input -->
+                                <div class="space-y-1">
+                                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                                        Sign Out Time (Late Night / Early Morning) *
+                                    </label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="time" name="night_sign_out_time" x-model="nightSignOutTime"
+                                               class="w-full bg-white dark:bg-[#141b29] border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                                               :required="selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY'">
+                                        <div class="flex gap-1 shrink-0">
+                                            <button type="button" @click="nightSignOutTime = '21:45'" class="px-2 py-1 text-[10px] font-bold rounded bg-white dark:bg-[#141b29] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400">9:45 PM</button>
+                                            <button type="button" @click="nightSignOutTime = '23:15'" class="px-2 py-1 text-[10px] font-bold rounded bg-white dark:bg-[#141b29] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400">11:15 PM</button>
+                                            <button type="button" @click="nightSignOutTime = '01:30'" class="px-2 py-1 text-[10px] font-bold rounded bg-white dark:bg-[#141b29] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400">1:30 AM</button>
+                                            <button type="button" @click="nightSignOutTime = '04:00'" class="px-2 py-1 text-[10px] font-bold rounded bg-white dark:bg-[#141b29] border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400">4:00 AM</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Concession Summary Badge -->
+                                <template x-if="nightShiftConcession">
+                                    <div class="p-2.5 rounded-lg border text-xs"
+                                         :class="nightShiftConcession.isOff ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' : (nightShiftConcession.invalid ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200' : 'bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200')">
+                                        <div class="flex items-start gap-2">
+                                            <i data-lucide="sparkles" class="w-4 h-4 mt-0.5 text-indigo-500 shrink-0"></i>
+                                            <div class="space-y-0.5">
+                                                <div class="font-bold flex items-center gap-2">
+                                                    <span>Granted Concession:</span>
+                                                    <span class="px-2 py-0.5 rounded bg-white dark:bg-[#111927] border text-xs font-black"
+                                                          :class="nightShiftConcession.isOff ? 'text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700' : 'text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700'"
+                                                          x-text="nightShiftConcession.label"></span>
+                                                </div>
+                                                <p class="text-[11px] opacity-90" x-text="nightShiftConcession.description"></p>
+                                                <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
+                                                    ✓ Automatically accommodated in attendance so you will not be penalized for late arrival or absence.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
 
                         <!-- Covering Colleague -->
@@ -1413,21 +1694,12 @@
                             </div>
                         </div>
 
-                        <!-- Handover Notes & Anything Else Side-by-Side (Saves massive vertical space) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            <div class="space-y-1">
-                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Handover notes</label>
-                                <textarea name="handover_notes" x-model="handoverNotes" rows="2" 
-                                          placeholder="Live jobs, deadlines, file locations..."
-                                          class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg p-2 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none transition-all"></textarea>
-                            </div>
-
-                            <div class="space-y-1">
-                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Anything else (optional)</label>
-                                <textarea name="anything_else" x-model="anythingElse" rows="2" 
-                                          placeholder="Details or context for your manager..."
-                                          class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg p-2 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none transition-all"></textarea>
-                            </div>
+                        <!-- Single Handover Brief / Notes Field -->
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Brief / Handover Notes</label>
+                            <textarea name="handover_notes" x-model="handoverNotes" rows="2" 
+                                      placeholder="Brief details, live jobs, deadlines, file locations or context for your manager..."
+                                      class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg p-2 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none transition-all"></textarea>
                         </div>
 
                     </div>
@@ -1500,7 +1772,7 @@
                                           x-text="checkCovering().message"></span>
                                 </div>
 
-                                <!-- 6. Handover Notes -->
+                                <!-- 6. Handover Brief -->
                                 <div class="flex items-start gap-2">
                                     <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5 border"
                                           :class="checkHandoverNotes().pass ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40' : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40'"
@@ -1684,14 +1956,201 @@
 
             <!-- Modal Footer -->
             <div class="pt-3 border-t border-slate-100 dark:border-[#21262d] flex items-center justify-between shrink-0">
-                <button @click="quotaModalOpen = false" class="px-4 py-2 bg-slate-100 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#2d333b] font-black text-xs rounded-xl transition-all border border-slate-200 dark:border-[#30363d]">
+                <button @click="quotaModalOpen = false" class="px-4 py-2 bg-slate-100 dark:bg-[#21262d] text-slate-900 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#2d333b] font-black text-xs rounded-xl transition-all border border-slate-200 dark:border-[#30363d] cursor-pointer">
                     Close
                 </button>
-                <button @click="quotaModalOpen = false; openApplyModal(selectedQuota?.code)" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 font-black text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5">
-                    <i data-lucide="plus" class="w-4 h-4"></i> Apply for <span x-text="selectedQuota?.name"></span>
+                <div class="flex items-center gap-2">
+                    <template x-if="selectedQuota?.code === 'LIEU'">
+                        <div class="flex items-center gap-2">
+                            <!-- Primary Button: Request Lieu Leave (Employee enters work hours and sends to manager) -->
+                            <button type="button" @click="quotaModalOpen = false; openLieuClaimModal()" class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs rounded-xl shadow-md shadow-teal-600/20 transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i data-lucide="clock" class="w-4 h-4 text-white"></i>
+                                <span>Request Lieu Leave</span>
+                            </button>
+
+                            <!-- If employee already has approved available days, allow booking -->
+                            <template x-if="parseFloat(selectedQuota?.available || 0) > 0">
+                                <button type="button" @click="quotaModalOpen = false; openApplyModal('LIEU')" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 font-black text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5 cursor-pointer">
+                                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                                    <span>Book Lieu Leave</span>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template x-if="selectedQuota?.code !== 'LIEU'">
+                        <button @click="quotaModalOpen = false; openApplyModal(selectedQuota?.code)" class="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 font-black text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5 cursor-pointer">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Apply for <span x-text="selectedQuota?.name"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- REQUEST LIEU LEAVE MODAL -->
+    <div x-show="lieuClaimModalOpen" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 dark:bg-black/80 backdrop-blur-md transition-opacity overflow-hidden"
+         @keydown.escape.window="lieuClaimModalOpen = false">
+        
+        <div @click.away="lieuClaimModalOpen = false" 
+             class="bg-white dark:bg-[#111927] rounded-2xl max-w-lg w-full border border-slate-200/90 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+            
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between shrink-0 bg-white dark:bg-[#111927]">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center border border-teal-200/80 dark:border-teal-500/20 shrink-0">
+                        <i data-lucide="clock" class="w-4 h-4 stroke-[2.5]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 leading-tight">Request Lieu Leave</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400">Claim credit for weekend or holiday work</p>
+                    </div>
+                </div>
+                <button type="button" @click="lieuClaimModalOpen = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+                    <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
 
+            <!-- Modal Form -->
+            <form action="{{ route('lieu-claims.store') }}" method="POST" class="flex-1 min-h-0 flex flex-col overflow-hidden">
+                @csrf
+
+                <!-- Body -->
+                <div class="p-5 space-y-3.5 overflow-y-auto flex-1 [scrollbar-width:thin]">
+
+                    <!-- Date Worked -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                            Date Worked <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                            </div>
+                            <input type="date" 
+                                   name="worked_date" 
+                                   x-model="lieuWorkedDate" 
+                                   max="{{ \Carbon\Carbon::now('Asia/Colombo')->toDateString() }}" 
+                                   required 
+                                   class="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all cursor-pointer">
+                        </div>
+
+                        <!-- Date Status (One-liner badge/alert) -->
+                        <template x-if="lieuDateMeta">
+                            <div>
+                                <template x-if="!lieuDateMeta.isEligible">
+                                    <div class="py-1 px-2.5 rounded-md bg-amber-500/10 border border-amber-300 dark:border-amber-700/60 flex items-center gap-1.5 text-[11px] text-amber-800 dark:text-amber-300">
+                                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+                                        <span><strong>Weekday selected:</strong> Lieu Leave requires weekend or public holiday work.</span>
+                                    </div>
+                                </template>
+
+                                <template x-if="lieuDateMeta.isEligible">
+                                    <div class="py-1 px-2.5 rounded-md bg-emerald-500/10 border border-emerald-300 dark:border-emerald-800/60 flex items-center justify-between text-[11px] text-emerald-800 dark:text-emerald-300">
+                                        <span class="font-semibold" x-text="lieuDateMeta.dayName + ' • ' + lieuDateMeta.label"></span>
+                                        <span class="font-bold">✓ Eligible</span>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Time Range & Hours Worked (Time Range First, Hours Worked Smaller) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-0.5 items-start">
+                        <!-- 1. Time Range (First, Wider for Start & End Time) -->
+                        <div class="sm:col-span-8 space-y-1.5">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                                Time Range
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <input type="time" 
+                                           name="start_time" 
+                                           x-model="lieuStartTime" 
+                                           @input="onStartTimeChange()" 
+                                           class="w-full px-2.5 py-2 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                </div>
+                                <div>
+                                    <input type="time" 
+                                           name="end_time" 
+                                           x-model="lieuEndTime" 
+                                           @input="onEndTimeChange()" 
+                                           class="w-full px-2.5 py-2 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Hours Worked (Second, Compact/Smaller Width) -->
+                        <div class="sm:col-span-4 space-y-1.5">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                                Hours Worked <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                                    <i data-lucide="timer" class="w-3.5 h-3.5"></i>
+                                </div>
+                                <input type="number" 
+                                       name="hours_worked" 
+                                       x-model.number="lieuWorkedHours" 
+                                       @input="syncEndTimeFromHours()"
+                                       min="1" 
+                                       max="24" 
+                                       step="0.5" 
+                                       required 
+                                       class="w-full pl-8 pr-8 py-2 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-slate-400">hrs</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clean Granted Duration Strip -->
+                    <div class="p-2.5 px-3 rounded-lg border flex items-center justify-between text-xs transition-all" :class="calculatedLieuDuration.containerClass">
+                        <input type="hidden" name="duration_type" :value="calculatedLieuDuration.type">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="award" class="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0"></i>
+                            <span class="font-bold text-slate-900 dark:text-slate-100" x-text="calculatedLieuDuration.label"></span>
+                            <span class="text-slate-500 dark:text-slate-400 text-[11px]" x-text="'(' + lieuWorkedHours + ' hrs)'"></span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold" :class="calculatedLieuDuration.badgeClass" x-text="calculatedLieuDuration.creditLabel"></span>
+                    </div>
+
+                    <!-- Tasks Completed -->
+                    <div class="space-y-1">
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                            Tasks Completed <span class="text-rose-500">*</span>
+                        </label>
+                        <textarea name="reason" 
+                                  x-model="lieuReason" 
+                                  rows="2" 
+                                  required 
+                                  placeholder="Briefly describe work completed..." 
+                                  class="w-full p-2.5 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500"></textarea>
+                    </div>
+
+                </div>
+
+                <!-- Modal Actions Footer -->
+                <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-[#0e1522] flex items-center justify-between gap-3 shrink-0">
+                    <span class="text-[10.5px] text-slate-400 font-medium">30-day validity upon approval</span>
+                    <div class="flex items-center gap-2">
+                        <button type="button" 
+                                @click="lieuClaimModalOpen = false" 
+                                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                :disabled="!lieuDateMeta || !lieuDateMeta.isEligible || !calculatedLieuDuration.valid"
+                                :class="(!lieuDateMeta || !lieuDateMeta.isEligible || !calculatedLieuDuration.valid) ? 'opacity-50 cursor-not-allowed bg-slate-400 dark:bg-slate-700' : 'bg-teal-600 hover:bg-teal-700 text-white shadow-xs cursor-pointer'"
+                                class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5">
+                            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                            <span>Send to Manager for Approval</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 

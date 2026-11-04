@@ -4,8 +4,8 @@
     "Approvals": true,
     "Analytics": true,
     "Attendance": true,
-    "Payroll": true,
-    "Recruitment": true,
-    "Performance": true,
+    "Payroll": false,
+    "Recruitment": false,
+    "Performance": false,
     "Organization": false
 }

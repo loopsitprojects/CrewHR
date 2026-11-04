@@ -84,6 +84,92 @@ class AttendanceController extends Controller
         ];
     }
 
+    /**
+     * Resolve effective shift start and late threshold considering approved Night Shift Recovery concessions.
+     */
+    private function resolveEffectiveShiftThreshold(int $employeeId, string $dateStr, Carbon $defaultShiftStart, int $gracePeriodMinutes): array
+    {
+        $nightRecovery = LeaveRequest::where('employee_id', $employeeId)
+            ->where('start_date', '<=', $dateStr)
+            ->where('end_date', '>=', $dateStr)
+            ->whereIn('status', ['Approved', 'Pending Manager Approval'])
+            ->whereHas('leaveType', fn($q) => $q->where('code', 'NIGHT_SHIFT_RECOVERY'))
+            ->first();
+
+        if (!$nightRecovery) {
+            return [
+                'effective_start' => $defaultShiftStart,
+                'late_threshold' => $defaultShiftStart->copy()->addMinutes($gracePeriodMinutes),
+                'is_concession' => false,
+                'category' => null,
+                'half_day_off' => false,
+                'full_day_off' => false,
+            ];
+        }
+
+        $category = $nightRecovery->concession_category;
+        
+        // Concession 1: Sign out 21:00 - 22:30 -> Next day report to work: 10:00 AM
+        if ($category === 'report_10am' || $nightRecovery->night_report_time === '10:00:00') {
+            $effStart = Carbon::parse($dateStr . ' 10:00:00', 'Asia/Colombo');
+            return [
+                'effective_start' => $effStart,
+                'late_threshold' => $effStart->copy()->addMinutes($gracePeriodMinutes),
+                'is_concession' => true,
+                'category' => 'report_10am',
+                'half_day_off' => false,
+                'full_day_off' => false,
+            ];
+        }
+
+        // Concession 2: Sign out 22:31 - 24:00 (midnight) -> Next day report to work: 11:00 AM
+        if ($category === 'report_11am' || $nightRecovery->night_report_time === '11:00:00') {
+            $effStart = Carbon::parse($dateStr . ' 11:00:00', 'Asia/Colombo');
+            return [
+                'effective_start' => $effStart,
+                'late_threshold' => $effStart->copy()->addMinutes($gracePeriodMinutes),
+                'is_concession' => true,
+                'category' => 'report_11am',
+                'half_day_off' => false,
+                'full_day_off' => false,
+            ];
+        }
+
+        // Concession 3: Sign out 00:01 - 03:00 -> Half day off
+        if ($category === 'half_day_off') {
+            $effStart = Carbon::parse($dateStr . ' 13:00:00', 'Asia/Colombo');
+            return [
+                'effective_start' => $effStart,
+                'late_threshold' => $effStart->copy()->addMinutes($gracePeriodMinutes),
+                'is_concession' => true,
+                'category' => 'half_day_off',
+                'half_day_off' => true,
+                'full_day_off' => false,
+            ];
+        }
+
+        // Concession 4: Sign out Beyond 03:00 -> Full day off
+        if ($category === 'full_day_off') {
+            return [
+                'effective_start' => null,
+                'late_threshold' => null,
+                'is_concession' => true,
+                'category' => 'full_day_off',
+                'half_day_off' => false,
+                'full_day_off' => true,
+            ];
+        }
+
+        return [
+            'effective_start' => $defaultShiftStart,
+            'late_threshold' => $defaultShiftStart->copy()->addMinutes($gracePeriodMinutes),
+            'is_concession' => false,
+            'category' => null,
+            'half_day_off' => false,
+            'full_day_off' => false,
+        ];
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user();
@@ -394,12 +480,16 @@ class AttendanceController extends Controller
             ]);
         }
 
+        $threshold = $this->resolveEffectiveShiftThreshold($activeEmp->id, $today, $shiftStart, $settings['grace_period']);
+
         if (!$attendance->clock_in) {
             // Clock In Action
             $attendance->clock_in = $now;
             
-            // Check if late (after shift start + grace period)
-            if ($now->greaterThan($shiftStart->copy()->addMinutes($settings['grace_period']))) {
+            // Check if late (after effective shift start + grace period, respecting Night Shift Recovery)
+            if ($threshold['full_day_off']) {
+                $attendance->status = 'On Leave';
+            } elseif ($now->greaterThan($threshold['late_threshold'])) {
                 $attendance->status = 'Late';
             } else {
                 $attendance->status = 'Present';
@@ -407,7 +497,13 @@ class AttendanceController extends Controller
             $attendance->save();
 
             session(['clocked_in' => true]);
-            return redirect()->back()->with('success', 'Clocked In successfully at ' . $now->format('h:i A') . ' (Shift Start: ' . $shiftStart->format('h:i A') . ')');
+            $msg = 'Clocked In successfully at ' . $now->format('h:i A');
+            if ($threshold['is_concession']) {
+                $msg .= ' (Night Shift Recovery: Concession Applied)';
+            } else {
+                $msg .= ' (Shift Start: ' . $shiftStart->format('h:i A') . ')';
+            }
+            return redirect()->back()->with('success', $msg);
         } elseif (!$attendance->clock_out) {
             // Clock Out Action
             $attendance->clock_out = $now;
@@ -441,7 +537,7 @@ class AttendanceController extends Controller
             $attendance->total_ot_hours = $totalOtHours;
             $attendance->regular_hours = $regularHours;
 
-            if ($totalHours < 4.5 && $attendance->status !== 'Late') {
+            if ($totalHours < 4.5 && $attendance->status !== 'Late' && !$threshold['is_concession']) {
                 $attendance->status = 'Half Day';
             }
 
@@ -513,10 +609,12 @@ class AttendanceController extends Controller
 
         $computedStatus = 'Present';
 
+        $shiftStart = Carbon::parse($dateStr . ' ' . $settings['shift_start'], 'Asia/Colombo');
+        $shiftEnd = Carbon::parse($dateStr . ' ' . $settings['shift_end'], 'Asia/Colombo');
+        $threshold = $this->resolveEffectiveShiftThreshold((int)$request->employee_id, $dateStr, $shiftStart, $settings['grace_period']);
+
         if ($clockInDt && $clockOutDt) {
             $totalHours = round($clockInDt->diffInMinutes($clockOutDt) / 60, 2);
-            $shiftStart = Carbon::parse($dateStr . ' ' . $settings['shift_start'], 'Asia/Colombo');
-            $shiftEnd = Carbon::parse($dateStr . ' ' . $settings['shift_end'], 'Asia/Colombo');
 
             if ($clockInDt->lessThan($shiftStart)) {
                 $earlyOtHours = round($clockInDt->diffInMinutes($shiftStart) / 60, 2);
@@ -527,22 +625,25 @@ class AttendanceController extends Controller
             $totalOtHours = round($earlyOtHours + $lateOtHours, 2);
             $regularHours = max(0, round($totalHours - $totalOtHours, 2));
 
-            if ($clockInDt->greaterThan($shiftStart->copy()->addMinutes($settings['grace_period']))) {
+            if ($threshold['full_day_off']) {
+                $computedStatus = 'On Leave';
+            } elseif ($clockInDt->greaterThan($threshold['late_threshold'])) {
                 $computedStatus = 'Late';
-            } elseif ($totalHours < 4.5 && $totalHours > 0) {
+            } elseif ($totalHours < 4.5 && $totalHours > 0 && !$threshold['is_concession']) {
                 $computedStatus = 'Half Day';
             } else {
                 $computedStatus = 'Present';
             }
         } elseif ($clockInDt) {
-            $shiftStart = Carbon::parse($dateStr . ' ' . $settings['shift_start'], 'Asia/Colombo');
-            if ($clockInDt->greaterThan($shiftStart->copy()->addMinutes($settings['grace_period']))) {
+            if ($threshold['full_day_off']) {
+                $computedStatus = 'On Leave';
+            } elseif ($clockInDt->greaterThan($threshold['late_threshold'])) {
                 $computedStatus = 'Late';
             } else {
                 $computedStatus = 'Present';
             }
         } else {
-            $computedStatus = 'Absent';
+            $computedStatus = $threshold['full_day_off'] ? 'On Leave' : 'Absent';
         }
 
         $finalStatus = $request->status ?: $computedStatus;
@@ -600,10 +701,12 @@ class AttendanceController extends Controller
 
         $computedStatus = 'Present';
 
+        $shiftStart = Carbon::parse($dateStr . ' ' . $settings['shift_start'], 'Asia/Colombo');
+        $shiftEnd = Carbon::parse($dateStr . ' ' . $settings['shift_end'], 'Asia/Colombo');
+        $threshold = $this->resolveEffectiveShiftThreshold((int)$request->employee_id, $dateStr, $shiftStart, $settings['grace_period']);
+
         if ($clockInDt && $clockOutDt) {
             $totalHours = round($clockInDt->diffInMinutes($clockOutDt) / 60, 2);
-            $shiftStart = Carbon::parse($dateStr . ' ' . $settings['shift_start'], 'Asia/Colombo');
-            $shiftEnd = Carbon::parse($dateStr . ' ' . $settings['shift_end'], 'Asia/Colombo');
 
             if ($clockInDt->lessThan($shiftStart)) {
                 $earlyOtHours = round($clockInDt->diffInMinutes($shiftStart) / 60, 2);
@@ -614,22 +717,25 @@ class AttendanceController extends Controller
             $totalOtHours = round($earlyOtHours + $lateOtHours, 2);
             $regularHours = max(0, round($totalHours - $totalOtHours, 2));
 
-            if ($clockInDt->greaterThan($shiftStart->copy()->addMinutes($settings['grace_period']))) {
+            if ($threshold['full_day_off']) {
+                $computedStatus = 'On Leave';
+            } elseif ($clockInDt->greaterThan($threshold['late_threshold'])) {
                 $computedStatus = 'Late';
-            } elseif ($totalHours < 4.5 && $totalHours > 0) {
+            } elseif ($totalHours < 4.5 && $totalHours > 0 && !$threshold['is_concession']) {
                 $computedStatus = 'Half Day';
             } else {
                 $computedStatus = 'Present';
             }
         } elseif ($clockInDt) {
-            $shiftStart = Carbon::parse($dateStr . ' ' . $settings['shift_start'], 'Asia/Colombo');
-            if ($clockInDt->greaterThan($shiftStart->copy()->addMinutes($settings['grace_period']))) {
+            if ($threshold['full_day_off']) {
+                $computedStatus = 'On Leave';
+            } elseif ($clockInDt->greaterThan($threshold['late_threshold'])) {
                 $computedStatus = 'Late';
             } else {
                 $computedStatus = 'Present';
             }
         } else {
-            $computedStatus = 'Absent';
+            $computedStatus = $threshold['full_day_off'] ? 'On Leave' : 'Absent';
         }
 
         $finalStatus = $request->status ?: $computedStatus;
@@ -1220,6 +1326,7 @@ class AttendanceController extends Controller
 
                 $shiftStart = Carbon::parse($dateKey . ' ' . $settings['shift_start'], 'Asia/Colombo');
                 $shiftEnd = Carbon::parse($dateKey . ' ' . $settings['shift_end'], 'Asia/Colombo');
+                $threshold = $this->resolveEffectiveShiftThreshold((int)$empId, $dateKey, $shiftStart, $settings['grace_period']);
 
                 if ($clockInDt && $clockOutDt) {
                     $totalHours = round($clockInDt->diffInMinutes($clockOutDt) / 60, 2);
@@ -1233,21 +1340,25 @@ class AttendanceController extends Controller
                     $totalOtHours = round($earlyOtHours + $lateOtHours, 2);
                     $regularHours = max(0, round($totalHours - $totalOtHours, 2));
 
-                    if ($clockInDt->greaterThan($shiftStart->copy()->addMinutes($settings['grace_period']))) {
+                    if ($threshold['full_day_off']) {
+                        $computedStatus = 'On Leave';
+                    } elseif ($clockInDt->greaterThan($threshold['late_threshold'])) {
                         $computedStatus = 'Late';
-                    } elseif ($totalHours < 4.5 && $totalHours > 0) {
+                    } elseif ($totalHours < 4.5 && $totalHours > 0 && !$threshold['is_concession']) {
                         $computedStatus = 'Half Day';
                     } else {
                         $computedStatus = 'Present';
                     }
                 } elseif ($clockInDt) {
-                    if ($clockInDt->greaterThan($shiftStart->copy()->addMinutes($settings['grace_period']))) {
+                    if ($threshold['full_day_off']) {
+                        $computedStatus = 'On Leave';
+                    } elseif ($clockInDt->greaterThan($threshold['late_threshold'])) {
                         $computedStatus = 'Late';
                     } else {
                         $computedStatus = 'Present';
                     }
                 } else {
-                    $computedStatus = 'Absent';
+                    $computedStatus = $threshold['full_day_off'] ? 'On Leave' : 'Absent';
                 }
 
                 $finalStatus = !empty($data['status']) ? $data['status'] : $computedStatus;

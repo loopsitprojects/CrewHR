@@ -4,9 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Modules\Leave\Models\LeaveRequest;
+use Modules\Leave\Models\LeaveType;
+use Modules\Leave\Models\EmployeeLeaveBalance;
+use Modules\Leave\Models\LieuLeaveClaim;
 use Modules\Employee\Models\Department;
 use Modules\Employee\Models\Employee;
 use Modules\Leave\Services\LeavePolicyService;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ApprovalController extends Controller
 {
@@ -44,20 +49,22 @@ class ApprovalController extends Controller
             return redirect()->route('dashboard')->with('error', 'Access Denied: Approvals page is restricted to Managers, HODs, and HR Admins.');
         }
 
-        // Determine default tab based on role if no status query param provided
-        $defaultStatus = match($role) {
-            'HOD / Manager', 'HR Lead', 'Super (Admin)' => 'pending_manager',
-            'Employee' => 'pending_covering',
-            default => 'pending_manager',
-        };
+        // Determine active sub-tab ('leaves' or 'lieu')
+        $tab = $request->query('tab', 'leaves');
 
+        // Determine status filter
+        $defaultStatus = 'pending_manager';
         $status = $request->query('status', $defaultStatus);
         $deptId = $request->query('department_id');
         $search = $request->query('search');
         $month = $request->query('month');
         $year = $request->query('year');
 
-        $query = LeaveRequest::with(['employee.user', 'employee.department', 'leaveType', 'coveringEmployee.user', 'managerEmployee.user']);
+        // Base Query for Leave Requests
+        $query = LeaveRequest::with(['employee.user', 'employee.department', 'employee.designation', 'leaveType', 'coveringEmployee.user', 'managerEmployee.user']);
+
+        // Base Query for Lieu Claims
+        $claimQuery = LieuLeaveClaim::with(['employee.user', 'employee.department', 'employee.designation', 'managerEmployee.user']);
 
         // Scope Manager role strictly to their department employees
         if ($role === 'HOD / Manager' && $activeEmployee) {
@@ -74,9 +81,18 @@ class ApprovalController extends Controller
                 }
                 $q->orWhere('covering_employee_id', $activeEmpId);
             });
-        } elseif ($role === 'Employee' && $activeEmployee) {
-            // Employees only see requests where they are assigned as covering employee
-            $query->where('covering_employee_id', $activeEmpId);
+
+            $claimQuery->where(function ($q) use ($activeEmpId, $activeEmployee) {
+                if ($activeEmployee->department_id) {
+                    $q->whereHas('employee', function ($eq) use ($activeEmployee) {
+                        $eq->where('department_id', $activeEmployee->department_id);
+                    });
+                } else {
+                    $q->whereHas('employee', function ($eq) use ($activeEmpId) {
+                        $eq->where('reporting_person_id', $activeEmpId);
+                    });
+                }
+            });
         }
 
         if ($search) {
@@ -90,47 +106,53 @@ class ApprovalController extends Controller
                          ->orWhere('code', 'like', "%{$search}%");
                   });
             });
+
+            $claimQuery->where(function ($q) use ($search) {
+                $q->whereHas('employee.user', function ($uq) use ($search) {
+                    $uq->where('name', 'like', "%{$search}%");
+                })->orWhere('claim_number', 'like', "%{$search}%")
+                  ->orWhere('reason', 'like', "%{$search}%");
+            });
         }
 
         if ($deptId && in_array($role, ['Super (Admin)', 'HR Lead'])) {
             $query->whereHas('employee', function ($q) use ($deptId) {
                 $q->where('department_id', $deptId);
             });
+            $claimQuery->whereHas('employee', function ($q) use ($deptId) {
+                $q->where('department_id', $deptId);
+            });
         }
 
-        if ($month) {
+        if ($month && $year) {
             $query->where(function ($q) use ($month, $year) {
                 $q->where(function ($mq) use ($month) {
                     $mq->whereMonth('start_date', $month)
                        ->orWhereMonth('end_date', $month);
+                })->where(function ($yq) use ($year) {
+                    $yq->whereYear('start_date', $year)
+                       ->orWhereYear('end_date', $year);
                 });
-                if ($year) {
-                    $q->where(function ($yq) use ($year) {
-                        $yq->whereYear('start_date', $year)
-                           ->orWhereYear('end_date', $year);
-                    });
-                }
             });
+            $claimQuery->whereMonth('worked_date', $month)->whereYear('worked_date', $year);
         } elseif ($year) {
             $query->where(function ($q) use ($year) {
                 $q->whereYear('start_date', $year)
                    ->orWhereYear('end_date', $year);
             });
+            $claimQuery->whereYear('worked_date', $year);
         }
 
-        if ($status === 'pending_covering') {
-            $query->where('covering_status', 'Pending');
-            if ($role === 'Employee' && $activeEmployee) {
-                $query->where('covering_employee_id', $activeEmpId);
-            }
-        } elseif ($status === 'pending_manager') {
-            $query->where('manager_status', 'Pending');
+        // Apply status filter to queries
+        $filteredQuery = clone $query;
+        if ($status === 'pending_manager') {
+            $filteredQuery->where('status', 'Pending Manager Approval');
         } elseif ($status === 'approved') {
-            $query->where(function ($q) {
+            $filteredQuery->where(function ($q) {
                 $q->where('status', 'Approved')->orWhere('manager_status', 'Approved');
             });
         } elseif ($status === 'rejected') {
-            $query->where(function ($q) {
+            $filteredQuery->where(function ($q) {
                 $q->where('covering_status', 'Rejected')
                   ->orWhere('manager_status', 'Rejected')
                   ->orWhere('hr_status', 'Rejected')
@@ -138,88 +160,36 @@ class ApprovalController extends Controller
             });
         }
 
-        $leaveRequests = $query->latest()->get();
-        $departments = Department::all();
+        $filteredClaimQuery = clone $claimQuery;
+        if ($status === 'pending_manager') {
+            $filteredClaimQuery->where('status', 'Pending Manager Approval');
+        } elseif ($status === 'approved') {
+            $filteredClaimQuery->where('status', 'Approved');
+        } elseif ($status === 'rejected') {
+            $filteredClaimQuery->where('status', 'Rejected');
+        }
 
-        // Count query helper with assigned approver scoping and active month/year filters
-        $countQuery = function ($statusType) use ($role, $activeEmployee, $activeEmpId, $month, $year, $deptId, $search) {
-            $q = LeaveRequest::query();
-            if ($role === 'HOD / Manager' && $activeEmployee) {
-                $q->where(function ($subQ) use ($activeEmpId, $activeEmployee) {
-                    if ($activeEmployee->department_id) {
-                        $subQ->whereHas('employee', function ($eq) use ($activeEmployee) {
-                            $eq->where('department_id', $activeEmployee->department_id);
-                        });
-                    } else {
-                        $subQ->where('manager_employee_id', $activeEmpId)
-                             ->orWhereHas('employee', function ($eq) use ($activeEmpId) {
-                                 $eq->where('reporting_person_id', $activeEmpId);
-                             });
-                    }
-                    $subQ->orWhere('covering_employee_id', $activeEmpId);
-                });
-            } elseif ($role === 'Employee' && $activeEmployee) {
-                $q->where('covering_employee_id', $activeEmpId);
-            }
+        $leaveRequests = $filteredQuery->orderByDesc('created_at')->get();
+        $lieuClaims = $filteredClaimQuery->orderByDesc('worked_date')->get();
+        $departments = Department::orderBy('name')->get();
 
-            if ($search) {
-                $q->where(function ($subQ) use ($search) {
-                    $subQ->whereHas('employee.user', function ($uq) use ($search) {
-                        $uq->where('name', 'like', "%{$search}%");
-                    })->orWhere('req_number', 'like', "%{$search}%")
-                      ->orWhere('reason', 'like', "%{$search}%")
-                      ->orWhereHas('leaveType', function ($tq) use ($search) {
-                          $tq->where('name', 'like', "%{$search}%")
-                             ->orWhere('code', 'like', "%{$search}%");
-                      });
-                });
-            }
-
-            if ($deptId && in_array($role, ['Super (Admin)', 'HR Lead'])) {
-                $q->whereHas('employee', function ($dq) use ($deptId) {
-                    $dq->where('department_id', $deptId);
-                });
-            }
-
-            if ($month) {
-                $q->where(function ($mq) use ($month, $year) {
-                    $mq->where(function ($mqq) use ($month) {
-                        $mqq->whereMonth('start_date', $month)
-                            ->orWhereMonth('end_date', $month);
-                    });
-                    if ($year) {
-                        $mq->where(function ($yq) use ($year) {
-                            $yq->whereYear('start_date', $year)
-                               ->orWhereYear('end_date', $year);
-                        });
-                    }
-                });
-            } elseif ($year) {
-                $q->where(function ($yq) use ($year) {
-                    $yq->whereYear('start_date', $year)
-                       ->orWhereYear('end_date', $year);
-                });
-            }
-
-            return match($statusType) {
-                'pending_covering' => $q->where('covering_status', 'Pending')->count(),
-                'pending_manager' => $q->where('manager_status', 'Pending')->count(),
-                'approved' => $q->where(function ($sq) {
-                    $sq->where('status', 'Approved')->orWhere('manager_status', 'Approved');
-                })->count(),
-                'rejected' => $q->where(function ($rq) {
-                    $rq->where('covering_status', 'Rejected')->orWhere('manager_status', 'Rejected')->orWhere('hr_status', 'Rejected')->orWhere('status', 'Rejected');
-                })->count(),
-                'all' => $q->count(),
-            };
-        };
-
+        // Calculate counts
         $counts = [
-            'pending_covering' => $countQuery('pending_covering'),
-            'pending_manager' => $countQuery('pending_manager'),
-            'approved' => $countQuery('approved'),
-            'rejected' => $countQuery('rejected'),
-            'all' => $countQuery('all'),
+            'pending_covering' => (clone $query)->where('covering_status', 'Pending')->count(),
+            'pending_manager' => (clone $query)->where('manager_status', 'Pending')->count(),
+            'approved' => (clone $query)->where(function ($sq) {
+                $sq->where('status', 'Approved')->orWhere('manager_status', 'Approved');
+            })->count(),
+            'rejected' => (clone $query)->where(function ($rq) {
+                $rq->where('covering_status', 'Rejected')->orWhere('manager_status', 'Rejected')->orWhere('hr_status', 'Rejected')->orWhere('status', 'Rejected');
+            })->count(),
+            'all' => (clone $query)->count(),
+
+            // Lieu claims counts
+            'lieu_pending' => (clone $claimQuery)->where('status', 'Pending Manager Approval')->count(),
+            'lieu_approved' => (clone $claimQuery)->where('status', 'Approved')->count(),
+            'lieu_rejected' => (clone $claimQuery)->where('status', 'Rejected')->count(),
+            'lieu_all' => (clone $claimQuery)->count(),
         ];
 
         $monthsList = [
@@ -229,13 +199,17 @@ class ApprovalController extends Controller
         ];
         $yearsList = range(now()->year - 2, now()->year + 2);
 
-        return view('pages.approvals', compact('leaveRequests', 'departments', 'counts', 'status', 'role', 'activeEmployee', 'monthsList', 'yearsList', 'month', 'year', 'deptId', 'search'));
+        return view('pages.approvals', compact(
+            'leaveRequests', 'lieuClaims', 'tab', 'departments', 'counts', 
+            'status', 'role', 'activeEmployee', 'monthsList', 'yearsList', 
+            'month', 'year', 'deptId', 'search'
+        ));
     }
 
     public function action(Request $request, $id)
     {
         $leaveRequest = LeaveRequest::findOrFail($id);
-        $type = $request->input('action_type'); // confirm_covering, reject_covering, manager_approve, reject_manager, hr_confirm, reject
+        $type = $request->input('action_type');
         $user = auth()->user();
         $activeEmp = $user ? Employee::where('user_id', $user->id)->first() : null;
         $role = match($activeEmp->system_role ?? '') {
@@ -300,5 +274,83 @@ class ApprovalController extends Controller
         }
 
         return redirect()->back()->with('success', $msg);
+    }
+
+    public function actionLieuClaim(Request $request, $id)
+    {
+        $claim = LieuLeaveClaim::findOrFail($id);
+        $type = $request->input('action_type'); // approve, reject
+        $user = auth()->user();
+        $activeEmp = $user ? Employee::where('user_id', $user->id)->first() : null;
+        $role = match($activeEmp->system_role ?? '') {
+            'HR Lead' => 'HR Lead',
+            'Manager (Team Approvals)' => 'HOD / Manager',
+            'Employee' => 'Employee',
+            default => 'Super (Admin)',
+        };
+
+        if (session('current_role')) {
+            $sessionRole = session('current_role');
+            $role = match($sessionRole) {
+                'HR Lead' => 'HR Lead',
+                'Manager (Team Approvals)', 'HOD / Manager' => 'HOD / Manager',
+                'Employee' => 'Employee',
+                default => 'Super (Admin)',
+            };
+        }
+
+        if ($role === 'Employee') {
+            return redirect()->back()->with('error', 'Unauthorized: Regular employees do not have privileges to approve claims.');
+        }
+
+        // Self-approval restriction
+        if ($activeEmp && $claim->employee_id === $activeEmp->id && $role !== 'Super (Admin)') {
+            return redirect()->back()->with('error', 'Unauthorized: Managers cannot approve or reject their own lieu claims.');
+        }
+
+        if ($type === 'approve') {
+            DB::transaction(function() use ($claim, $activeEmp) {
+                $claim->update([
+                    'status' => 'Approved',
+                    'manager_employee_id' => $activeEmp?->id,
+                    'approved_at' => now(),
+                    'expires_at' => now()->addDays(30),
+                ]);
+
+                // Credit employee's LIEU balance
+                $lieuType = LeaveType::where('code', 'LIEU')->first();
+                if ($lieuType) {
+                    $balance = EmployeeLeaveBalance::firstOrCreate(
+                        [
+                            'employee_id' => $claim->employee_id,
+                            'leave_type_id' => $lieuType->id,
+                            'year' => now()->year,
+                        ],
+                        [
+                            'allocated' => 0,
+                            'used' => 0,
+                            'carried_forward' => 0,
+                        ]
+                    );
+                    $balance->increment('allocated', (float)$claim->credit_days);
+                }
+
+                \App\Services\NotificationService::notifyLieuClaimApproved($claim, $activeEmp?->user?->name ?? 'Line Manager');
+            });
+
+            return redirect()->back()->with('success', "Lieu leave claim approved! {$claim->credit_days} day(s) credited to employee balance (30 days validity).");
+        } elseif ($type === 'reject') {
+            $claim->update([
+                'status' => 'Rejected',
+                'manager_employee_id' => $activeEmp?->id,
+                'rejection_reason' => $request->input('rejection_reason'),
+            ]);
+
+            \App\Services\NotificationService::notifyLieuClaimRejected($claim, $activeEmp?->user?->name ?? 'Line Manager');
+
+            return redirect()->back()->with('success', 'Lieu leave claim has been rejected.');
+        }
+
+        return redirect()->back();
     }
 }

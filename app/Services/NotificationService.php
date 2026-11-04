@@ -212,4 +212,81 @@ class NotificationService
             ]);
         }
     }
+
+    public static function notifyLieuClaimSubmitted(\Modules\Leave\Models\LieuLeaveClaim $claim): void
+    {
+        $employeeName = $claim->employee->user->name ?? 'Employee';
+        $durationLabel = $claim->duration_type === 'full_day' ? 'Full Day (8h)' : 'Half Day (4h)';
+        $dateFormatted = \Carbon\Carbon::parse($claim->worked_date)->format('D, j M Y');
+        $hours = (float)$claim->hours_worked;
+
+        $managerUserId = null;
+        if ($claim->employee?->reporting_person_id) {
+            $managerEmp = Employee::find($claim->employee->reporting_person_id);
+            $managerUserId = $managerEmp?->user_id;
+        }
+
+        if ($managerUserId) {
+            HrNotification::create([
+                'user_id' => $managerUserId,
+                'type' => 'lieu_claim_request',
+                'title' => 'New Lieu Leave Request',
+                'message' => "{$employeeName} submitted a {$durationLabel} ({$hours} work hours) Lieu Leave request for {$dateFormatted} requiring your approval.",
+                'link' => route('approvals.index', ['tab' => 'lieu']),
+                'is_read' => false,
+            ]);
+        }
+
+        $adminUserIds = User::whereHas('employee', function ($q) {
+            $q->whereIn('system_role', ['Super (Admin)', 'HR Lead']);
+        })->pluck('id')->toArray();
+
+        foreach ($adminUserIds as $adminId) {
+            if ($adminId !== $managerUserId) {
+                HrNotification::create([
+                    'user_id' => $adminId,
+                    'type' => 'lieu_claim_request',
+                    'title' => 'New Lieu Leave Request',
+                    'message' => "{$employeeName} submitted a {$durationLabel} ({$hours} work hours) Lieu Leave request for {$dateFormatted} requiring your approval.",
+                    'link' => route('approvals.index', ['tab' => 'lieu']),
+                    'is_read' => false,
+                ]);
+            }
+        }
+    }
+
+    public static function notifyLieuClaimApproved(\Modules\Leave\Models\LieuLeaveClaim $claim, string $approverName): void
+    {
+        $employeeUser = $claim->employee->user ?? null;
+        $credit = (float)$claim->credit_days;
+        $dateFormatted = \Carbon\Carbon::parse($claim->worked_date)->format('D, j M Y');
+
+        if ($employeeUser) {
+            HrNotification::create([
+                'user_id' => $employeeUser->id,
+                'type' => 'lieu_claim_approved',
+                'title' => 'Lieu Leave Claim Approved 🎉',
+                'message' => "Your Lieu Leave claim for {$dateFormatted} (+{$credit} day) has been approved by {$approverName}. Valid for 30 days.",
+                'link' => route('leave.dashboard'),
+                'is_read' => false,
+            ]);
+        }
+    }
+
+    public static function notifyLieuClaimRejected(\Modules\Leave\Models\LieuLeaveClaim $claim, string $rejectorName): void
+    {
+        $employeeUser = $claim->employee->user ?? null;
+        $dateFormatted = \Carbon\Carbon::parse($claim->worked_date)->format('D, j M Y');
+
+        if ($employeeUser) {
+            HrNotification::create([
+                'user_id' => $employeeUser->id,
+                'type' => 'lieu_claim_rejected',
+                'title' => 'Lieu Leave Claim Rejected',
+                'message' => "Your Lieu Leave claim for {$dateFormatted} was rejected by {$rejectorName}." . ($claim->rejection_reason ? " Reason: {$claim->rejection_reason}" : ''),
+                'link' => route('leave.dashboard'),
+                'is_read' => false,
+            ]);
+        }
+    }
 }
