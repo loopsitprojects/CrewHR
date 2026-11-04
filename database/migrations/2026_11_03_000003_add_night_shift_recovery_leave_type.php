@@ -13,24 +13,34 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Add Night Shift Recovery columns to leave_requests
-        Schema::table('leave_requests', function (Blueprint $table) {
-            $table->string('night_sign_out_time')->nullable()->after('short_leave_slot');
-            $table->string('night_report_time')->nullable()->after('night_sign_out_time');
-            $table->string('concession_category')->nullable()->after('night_report_time');
-        });
+        if (Schema::hasTable('leave_requests')) {
+            Schema::table('leave_requests', function (Blueprint $table) {
+                if (!Schema::hasColumn('leave_requests', 'night_sign_out_time')) {
+                    $table->string('night_sign_out_time')->nullable()->after('short_leave_slot');
+                }
+                if (!Schema::hasColumn('leave_requests', 'night_report_time')) {
+                    $table->string('night_report_time')->nullable()->after('night_sign_out_time');
+                }
+                if (!Schema::hasColumn('leave_requests', 'concession_category')) {
+                    $table->string('concession_category')->nullable()->after('night_report_time');
+                }
+            });
+        }
 
         // 2. Insert or update the NIGHT_SHIFT_RECOVERY leave type
-        $existing = DB::table('leave_types')->where('code', 'NIGHT_SHIFT_RECOVERY')->first();
-        if (!$existing) {
-            DB::table('leave_types')->insert([
-                'name' => 'Night Shift Recovery',
-                'code' => 'NIGHT_SHIFT_RECOVERY',
-                'days' => 0,
-                'is_active' => true,
-                'description' => 'Late stay concession for working late at night, subject to HOD approval. Adjusts reporting time or grants half/full day off without affecting attendance.',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        if (Schema::hasTable('leave_types')) {
+            $existing = DB::table('leave_types')->where('code', 'NIGHT_SHIFT_RECOVERY')->first();
+            if (!$existing) {
+                DB::table('leave_types')->insert([
+                    'name' => 'Night Shift Recovery',
+                    'code' => 'NIGHT_SHIFT_RECOVERY',
+                    'days' => 0,
+                    'is_active' => true,
+                    'description' => 'Late stay concession for working late at night, subject to HOD approval. Adjusts reporting time or grants half/full day off without affecting attendance.',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
     }
 
@@ -39,10 +49,20 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('leave_requests', function (Blueprint $table) {
-            $table->dropColumn(['night_sign_out_time', 'night_report_time', 'concession_category']);
-        });
+        if (Schema::hasTable('leave_requests')) {
+            Schema::table('leave_requests', function (Blueprint $table) {
+                $columns = [];
+                if (Schema::hasColumn('leave_requests', 'night_sign_out_time')) $columns[] = 'night_sign_out_time';
+                if (Schema::hasColumn('leave_requests', 'night_report_time')) $columns[] = 'night_report_time';
+                if (Schema::hasColumn('leave_requests', 'concession_category')) $columns[] = 'concession_category';
+                if (!empty($columns)) {
+                    $table->dropColumn($columns);
+                }
+            });
+        }
 
-        DB::table('leave_types')->where('code', 'NIGHT_SHIFT_RECOVERY')->delete();
+        if (Schema::hasTable('leave_types')) {
+            DB::table('leave_types')->where('code', 'NIGHT_SHIFT_RECOVERY')->delete();
+        }
     }
 };
