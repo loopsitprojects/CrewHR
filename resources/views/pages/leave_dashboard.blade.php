@@ -424,17 +424,53 @@
              }
              const s = this.targetStartDate;
              const e = this.targetEndDate;
+             
+             const isNewHalfDay = Boolean(this.isHalfDay || (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' && this.nightShiftConcession?.category === 'half_day_off'));
+             const newHalfDaySlot = this.halfDaySlot || 'Morning';
+             const isNewShortLeave = Boolean(this.selectedLeaveTypeCode === 'SHORT' || this.isShortLeave);
+             const newShortLeaveSlot = this.shortLeaveSlot || '';
+             const newIsFullDay = !isNewHalfDay && !isNewShortLeave && !(this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' && ['report_10am', 'report_11am'].includes(this.nightShiftConcession?.category));
+
              const clash = (this.allMyHistory || []).find(r => {
-                 if (r.status === 'Rejected' || r.status === 'Canceled') return false;
-                 return (s <= r.end_date && e >= r.start_date);
+                 const st = (r.status || '').toLowerCase();
+                 if (st === 'rejected' || st === 'canceled' || st === 'cancelled') return false;
+                 if (!(s <= r.end_date && e >= r.start_date)) return false;
+
+                 const rTypeCode = (r.leave_type?.code || '').toUpperCase();
+                 const rIsHalfDay = Boolean(r.is_half_day || r.concession_category === 'half_day_off' || (Number(r.duration) === 0.5 && !r.is_short_leave));
+                 const rHalfDaySlot = r.half_day_slot || 'Morning';
+                 const rIsShortLeave = Boolean(r.is_short_leave || rTypeCode === 'SHORT' || (Number(r.duration) < 0.5 && Number(r.duration) > 0));
+                 const rShortLeaveSlot = r.short_leave_slot || '';
+                 const rIsFullDay = !rIsHalfDay && !rIsShortLeave && !['report_10am', 'report_11am'].includes(r.concession_category);
+
+                 // Rule 1: Existing is full day -> cannot add any other leave on this day
+                 if (rIsFullDay) return true;
+
+                 // Rule 2: New is full day -> cannot add to any existing leave on this day
+                 if (newIsFullDay) return true;
+
+                 // Rule 3: Both are half days
+                 if (isNewHalfDay && rIsHalfDay) {
+                     return (newHalfDaySlot === rHalfDaySlot);
+                 }
+
+                 // Rule 4: Both are short leaves
+                 if (isNewShortLeave && rIsShortLeave) {
+                     return (!newShortLeaveSlot || !rShortLeaveSlot || newShortLeaveSlot === rShortLeaveSlot);
+                 }
+
+                 return false;
              });
+
              if (clash) {
+                 const typeName = clash.leave_type?.name || 'Leave';
+                 const slotInfo = clash.is_half_day ? ` (${clash.half_day_slot || 'Half Day'})` : (clash.is_short_leave ? ` (${clash.short_leave_slot || 'Short Leave'})` : '');
                  return { 
                      pass: false, 
-                     message: `Clash check — overlaps with booked ${clash.leave_type?.name || 'leave'} (${clash.start_date} to ${clash.end_date}).` 
+                     message: `Clash check — conflict with booked ${typeName}${slotInfo} on ${clash.start_date}.` 
                  };
              }
-             return { pass: true, message: 'Clash check — you have no overlapping leaves booked.' };
+             return { pass: true, message: 'Clash check — schedule is clear and valid.' };
          },
 
          checkNoticePeriod() {
@@ -1469,7 +1505,9 @@
             @endif
 
             <!-- Modal Form with 2-Column Layout (Scrollbar hidden) -->
-            <form action="{{ route('leave.store') }}" method="POST" enctype="multipart/form-data" class="flex-1 min-h-0 flex flex-col justify-between overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <form action="{{ route('leave.store') }}" method="POST" enctype="multipart/form-data" 
+                  @submit="if (!allChecksPass()) { $event.preventDefault(); return false; }"
+                  class="flex-1 min-h-0 flex flex-col justify-between overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 @csrf
                 
                 <!-- Hidden inputs to submit all needed data -->
@@ -1788,7 +1826,9 @@
                         <!-- Action Submit Section -->
                         <div class="space-y-1.5 pt-2">
                             <button type="submit"
-                                    class="w-full py-2.5 px-4 bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-400/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                                    :disabled="!allChecksPass()"
+                                    :class="!allChecksPass() ? 'opacity-50 cursor-not-allowed bg-slate-300 dark:bg-slate-700 text-slate-500 shadow-none hover:bg-slate-300 dark:hover:bg-slate-700' : 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-md shadow-amber-400/20 cursor-pointer'"
+                                    class="w-full py-2.5 px-4 active:scale-[0.99] font-black text-xs rounded-xl transition-all flex items-center justify-center gap-1.5">
                                 <span>Send to {{ $managerName }}</span>
                                 <i data-lucide="arrow-right" class="w-4 h-4"></i>
                             </button>

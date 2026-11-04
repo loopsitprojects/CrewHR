@@ -126,6 +126,69 @@ class LeavePolicyService
             ]);
         }
 
+        // 0.1 Same-Day Overlap / Clash Rule:
+        // Leaves allocated for the user cannot have different leaves added on the same day,
+        // unless it is a short leave or a complementary half-day slot.
+        $newStartDate = $data['start_date'] ?? null;
+        $newEndDate = $data['end_date'] ?? $newStartDate;
+        $newIsHalfDay = !empty($data['is_half_day']) || ($data['concession_category'] ?? null) === 'half_day_off' || $workingDays === 0.5;
+        $newHalfDaySlot = $data['half_day_slot'] ?? 'Morning';
+        $newIsShortLeave = !empty($data['is_short_leave']) || $typeCode === 'SHORT';
+        $newShortLeaveSlot = $data['short_leave_slot'] ?? null;
+        $newConcessionCategory = $data['concession_category'] ?? null;
+        $newIsFullDay = !$newIsHalfDay && !$newIsShortLeave && !in_array($newConcessionCategory, ['report_10am', 'report_11am']);
+
+        if ($newStartDate && $newEndDate) {
+            $overlappingLeaves = LeaveRequest::with('leaveType')
+                ->where('employee_id', $employee->id)
+                ->whereNotIn('status', ['Rejected', 'Canceled', 'Cancelled'])
+                ->where('start_date', '<=', $newEndDate)
+                ->where('end_date', '>=', $newStartDate)
+                ->get();
+
+            foreach ($overlappingLeaves as $existing) {
+                $existingTypeCode = strtoupper($existing->leaveType?->code ?? '');
+                $existingTypeName = $existing->leaveType?->name ?? 'Leave';
+                $existingIsHalfDay = (bool)$existing->is_half_day || ($existing->concession_category === 'half_day_off') || ((float)$existing->duration === 0.5 && !$existing->is_short_leave);
+                $existingHalfDaySlot = $existing->half_day_slot ?: 'Morning';
+                $existingIsShortLeave = (bool)$existing->is_short_leave || $existingTypeCode === 'SHORT' || ((float)$existing->duration < 0.5 && (float)$existing->duration > 0.0);
+                $existingShortLeaveSlot = $existing->short_leave_slot;
+                $existingIsFullDay = !$existingIsHalfDay && !$existingIsShortLeave && !in_array($existing->concession_category, ['report_10am', 'report_11am']);
+
+                // Rule A: Existing is a Full-Day leave -> Blocks ANY other leave on this date
+                if ($existingIsFullDay) {
+                    throw ValidationException::withMessages([
+                        'start_date' => "Cannot apply leave: you already have an active {$existingTypeName} booked ({$existing->start_date} to {$existing->end_date}). Multiple leaves cannot be added on the same day."
+                    ]);
+                }
+
+                // Rule B: New leave is a Full-Day leave -> Clashes with ANY existing leave on this date
+                if ($newIsFullDay) {
+                    throw ValidationException::withMessages([
+                        'start_date' => "Cannot apply full-day {$leaveType->name}: you already have an active {$existingTypeName} booked on {$existing->start_date}. Multiple leaves cannot be added on the same day unless applying for a half day or short leave."
+                    ]);
+                }
+
+                // Rule C: Both are Half-Day leaves
+                if ($newIsHalfDay && $existingIsHalfDay) {
+                    if ($newHalfDaySlot === $existingHalfDaySlot) {
+                        throw ValidationException::withMessages([
+                            'start_date' => "Slot conflict: you already have a {$existingTypeName} applied for the {$newHalfDaySlot} slot on {$existing->start_date}."
+                        ]);
+                    }
+                }
+
+                // Rule D: Both are Short Leaves
+                if ($newIsShortLeave && $existingIsShortLeave) {
+                    if ($newShortLeaveSlot && $existingShortLeaveSlot && $newShortLeaveSlot === $existingShortLeaveSlot) {
+                        throw ValidationException::withMessages([
+                            'start_date' => "Time conflict: you already have a Short Leave booked for {$newShortLeaveSlot} on {$existing->start_date}."
+                        ]);
+                    }
+                }
+            }
+        }
+
         // 1. Intern & Probation Restriction Rule
         if ($this->isProbationOrIntern($employee)) {
             if (in_array($typeCode, ['ANNUAL', 'CASUAL', 'MEDICAL'])) {
