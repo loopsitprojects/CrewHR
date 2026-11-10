@@ -147,15 +147,46 @@
          allHolidays: {{ json_encode($allHolidaysList ?? []) }},
          lieuClaimModalOpen: false,
          lieuWorkedDate: '{{ \Carbon\Carbon::now('Asia/Colombo')->subDay()->toDateString() }}',
-         lieuWorkedHours: 4,
+         lieuWorkedEndDate: '{{ \Carbon\Carbon::now('Asia/Colombo')->subDay()->toDateString() }}',
+         lieuWorkedHours: 8,
          lieuStartTime: '09:00',
-         lieuEndTime: '13:00',
+         lieuEndTime: '17:00',
          lieuReason: '',
          nightSignOutTime: '22:15',
 
-         setQuickHours(h) {
-             this.lieuWorkedHours = h;
-             this.syncEndTimeFromHours();
+         setQuickShift(type) {
+             if (type === 'half') {
+                 this.lieuStartTime = '09:00';
+                 this.lieuEndTime = '13:00';
+                 this.lieuWorkedHours = 4.0;
+             } else if (type === 'full') {
+                 this.lieuStartTime = '09:00';
+                 this.lieuEndTime = '17:00';
+                 this.lieuWorkedHours = 8.0;
+             }
+             this.recalculateLieuHours();
+         },
+
+         recalculateLieuHours() {
+             if (!this.lieuStartTime || !this.lieuEndTime) return;
+             const [sh, sm] = this.lieuStartTime.split(':').map(Number);
+             const [eh, em] = this.lieuEndTime.split(':').map(Number);
+             let diff = (eh * 60 + em) - (sh * 60 + sm);
+             if (diff < 0) diff += 24 * 60;
+             const hrs = Math.max(0, diff / 60);
+             this.lieuWorkedHours = hrs % 1 === 0 ? hrs : parseFloat(hrs.toFixed(1));
+         },
+
+         onStartDateChange() {
+             if (!this.lieuWorkedEndDate || this.lieuWorkedEndDate < this.lieuWorkedDate) {
+                 this.lieuWorkedEndDate = this.lieuWorkedDate;
+             }
+         },
+
+         onEndDateChange() {
+             if (this.lieuWorkedEndDate && this.lieuWorkedEndDate < this.lieuWorkedDate) {
+                 this.lieuWorkedDate = this.lieuWorkedEndDate;
+             }
          },
 
          syncEndTimeFromHours() {
@@ -172,25 +203,15 @@
          },
 
          onStartTimeChange() {
-             if (this.lieuEndTime) {
-                 this.onTimeChange();
-             } else if (this.lieuWorkedHours && parseFloat(this.lieuWorkedHours) > 0) {
-                 this.syncEndTimeFromHours();
-             }
+             this.recalculateLieuHours();
          },
 
          onEndTimeChange() {
-             this.onTimeChange();
+             this.recalculateLieuHours();
          },
 
          onTimeChange() {
-             if (!this.lieuStartTime || !this.lieuEndTime) return;
-             const [sh, sm] = this.lieuStartTime.split(':').map(Number);
-             const [eh, em] = this.lieuEndTime.split(':').map(Number);
-             let diff = (eh * 60 + em) - (sh * 60 + sm);
-             if (diff < 0) diff += 24 * 60;
-             const hrs = Math.max(0, diff / 60);
-             this.lieuWorkedHours = hrs % 1 === 0 ? hrs : parseFloat(hrs.toFixed(1));
+             this.recalculateLieuHours();
          },
 
          get calculatedLieuDuration() {
@@ -2061,100 +2082,160 @@
                 <!-- Body -->
                 <div class="p-5 space-y-3.5 overflow-y-auto flex-1 [scrollbar-width:thin]">
 
-                    <!-- Date Worked -->
+                    <!-- Dates Worked (First Day & Last Day) -->
                     <div class="space-y-1.5">
                         <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">
-                            Date Worked <span class="text-rose-500">*</span>
+                            Dates Worked <span class="text-rose-500">*</span>
                         </label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">First Date Worked</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <input type="date" 
+                                           name="worked_date" 
+                                           x-model="lieuWorkedDate" 
+                                           @change="onStartDateChange()"
+                                           max="{{ \Carbon\Carbon::now('Asia/Colombo')->toDateString() }}" 
+                                           required 
+                                           class="w-full pl-8 pr-2.5 py-1.5 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all cursor-pointer">
+                                </div>
                             </div>
-                            <input type="date" 
-                                   name="worked_date" 
-                                   x-model="lieuWorkedDate" 
-                                   max="{{ \Carbon\Carbon::now('Asia/Colombo')->toDateString() }}" 
-                                   required 
-                                   class="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all cursor-pointer">
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Last Date Worked (Optional)</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <input type="date" 
+                                           name="worked_date_end" 
+                                           x-model="lieuWorkedEndDate" 
+                                           @change="onEndDateChange()"
+                                           max="{{ \Carbon\Carbon::now('Asia/Colombo')->toDateString() }}" 
+                                           class="w-full pl-8 pr-2.5 py-1.5 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all cursor-pointer">
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Date Status (One-liner badge/alert) -->
-                        <template x-if="lieuDateMeta">
-                            <div>
-                                <template x-if="!lieuDateMeta.isEligible">
+                        <!-- Date Status (One-liner badge/alert with pills) -->
+                        <template x-if="lieuDatesMeta">
+                            <div class="pt-0.5 space-y-1">
+                                <template x-if="!lieuDatesMeta.isEligible">
                                     <div class="py-1 px-2.5 rounded-md bg-amber-500/10 border border-amber-300 dark:border-amber-700/60 flex items-center gap-1.5 text-[11px] text-amber-800 dark:text-amber-300">
                                         <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
                                         <span><strong>Weekday selected:</strong> Lieu Leave requires weekend or public holiday work.</span>
                                     </div>
                                 </template>
 
-                                <template x-if="lieuDateMeta.isEligible">
-                                    <div class="py-1 px-2.5 rounded-md bg-emerald-500/10 border border-emerald-300 dark:border-emerald-800/60 flex items-center justify-between text-[11px] text-emerald-800 dark:text-emerald-300">
-                                        <span class="font-semibold" x-text="lieuDateMeta.dayName + ' • ' + lieuDateMeta.label"></span>
-                                        <span class="font-bold">✓ Eligible</span>
+                                <template x-if="lieuDatesMeta.isEligible">
+                                    <div class="py-1 px-2.5 rounded-md bg-emerald-500/10 border border-emerald-300 dark:border-emerald-800/60 flex items-center justify-between text-[11px] text-emerald-800 dark:text-emerald-300 flex-wrap gap-1">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="font-bold">✓ <span x-text="lieuDatesMeta.eligibleCount"></span> Eligible Day<span x-text="lieuDatesMeta.eligibleCount > 1 ? 's' : ''"></span>:</span>
+                                            <template x-for="ed in lieuDatesMeta.eligibleDates" :key="ed.date">
+                                                <span class="px-1.5 py-0.5 bg-emerald-600/15 border border-emerald-500/30 rounded text-[10px] font-semibold" x-text="ed.formatted + ' (' + ed.label + ')'"></span>
+                                            </template>
+                                        </div>
+                                        <template x-if="lieuDatesMeta.weekdayCount > 0">
+                                            <span class="text-[10px] text-slate-500 italic">(<span x-text="lieuDatesMeta.weekdayCount"></span> weekday<span x-text="lieuDatesMeta.weekdayCount > 1 ? 's' : ''"></span> skipped)</span>
+                                        </template>
                                     </div>
                                 </template>
                             </div>
                         </template>
                     </div>
 
-                    <!-- Time Range & Hours Worked (Time Range First, Hours Worked Smaller) -->
-                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-0.5 items-start">
-                        <!-- 1. Time Range (First, Wider for Start & End Time) -->
-                        <div class="sm:col-span-8 space-y-1.5">
+                    <!-- Time Range & Hours Worked (Automated) -->
+                    <div class="space-y-1.5 pt-0.5">
+                        <div class="flex items-center justify-between">
                             <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">
-                                Time Range
+                                Shift Working Hours <span class="text-rose-500">*</span>
                             </label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <input type="time" 
-                                           name="start_time" 
-                                           x-model="lieuStartTime" 
-                                           @input="onStartTimeChange()" 
-                                           class="w-full px-2.5 py-2 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500">
-                                </div>
-                                <div>
-                                    <input type="time" 
-                                           name="end_time" 
-                                           x-model="lieuEndTime" 
-                                           @input="onEndTimeChange()" 
-                                           class="w-full px-2.5 py-2 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500">
-                                </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] text-slate-400 font-medium">Presets:</span>
+                                <button type="button" 
+                                        @click="setQuickShift('half')" 
+                                        class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700 hover:bg-teal-100 cursor-pointer transition-colors">
+                                    Half Day (4h)
+                                </button>
+                                <button type="button" 
+                                        @click="setQuickShift('full')" 
+                                        class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100 cursor-pointer transition-colors">
+                                    Full Day (8h)
+                                </button>
                             </div>
                         </div>
 
-                        <!-- 2. Hours Worked (Second, Compact/Smaller Width) -->
-                        <div class="sm:col-span-4 space-y-1.5">
-                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">
-                                Hours Worked <span class="text-rose-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
-                                    <i data-lucide="timer" class="w-3.5 h-3.5"></i>
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
+                            <!-- 1. Time Range (First, Wider for Start & End Time) -->
+                            <div class="sm:col-span-8 space-y-1">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5">Start Time</label>
+                                        <input type="time" 
+                                               name="start_time" 
+                                               x-model="lieuStartTime" 
+                                               @input="onStartTimeChange()" 
+                                               required
+                                               class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5">End Time</label>
+                                        <input type="time" 
+                                               name="end_time" 
+                                               x-model="lieuEndTime" 
+                                               @input="onEndTimeChange()" 
+                                               required
+                                               class="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                    </div>
                                 </div>
-                                <input type="number" 
-                                       name="hours_worked" 
-                                       x-model.number="lieuWorkedHours" 
-                                       @input="syncEndTimeFromHours()"
-                                       min="1" 
-                                       max="24" 
-                                       step="0.5" 
-                                       required 
-                                       class="w-full pl-8 pr-8 py-2 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500">
-                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-slate-400">hrs</span>
+                            </div>
+
+                            <!-- 2. Hours Worked (Second, Automated Compact Display) -->
+                            <div class="sm:col-span-4 space-y-1">
+                                <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
+                                    Daily Hours <span class="text-[9px] text-teal-600 dark:text-teal-400 font-medium">(Auto-calc)</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                                        <i data-lucide="timer" class="w-3.5 h-3.5"></i>
+                                    </div>
+                                    <input type="number" 
+                                           name="hours_worked" 
+                                           x-model.number="lieuWorkedHours" 
+                                           @input="syncEndTimeFromHours()"
+                                           min="1" 
+                                           max="24" 
+                                           step="0.5" 
+                                           required 
+                                           class="w-full pl-8 pr-8 py-1.5 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                    <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10.5px] font-semibold text-slate-400">hrs</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Clean Granted Duration Strip -->
-                    <div class="p-2.5 px-3 rounded-lg border flex items-center justify-between text-xs transition-all" :class="calculatedLieuDuration.containerClass">
+                    <!-- Clean Granted Duration & Allocation Card -->
+                    <div class="p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition-all" :class="calculatedLieuDuration.containerClass">
                         <input type="hidden" name="duration_type" :value="calculatedLieuDuration.type">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="award" class="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0"></i>
-                            <span class="font-bold text-slate-900 dark:text-slate-100" x-text="calculatedLieuDuration.label"></span>
-                            <span class="text-slate-500 dark:text-slate-400 text-[11px]" x-text="'(' + lieuWorkedHours + ' hrs)'"></span>
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                                <i data-lucide="award" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="font-black text-slate-900 dark:text-slate-100" x-text="calculatedLieuDuration.label"></span>
+                                    <span class="text-slate-500 dark:text-slate-400 text-[11px]" x-text="'(' + calculatedLieuDuration.hoursLabel + ')'"></span>
+                                </div>
+                                <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                    Standard rule: 4h to &lt;8h = 0.5 day credit • 8h+ = 1.0 day credit per eligible date
+                                </p>
+                            </div>
                         </div>
-                        <span class="px-2 py-0.5 rounded text-[11px] font-bold" :class="calculatedLieuDuration.badgeClass" x-text="calculatedLieuDuration.creditLabel"></span>
+                        <div class="shrink-0 flex items-center gap-1.5 self-end sm:self-center">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-black shadow-xs" :class="calculatedLieuDuration.badgeClass" x-text="calculatedLieuDuration.creditLabel"></span>
+                        </div>
                     </div>
 
                     <!-- Tasks Completed -->

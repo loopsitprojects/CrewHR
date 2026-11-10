@@ -712,76 +712,108 @@ class LeaveDashboardController extends Controller
 
         $request->validate([
             'worked_date' => 'required|date|before_or_equal:today',
+            'worked_date_end' => 'nullable|date|before_or_equal:today|after_or_equal:worked_date',
             'reason' => 'required|string|max:1000',
         ]);
 
-        $hours = (float) $request->input('hours_worked', 0);
-        if ($hours <= 0 && $request->input('start_time') && $request->input('end_time')) {
+        $startDate = Carbon::parse($request->worked_date);
+        $endDate = $request->filled('worked_date_end') ? Carbon::parse($request->worked_date_end) : $startDate->copy();
+
+        // Calculate hours worked per day automatically from start & end time
+        $hoursPerDay = (float) $request->input('hours_worked', 0);
+        if ($request->input('start_time') && $request->input('end_time')) {
             $st = Carbon::parse($request->input('start_time'));
             $et = Carbon::parse($request->input('end_time'));
-            $hours = max(0, $et->diffInMinutes($st) / 60);
+            $diffMins = $et->diffInMinutes($st);
+            if ($et->lt($st)) {
+                $diffMins = (24 * 60) - $st->diffInMinutes($et);
+            }
+            $hoursPerDay = max(0, round($diffMins / 60, 2));
         }
 
-        // Automatically determine lieu leave duration and credit based on hours worked
-        if ($hours >= 8) {
-            $durationType = 'full_day';
-            $creditDays = 1.00;
-        } elseif ($hours >= 4) {
-            $durationType = 'half_day';
-            $creditDays = 0.50;
-        } else {
+        // Standard hour rule check:
+        // Under 4 hours: No credit / Ineligible
+        // 4.0 to < 8.0 hours: Half Day (0.5 day credit)
+        // 8.0+ hours: Full Day (1.0 day credit)
+        if ($hoursPerDay < 4.0) {
             return redirect()->back()->withErrors([
-                'hours_worked' => 'A minimum of 4 hours worked is required to request Lieu Leave (Half Day = 4 hrs, Full Day = 8 hrs).'
+                'hours_worked' => 'A minimum of 4 hours worked is required to request Lieu Leave (4h to <8h = 0.5 day, 8h+ = 1.0 day).'
             ]);
         }
 
-        $workedCarbon = Carbon::parse($request->worked_date);
-
-        // Check if date was a weekend or public holiday
-        $isWeekend = $workedCarbon->isWeekend();
-        $isHoliday = Holiday::whereDate('date', $request->worked_date)->exists();
-
-        if (!$isWeekend && !$isHoliday) {
-            return redirect()->back()->withErrors([
-                'worked_date' => 'Lieu Leave can only be requested for work performed on weekends (Saturday/Sunday) or official public holidays.'
-            ]);
-        }
-
-        $dayType = $isHoliday ? 'Public Holiday' : ($isWeekend ? 'Weekend' : 'Off-day / Non-working Day');
-
-        // Check duplicate active claims on same date
-        $existing = LieuLeaveClaim::where('employee_id', $employee->id)
-            ->whereDate('worked_date', $request->worked_date)
-            ->whereIn('status', ['Pending Manager Approval', 'Approved'])
-            ->first();
-
-        if ($existing) {
-            return redirect()->back()->withErrors([
-                'worked_date' => "A Lieu Leave request for {$request->worked_date} is already {$existing->status}."
-            ]);
-        }
+        $creditPerDay = $hoursPerDay >= 8.0 ? 1.00 : 0.50;
+        $durationType = $hoursPerDay >= 8.0 ? 'full_day' : 'half_day';
 
         $startTime = $request->input('start_time') ?: '09:00';
         $endTime = $request->input('end_time') ?: ($durationType === 'half_day' ? '13:00' : '17:00');
-        $claimNumber = 'LI-' . $workedCarbon->format('Ymd') . '-' . strtoupper(Str::random(4));
 
-        $claim = LieuLeaveClaim::create([
-            'claim_number' => $claimNumber,
-            'employee_id' => $employee->id,
-            'worked_date' => $request->worked_date,
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-            'day_type' => $dayType,
-            'duration_type' => $durationType,
-            'hours_worked' => $hours,
-            'credit_days' => $creditDays,
-            'reason' => $request->reason,
-            'status' => 'Pending Manager Approval',
-        ]);
+        $createdClaims = [];
+        $skippedDates = [];
+        $duplicateDates = [];
 
-        \App\Services\NotificationService::notifyLieuClaimSubmitted($claim);
+        $curr = $startDate->copy();
+        while ($curr->lte($endDate)) {
+            $dateStr = $curr->toDateString();
+            $isWeekend = $curr->isWeekend();
+            $isHoliday = Holiday::whereDate('date', $dateStr)->exists();
 
-        return redirect()->back()->with('success', "Lieu Leave request submitted for {$hours} work hours! Sent to Manager for approval (+{$creditDays} day).");
+            if (!$isWeekend && !$isHoliday) {
+                $skippedDates[] = $dateStr;
+                $curr->addDay();
+                continue;
+            }
+
+            // Check duplicate active claims on same date
+            $existing = LieuLeaveClaim::where('employee_id', $employee->id)
+                ->whereDate('worked_date', $dateStr)
+                ->whereIn('status', ['Pending Manager Approval', 'Approved'])
+                ->first();
+
+            if ($existing) {
+                $duplicateDates[] = $dateStr;
+                $curr->addDay();
+                continue;
+            }
+
+            $dayType = $isHoliday ? 'Public Holiday' : 'Weekend';
+            $claimNumber = 'LI-' . $curr->format('Ymd') . '-' . strtoupper(Str::random(4));
+
+            $claim = LieuLeaveClaim::create([
+                'claim_number' => $claimNumber,
+                'employee_id' => $employee->id,
+                'worked_date' => $dateStr,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'day_type' => $dayType,
+                'duration_type' => $durationType,
+                'hours_worked' => $hoursPerDay,
+                'credit_days' => $creditPerDay,
+                'reason' => $request->reason,
+                'status' => 'Pending Manager Approval',
+            ]);
+
+            \App\Services\NotificationService::notifyLieuClaimSubmitted($claim);
+            $createdClaims[] = $claim;
+
+            $curr->addDay();
+        }
+
+        if (empty($createdClaims)) {
+            if (!empty($duplicateDates)) {
+                return redirect()->back()->withErrors([
+                    'worked_date' => 'A Lieu Leave request for the selected date(s) (' . implode(', ', $duplicateDates) . ') is already pending or approved.'
+                ]);
+            }
+            return redirect()->back()->withErrors([
+                'worked_date' => 'No eligible weekend or public holiday dates found in the selected date range. Lieu Leave can only be requested for work performed on weekends (Saturday/Sunday) or official public holidays.'
+            ]);
+        }
+
+        $totalCredit = count($createdClaims) * $creditPerDay;
+        $daysCount = count($createdClaims);
+        $daysLabel = $daysCount === 1 ? '1 date' : "{$daysCount} dates";
+
+        return redirect()->back()->with('success', "Lieu Leave request submitted for {$daysLabel} ({$hoursPerDay} hrs/day)! Sent to Manager for approval (+{$totalCredit} day(s) credit).");
     }
 
     public function storeCompanyLeave(Request $request)
