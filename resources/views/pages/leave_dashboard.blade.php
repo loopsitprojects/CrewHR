@@ -787,7 +787,7 @@
         
         <!-- 1. Annual Leave -->
         <div @click="openQuotaModal('ANNUAL', 'Annual Leave', 'plane', 'sky', {{ $annualData['total'] }}, {{ $annualData['used'] }}, {{ $annualData['available'] }}, {{ $annualData['cf'] }}, 'days')"
-             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-sky-300 dark:hover:border-sky-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-1">
+             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-sky-300 dark:hover:border-sky-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300 flex items-center justify-center shrink-0 border border-sky-100 dark:border-sky-500/30 shadow-2xs">
                     <i data-lucide="plane" class="w-4 h-4"></i>
@@ -815,7 +815,7 @@
 
         <!-- 2. Casual Leave -->
         <div @click="openQuotaModal('CASUAL', 'Casual Leave', 'calendar-check', 'purple', {{ $casualData['total'] }}, {{ $casualData['used'] }}, {{ $casualData['available'] }}, {{ $casualData['cf'] }}, 'days')"
-             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-purple-300 dark:hover:border-purple-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-1">
+             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-purple-300 dark:hover:border-purple-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-500/30 shadow-2xs">
                     <i data-lucide="calendar-check" class="w-4 h-4"></i>
@@ -843,7 +843,7 @@
 
         <!-- 3. Medical Leave -->
         <div @click="openQuotaModal('MEDICAL', 'Medical Leave', 'activity', 'emerald', {{ $medicalData['total'] }}, {{ $medicalData['used'] }}, {{ $medicalData['available'] }}, {{ $medicalData['cf'] }}, 'days')"
-             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-emerald-300 dark:hover:border-emerald-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-1">
+             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-emerald-300 dark:hover:border-emerald-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-500/30 shadow-2xs">
                     <i data-lucide="activity" class="w-4 h-4"></i>
@@ -871,7 +871,7 @@
 
         <!-- 4. Short Leave -->
         <div @click="openQuotaModal('SHORT', 'Short Leave', 'clock', 'amber', {{ $shortData['total'] }}, {{ $shortData['used'] }}, {{ $shortData['available'] }}, {{ $shortData['cf'] }}, 'per month')"
-             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-amber-300 dark:hover:border-amber-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-1">
+             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-amber-300 dark:hover:border-amber-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-500/30 shadow-2xs">
                     <i data-lucide="clock" class="w-4 h-4"></i>
@@ -899,7 +899,7 @@
 
         <!-- 5. Duty Leave -->
         <div @click="openQuotaModal('DUTY', 'Duty Leave', 'briefcase', 'indigo', {{ $dutyData['total'] }}, {{ $dutyData['used'] }}, {{ $dutyData['available'] }}, {{ $dutyData['cf'] }}, 'days')"
-             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-indigo-300 dark:hover:border-indigo-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-1">
+             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-indigo-300 dark:hover:border-indigo-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-500/30 shadow-2xs">
                     <i data-lucide="briefcase" class="w-4 h-4"></i>
@@ -927,7 +927,7 @@
 
         <!-- 6. Lieu Leave -->
         <div @click="openQuotaModal('LIEU', 'Lieu Leave', 'refresh-cw', 'teal', {{ $lieuData['total'] }}, {{ $lieuData['used'] }}, {{ $lieuData['available'] }}, {{ $lieuData['cf'] }}, 'days')"
-             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-teal-300 dark:hover:border-teal-700 flex flex-col justify-between transition-all duration-200 cursor-pointer hover:-translate-y-1">
+             class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-teal-300 dark:hover:border-teal-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-500/20 text-teal-600 dark:text-teal-300 flex items-center justify-center shrink-0 border border-teal-100 dark:border-teal-500/30 shadow-2xs">
                     <i data-lucide="refresh-cw" class="w-4 h-4"></i>
@@ -1009,7 +1009,11 @@
                 </div>
 
                 <!-- MODE 1: UNIFIED SAAS GRID VIEW -->
-                <div x-show="viewMode === 'grid'" class="mt-3.5">
+                <div x-show="viewMode === 'grid'" 
+                     x-transition:enter="transition ease-out duration-250 transform"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="mt-3.5">
                     <div class="border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-100/90 dark:bg-[#080d19] shadow-inner p-2.5">
                         <!-- Weekday Headers -->
                         <div class="grid grid-cols-7 mb-2 text-[11px] font-extrabold uppercase tracking-wider py-1 text-center select-none">
@@ -1104,7 +1108,12 @@
                 </div>
 
                 <!-- MODE 2: AGENDA / LIST VIEW -->
-                <div x-show="viewMode === 'agenda'" x-cloak class="mt-4 space-y-3">
+                <div x-show="viewMode === 'agenda'" 
+                     x-cloak 
+                     x-transition:enter="transition ease-out duration-250 transform"
+                     x-transition:enter-start="opacity-0 translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="mt-4 space-y-3">
                     <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Upcoming Holidays & Scheduled Events ({{ $selectedDate->format('F Y') }})</h3>
                     
                     <!-- Holidays List -->
@@ -1400,8 +1409,24 @@
 
 
     <!-- INTERACTIVE DAY DETAIL MODAL -->
-    <div x-show="dayModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div @click.away="dayModalOpen = false" class="bg-white dark:bg-[#161b22] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 border border-slate-100 dark:border-[#30363d]">
+    <div x-show="dayModalOpen" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @keydown.escape.window="dayModalOpen = false">
+        <div @click.away="dayModalOpen = false" 
+             class="bg-white dark:bg-[#161b22] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 border border-slate-100 dark:border-[#30363d]"
+             x-transition:enter="transition cubic-bezier(0.16, 1, 0.3, 1) duration-300 transform"
+             x-transition:enter-start="opacity-0 scale-95 translate-y-3"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200 transform"
+             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+             x-transition:leave-end="opacity-0 scale-95 translate-y-3">
             <template x-if="selectedDay">
                 <div class="space-y-4">
                     <div class="flex items-center justify-between border-b border-slate-100 dark:border-[#21262d] pb-3">
@@ -1507,9 +1532,24 @@
     </div>
 
     <!-- APPLY FOR LEAVE MODAL (COMPACT ADAPTIVE - NO SCROLLBAR) -->
-    <div x-show="applyLeaveModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md overflow-hidden">
+    <div x-show="applyLeaveModal" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @keydown.escape.window="applyLeaveModal = false">
         <div class="bg-white dark:bg-[#111622] text-slate-800 dark:text-slate-100 rounded-2xl max-w-5xl w-full p-4 sm:p-5 lg:p-6 shadow-2xl border border-slate-200/90 dark:border-slate-800 my-auto relative max-h-[96vh] flex flex-col overflow-hidden" 
-             @click.away="applyLeaveModal = false">
+             @click.away="applyLeaveModal = false"
+             x-transition:enter="transition cubic-bezier(0.16, 1, 0.3, 1) duration-300 transform"
+             x-transition:enter-start="opacity-0 scale-95 translate-y-3"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200 transform"
+             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+             x-transition:leave-end="opacity-0 scale-95 translate-y-3">
             
             <!-- Close Button Top Right -->
             <button @click="applyLeaveModal = false" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/60 z-20">
@@ -1561,7 +1601,7 @@
                                          :class="selectedLeaveTypeCode === item.code 
                                             ? 'bg-amber-500/10 border-amber-500 dark:border-amber-400/90 ring-1 ring-amber-500/40 dark:ring-amber-400/40 shadow-xs' 
                                             : 'bg-slate-50 hover:bg-slate-100/80 dark:bg-[#182030]/80 dark:hover:bg-[#1e283d] border-slate-200/90 hover:border-slate-300 dark:border-slate-800/80 dark:hover:border-slate-700'"
-                                         class="px-2.5 py-1.5 rounded-lg border text-left cursor-pointer transition-all flex flex-col justify-between min-h-[46px]">
+                                         class="px-2.5 py-1.5 rounded-lg border text-left cursor-pointer transition-all duration-200 ease-out hover:scale-[1.02] active:scale-[0.98] flex flex-col justify-between min-h-[46px]">
                                         <div class="flex items-center gap-1.5">
                                             <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="item.dotColor"></span>
                                             <span class="text-[11px] font-bold truncate leading-tight" :class="selectedLeaveTypeCode === item.code ? 'text-amber-900 dark:text-amber-300' : 'text-slate-800 dark:text-slate-200'" x-text="item.name"></span>
@@ -1875,8 +1915,24 @@
 
     <!-- Add Company Holiday Modal -->
     @if($canAddHoliday)
-    <div x-show="addCompanyLeaveModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-white dark:bg-[#161b22] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100 dark:border-[#30363d]" @click.away="addCompanyLeaveModal = false">
+    <div x-show="addCompanyLeaveModal" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @keydown.escape.window="addCompanyLeaveModal = false">
+        <div class="bg-white dark:bg-[#161b22] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100 dark:border-[#30363d]" 
+             @click.away="addCompanyLeaveModal = false"
+             x-transition:enter="transition cubic-bezier(0.16, 1, 0.3, 1) duration-300 transform"
+             x-transition:enter-start="opacity-0 scale-95 translate-y-3"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200 transform"
+             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+             x-transition:leave-end="opacity-0 scale-95 translate-y-3">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-[#21262d] pb-3">
                 <h3 class="text-sm font-black text-slate-900 dark:text-slate-100">Add Holiday</h3>
                 <button @click="addCompanyLeaveModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph ph-x text-base"></i></button>
@@ -1920,9 +1976,24 @@
     @endif
 
     <!-- QUOTA BREAKDOWN & USAGE HISTORY MODAL -->
-    <div x-show="quotaModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div x-show="quotaModalOpen" 
+         x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @keydown.escape.window="quotaModalOpen = false">
         <div @click.away="quotaModalOpen = false" 
-             class="bg-white dark:bg-[#161b22] rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-[#30363d] space-y-5 transform transition-all overflow-hidden flex flex-col max-h-[90vh]">
+             class="bg-white dark:bg-[#161b22] rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-[#30363d] space-y-5 overflow-hidden flex flex-col max-h-[90vh]"
+             x-transition:enter="transition cubic-bezier(0.16, 1, 0.3, 1) duration-300 transform"
+             x-transition:enter-start="opacity-0 scale-95 translate-y-3"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200 transform"
+             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+             x-transition:leave-end="opacity-0 scale-95 translate-y-3">
             
             <!-- Modal Header -->
             <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-[#21262d] shrink-0">
@@ -2053,11 +2124,23 @@
     <!-- REQUEST LIEU LEAVE MODAL -->
     <div x-show="lieuClaimModalOpen" 
          x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 dark:bg-black/80 backdrop-blur-md transition-opacity overflow-hidden"
+         class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
          @keydown.escape.window="lieuClaimModalOpen = false">
         
         <div @click.away="lieuClaimModalOpen = false" 
-             class="bg-white dark:bg-[#111927] rounded-2xl max-w-lg w-full border border-slate-200/90 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+             class="bg-white dark:bg-[#111927] rounded-2xl max-w-lg w-full border border-slate-200/90 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+             x-transition:enter="transition cubic-bezier(0.16, 1, 0.3, 1) duration-300 transform"
+             x-transition:enter-start="opacity-0 scale-95 translate-y-3"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200 transform"
+             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+             x-transition:leave-end="opacity-0 scale-95 translate-y-3">
             
             <!-- Modal Header -->
             <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between shrink-0 bg-white dark:bg-[#111927]">
