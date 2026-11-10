@@ -74,6 +74,9 @@
       }"
       x-init="if (theme === 'dark') document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark');">
 
+<!-- Top Navigation & Page Loading Progress Indicator -->
+<div id="top-progress-bar" aria-hidden="true"></div>
+
 <div class="h-screen flex overflow-hidden">
 
     <!-- Collapsible Sidebar with Lucide Icons (Dual Theme: Light & Dark Mode Support) -->
@@ -635,8 +638,8 @@
             </div>
         @endif
 
-        <!-- Main Content Body -->
-        <main class="flex-1 overflow-y-auto p-3.5 md:p-5 min-h-0 flex flex-col">
+        <!-- Main Content Body with Smooth Page Entrance -->
+        <main class="flex-1 overflow-y-auto p-3.5 md:p-5 min-h-0 flex flex-col page-enter">
             {{ $slot ?? '' }}
             @yield('content')
         </main>
@@ -644,11 +647,77 @@
 
 </div>
 
-<!-- Auto-initialize Lucide Icons -->
+<!-- Auto-initialize Lucide Icons & Top Progress Bar -->
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         if (window.lucide) { lucide.createIcons(); }
     });
+
+    // Smooth Top Navigation Progress Bar Driver
+    (function () {
+        const bar = document.getElementById('top-progress-bar');
+        if (!bar) return;
+
+        let timer = null;
+
+        function startProgress() {
+            if (timer) clearInterval(timer);
+            bar.style.opacity = '1';
+            bar.style.width = '20%';
+
+            let current = 20;
+            timer = setInterval(() => {
+                if (current < 85) {
+                    current += Math.random() * 12;
+                    bar.style.width = Math.min(current, 85) + '%';
+                }
+            }, 180);
+        }
+
+        function completeProgress() {
+            if (timer) clearInterval(timer);
+            bar.style.width = '100%';
+            setTimeout(() => {
+                bar.style.opacity = '0';
+                setTimeout(() => {
+                    bar.style.width = '0%';
+                }, 250);
+            }, 150);
+        }
+
+        // Complete when current page finishes loading or restores from cache
+        window.addEventListener('pageshow', () => {
+            completeProgress();
+        });
+
+        // Trigger on internal navigation link clicks
+        document.addEventListener('click', (e) => {
+            const anchor = e.target.closest('a');
+            if (!anchor) return;
+
+            const href = anchor.getAttribute('href');
+            const target = anchor.getAttribute('target');
+
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:') || target === '_blank' || e.ctrlKey || e.metaKey || e.shiftKey || anchor.hasAttribute('download')) {
+                return;
+            }
+
+            try {
+                const url = new URL(href, window.location.origin);
+                if (url.origin === window.location.origin && url.pathname !== window.location.pathname) {
+                    startProgress();
+                }
+            } catch (err) {}
+        });
+
+        // Trigger on non-ajax form submissions
+        document.addEventListener('submit', (e) => {
+            const form = e.target;
+            if (form && !form.hasAttribute('data-ajax') && !form.target) {
+                startProgress();
+            }
+        });
+    })();
 </script>
 
 </body>
