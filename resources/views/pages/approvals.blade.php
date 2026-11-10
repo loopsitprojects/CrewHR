@@ -184,7 +184,7 @@
                             <form action="{{ route('approvals.lieu-action', $claim->id) }}" method="POST" class="inline">
                                 @csrf
                                 <input type="hidden" name="action_type" value="approve">
-                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer">
+                                <button type="submit" class="btn-teal px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
                                     <i data-lucide="check" class="w-3.5 h-3.5 stroke-[2.5]"></i>
                                     Approve (+{{ (float)$claim->credit_days }}d)
                                 </button>
@@ -193,7 +193,7 @@
                             <form action="{{ route('approvals.lieu-action', $claim->id) }}" method="POST" onsubmit="return confirm('Reject this Lieu Leave claim?')" class="inline">
                                 @csrf
                                 <input type="hidden" name="action_type" value="reject">
-                                <button type="submit" class="bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 dark:text-slate-200 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700 hover:border-rose-300 dark:hover:border-rose-900/60 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer">
+                                <button type="submit" class="btn-secondary hover:text-rose-600 dark:hover:text-rose-400 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer">
                                     <i data-lucide="x" class="w-3.5 h-3.5"></i>
                                     Reject
                                 </button>
@@ -316,7 +316,7 @@
                             <form action="{{ route('approvals.action', $req->id) }}" method="POST" class="inline">
                                 @csrf
                                 <input type="hidden" name="action_type" value="manager_approve">
-                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer">
+                                <button type="submit" class="btn-teal px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer">
                                     <i data-lucide="check" class="w-3.5 h-3.5 stroke-[2.5]"></i>
                                     Approve
                                 </button>
@@ -325,7 +325,7 @@
                             <form action="{{ route('approvals.action', $req->id) }}" method="POST" onsubmit="return confirm('Reject this leave request?')" class="inline">
                                 @csrf
                                 <input type="hidden" name="action_type" value="reject_manager">
-                                <button type="submit" class="bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 dark:text-slate-200 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700 hover:border-rose-300 dark:hover:border-rose-900/60 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer">
+                                <button type="submit" class="btn-secondary hover:text-rose-600 dark:hover:text-rose-400 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer">
                                     <i data-lucide="x" class="w-3.5 h-3.5"></i>
                                     Reject
                                 </button>

@@ -4,13 +4,13 @@
 ])
 
 @php
-    $baseClasses = 'px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+    $baseClasses = 'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer focus:outline-none';
     
     $variants = [
-        'primary' => 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500',
-        'secondary' => 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-blue-500',
-        'danger' => 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
-        'ghost' => 'bg-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100 shadow-none border-transparent focus:ring-gray-500',
+        'primary' => 'btn-primary text-white font-extrabold shadow-md shadow-blue-600/30',
+        'secondary' => 'btn-secondary text-slate-700 dark:text-slate-200 font-bold',
+        'danger' => 'btn-rose text-white font-extrabold shadow-md shadow-rose-600/30',
+        'ghost' => 'bg-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 shadow-none border-transparent',
     ];
 
     $classes = $baseClasses . ' ' . $variants[$variant];
