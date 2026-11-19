@@ -8,6 +8,7 @@ use Modules\Leave\Models\Holiday;
 use Modules\Leave\Models\LeaveType;
 use Modules\Leave\Models\DayType;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 
 class SettingsController extends Controller
 {
@@ -307,6 +308,55 @@ class SettingsController extends Controller
             }
         }
 
+        if ($activeModule === 'general') {
+            $request->validate([
+                'app_logo' => 'nullable|file|mimes:png,jpg,jpeg,svg,webp|max:3072',
+                'app_logo_light' => 'nullable|file|mimes:png,jpg,jpeg,svg,webp|max:3072',
+                'app_icon' => 'nullable|file|mimes:png,jpg,jpeg,svg,webp,ico|max:1024',
+            ]);
+
+            $uploadPath = public_path('uploads/logos');
+            if (!File::exists($uploadPath)) {
+                File::makeDirectory($uploadPath, 0755, true);
+            }
+
+            // Primary App Logo (Dark sidebar & dark views)
+            if ($request->hasFile('app_logo')) {
+                $file = $request->file('app_logo');
+                $old = DB::table('settings')->where('key', 'app_logo')->value('value');
+                if ($old && File::exists(public_path($old))) {
+                    @unlink(public_path($old));
+                }
+                $filename = 'app_logo_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move($uploadPath, $filename);
+                DB::table('settings')->updateOrInsert(['key' => 'app_logo'], ['value' => 'uploads/logos/' . $filename, 'updated_at' => now()]);
+            }
+
+            // Light Mode Logo (Light backgrounds & PDF reports)
+            if ($request->hasFile('app_logo_light')) {
+                $file = $request->file('app_logo_light');
+                $old = DB::table('settings')->where('key', 'app_logo_light')->value('value');
+                if ($old && File::exists(public_path($old))) {
+                    @unlink(public_path($old));
+                }
+                $filename = 'app_logo_light_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move($uploadPath, $filename);
+                DB::table('settings')->updateOrInsert(['key' => 'app_logo_light'], ['value' => 'uploads/logos/' . $filename, 'updated_at' => now()]);
+            }
+
+            // App Icon / Favicon (Collapsed sidebar & browser tabs)
+            if ($request->hasFile('app_icon')) {
+                $file = $request->file('app_icon');
+                $old = DB::table('settings')->where('key', 'app_icon')->value('value');
+                if ($old && File::exists(public_path($old))) {
+                    @unlink(public_path($old));
+                }
+                $filename = 'app_icon_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $file->move($uploadPath, $filename);
+                DB::table('settings')->updateOrInsert(['key' => 'app_icon'], ['value' => 'uploads/logos/' . $filename, 'updated_at' => now()]);
+            }
+        }
+
         if ($activeModule === 'attendance') {
             foreach (['allow_remote_clock_in', 'require_geolocation', 'auto_overtime_calculation'] as $cbKey) {
                 $val = $request->has($cbKey) ? '1' : '0';
@@ -391,6 +441,46 @@ class SettingsController extends Controller
         session(['current_role' => $role]);
 
         return redirect()->back()->with('success', "Role switched to {$role}!");
+    }
+
+    public function resetLogo(Request $request)
+    {
+        $this->authorizeAdminOrHr();
+
+        $type = $request->input('type', 'dark');
+
+        if ($type === 'dark' || $type === 'all') {
+            $old = DB::table('settings')->where('key', 'app_logo')->value('value');
+            if ($old && File::exists(public_path($old))) {
+                @unlink(public_path($old));
+            }
+            DB::table('settings')->where('key', 'app_logo')->delete();
+        }
+
+        if ($type === 'light' || $type === 'all') {
+            $old = DB::table('settings')->where('key', 'app_logo_light')->value('value');
+            if ($old && File::exists(public_path($old))) {
+                @unlink(public_path($old));
+            }
+            DB::table('settings')->where('key', 'app_logo_light')->delete();
+        }
+
+        if ($type === 'icon' || $type === 'all') {
+            $old = DB::table('settings')->where('key', 'app_icon')->value('value');
+            if ($old && File::exists(public_path($old))) {
+                @unlink(public_path($old));
+            }
+            DB::table('settings')->where('key', 'app_icon')->delete();
+        }
+
+        $label = match($type) {
+            'light' => 'Light mode logo',
+            'icon' => 'App icon',
+            'all' => 'All branding logos',
+            default => 'Primary app logo',
+        };
+
+        return redirect()->route('settings.index', ['module' => 'general'])->with('success', "{$label} reset to system default successfully!");
     }
 
     private function authorizeAdminOrHr()

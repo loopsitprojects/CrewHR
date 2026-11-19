@@ -16,9 +16,9 @@
         </script>
 
         <!-- Favicon & Icons -->
-        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-        <link rel="icon" type="image/png" href="{{ asset('loops-icon.png') }}">
-        <link rel="apple-touch-icon" href="{{ asset('loops-icon.png') }}">
+        <link rel="icon" type="image/x-icon" href="{{ app_icon() }}">
+        <link rel="icon" type="image/png" href="{{ app_icon() }}">
+        <link rel="apple-touch-icon" href="{{ app_icon() }}">
 
         <!-- Fonts: Plus Jakarta Sans -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -75,14 +75,14 @@
                     <a href="/" class="inline-flex items-center justify-center group transition-transform duration-200 hover:scale-105">
                         <!-- Dark Mode Logo -->
                         <img x-show="theme === 'dark'" 
-                             src="{{ asset('LoopsWhite.png') }}" 
+                             src="{{ app_logo('dark') }}" 
                              class="h-10 sm:h-11 w-auto object-contain mx-auto" 
-                             alt="Loops HR Logo">
+                             alt="{{ app_setting('company_name', 'Loops HR') }} Logo">
                         <!-- Light Mode Logo -->
                         <img x-show="theme !== 'dark'" 
-                             src="{{ asset('LoopsBlack.png') }}" 
+                             src="{{ app_logo('light') }}" 
                              class="h-10 sm:h-11 w-auto object-contain mx-auto" 
-                             alt="Loops HR Logo">
+                             alt="{{ app_setting('company_name', 'Loops HR') }} Logo">
                     </a>
                 </div>
 

@@ -41,6 +41,23 @@
         </div>
     @endif
 
+    @if($errors->any())
+        <div class="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-300 rounded-2xl text-xs font-bold space-y-1 shadow-xs">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="ph ph-warning-circle text-base text-rose-600 dark:text-rose-400"></i>
+                    <span>Please correct the following errors:</span>
+                </div>
+                <button @click="$el.parentElement.remove()" class="text-rose-600 dark:text-rose-400 hover:opacity-75"><i class="ph ph-x text-sm"></i></button>
+            </div>
+            <ul class="list-disc list-inside pl-4 text-[11px] font-medium space-y-0.5">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <!-- MODULE SELECTOR CARDS GRID -->
     <div class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] space-y-3">
         <div class="px-1 flex items-center justify-between">

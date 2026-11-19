@@ -16,9 +16,9 @@
     </script>
 
     <!-- Favicon & Icons -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="icon" type="image/png" href="{{ asset('loops-icon.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('loops-icon.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ app_icon() }}">
+    <link rel="icon" type="image/png" href="{{ app_icon() }}">
+    <link rel="apple-touch-icon" href="{{ app_icon() }}">
 
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -96,15 +96,15 @@
                    title="Go to Home Dashboard">
                     <!-- Collapsed Mode: Icon Only -->
                     <img x-show="sidebarCollapsed" 
-                         src="{{ asset('loops-icon.png') }}" 
+                         src="{{ app_icon() }}" 
                          class="w-8 h-8 rounded-xl object-contain shrink-0 group-hover:scale-105 transition-all mx-auto shadow-sm" 
-                         alt="Loops HR Icon">
+                         alt="{{ app_setting('company_name', 'Loops HR') }} Icon">
 
-                    <!-- Expanded Mode: Loops Brand Logo -->
+                    <!-- Expanded Mode: Brand Logo -->
                     <div x-show="!sidebarCollapsed" class="flex items-center justify-center w-full">
-                        <img src="{{ asset('LoopsWhite.png') }}" 
+                        <img src="{{ app_logo('dark') }}" 
                              class="h-9 w-auto max-w-[190px] object-contain shrink-0 group-hover:scale-105 transition-all mx-auto" 
-                             alt="Loops HR Logo">
+                             alt="{{ app_setting('company_name', 'Loops HR') }} Logo">
                     </div>
                 </a>
             </div>
