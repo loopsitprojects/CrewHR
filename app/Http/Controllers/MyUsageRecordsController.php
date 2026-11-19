@@ -1,0 +1,693 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Modules\Leave\Models\LeaveRequest;
+use Modules\Leave\Models\LeaveType;
+use Modules\Leave\Models\EmployeeLeaveBalance;
+use Modules\Employee\Models\Employee;
+use Modules\Employee\Models\Department;
+use Modules\Leave\Services\LeavePolicyService;
+use Carbon\Carbon;
+
+class MyUsageRecordsController extends Controller
+{
+    protected LeavePolicyService $leavePolicyService;
+
+    public function __construct(LeavePolicyService $leavePolicyService)
+    {
+        $this->leavePolicyService = $leavePolicyService;
+    }
+
+    public function index(Request $request)
+    {
+        $timezone = 'Asia/Colombo';
+        $now = Carbon::now($timezone);
+        $user = auth()->user();
+        $loggedEmployee = $user ? (Employee::where('user_id', $user->id)->first() ?? Employee::first()) : Employee::first();
+
+        // Standardized Role Mapping
+        $sessionRole = session('current_role');
+        $rawRole = $sessionRole ?? ($loggedEmployee->system_role ?? 'Employee');
+        $role = match($rawRole) {
+            'Super (Admin)', 'Super Admin' => 'Super (Admin)',
+            'HR Lead', 'HR', 'Admin' => 'HR Lead',
+            'Manager (Team Approvals)', 'HOD / Manager', 'Manager' => 'HOD / Manager',
+            default => 'Employee',
+        };
+
+        $isSuperAdmin = $role === 'Super (Admin)';
+        $isHrLead = $role === 'HR Lead';
+        $isManager = $role === 'HOD / Manager';
+        $isEmployee = $role === 'Employee';
+
+        // Manager's Team Subordinates (reports_to or same department)
+        $managerTeamIds = [];
+        if ($isManager && $loggedEmployee) {
+            $managerTeamIds = Employee::query()
+                ->where(function($q) use ($loggedEmployee) {
+                    $q->where('reporting_person_id', $loggedEmployee->id);
+                    if ($loggedEmployee->department_id) {
+                        $q->orWhere('department_id', $loggedEmployee->department_id);
+                    }
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (!in_array($loggedEmployee->id, $managerTeamIds)) {
+                $managerTeamIds[] = $loggedEmployee->id;
+            }
+        }
+
+        // Dropdown Selectable Employees based on Role
+        $selectableEmployees = collect([]);
+        if ($isSuperAdmin || $isHrLead) {
+            $selectableEmployees = Employee::with(['user', 'department', 'designation'])
+                ->get()
+                ->sortBy(fn($e) => $e->user->name ?? '', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values();
+        } elseif ($isManager) {
+            $selectableEmployees = Employee::with(['user', 'department', 'designation'])
+                ->whereIn('id', $managerTeamIds)
+                ->get()
+                ->sortBy(fn($e) => $e->user->name ?? '', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values();
+        }
+
+        // Scope Resolution:
+        // Employee: strictly 'my'
+        // Admin / HR: default 'all', can switch to 'my' or choose specific 'employee'
+        // Manager: default 'team', can switch to 'my' or choose specific 'employee'
+        if ($isEmployee) {
+            $scope = 'my';
+        } else {
+            $scope = $request->query('scope');
+            if (!$scope) {
+                if ($isSuperAdmin || $isHrLead) {
+                    $scope = 'all';
+                } elseif ($isManager) {
+                    $scope = 'team';
+                } else {
+                    $scope = 'my';
+                }
+            } elseif ($scope === 'employee') {
+                $scope = $isManager ? 'team' : 'all';
+            }
+
+            // Security guardrails against tampering
+            if ($scope === 'all' && !$isSuperAdmin && !$isHrLead) {
+                $scope = $isManager ? 'team' : 'my';
+            }
+            if ($scope === 'team' && !$isManager && !$isSuperAdmin && !$isHrLead) {
+                $scope = 'my';
+            }
+        }
+
+        // Target Employee Selection
+        $targetEmployeeId = $request->query('employee_id');
+        $targetEmployee = null;
+
+        if ($scope === 'my') {
+            $targetEmployee = $loggedEmployee;
+        } elseif ($targetEmployeeId) {
+            if ($isSuperAdmin || $isHrLead) {
+                $targetEmployee = Employee::with(['user', 'department', 'designation'])->find($targetEmployeeId);
+            } elseif ($isManager && in_array((int)$targetEmployeeId, $managerTeamIds)) {
+                $targetEmployee = Employee::with(['user', 'department', 'designation'])->find($targetEmployeeId);
+            }
+        }
+
+        // Determine which employee IDs are in scope for queries
+        $departmentId = $request->query('department_id');
+        if ($scope === 'my') {
+            $scopeEmployeeIds = [$loggedEmployee->id ?? 1];
+        } elseif ($scope === 'team') {
+            $scopeEmployeeIds = $managerTeamIds;
+        } else {
+            // 'all'
+            if ($departmentId) {
+                $scopeEmployeeIds = Employee::where('department_id', $departmentId)->pluck('id')->toArray();
+            } else {
+                $scopeEmployeeIds = Employee::pluck('id')->toArray();
+            }
+        }
+
+        $isIndividualView = ($scope === 'my');
+
+        // Date & Filter parameters
+        $currentMonth = $now->month;
+        $currentYear = $now->year;
+
+        $year = (int)$request->query('year', $currentYear);
+        $status = $request->query('status', 'all');
+        $leaveTypeId = $request->query('leave_type_id');
+        $period = $request->query('period');
+        $search = $request->query('search');
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        // Month filter: defaults to current month unless explicitly filtered
+        if ($request->has('month')) {
+            $month = $request->query('month');
+        } elseif ($period) {
+            $month = $period;
+        } elseif ($startDate || $endDate) {
+            $month = 'all';
+        } else {
+            $month = (string)$currentMonth;
+        }
+
+        // Ensure Leave Balances exist
+        if ($targetEmployee) {
+            $this->ensureEmployeeLeaveBalances($targetEmployee, $year);
+        }
+
+        // Active Leave Types
+        $activeLeaveTypes = LeaveType::where('is_active', true)->orderBy('id')->get();
+        $summaryCards = [];
+        $totalEligibleDays = 0;
+        $totalDaysTaken = 0;
+
+        if ($targetEmployee) {
+            // Individual Balances
+            $leaveBalances = EmployeeLeaveBalance::with('leaveType')
+                ->where('employee_id', $targetEmployee->id)
+                ->where('year', $year)
+                ->whereHas('leaveType', fn($q) => $q->where('is_active', true))
+                ->get();
+
+            $balancesByCode = $leaveBalances->keyBy(fn($b) => strtoupper($b->leaveType->code ?? ''));
+
+            $monthlyShortLeavesUsed = LeaveRequest::where('employee_id', $targetEmployee->id)
+                ->where(function($q) {
+                    $q->where('is_short_leave', true)
+                      ->orWhereHas('leaveType', fn($t) => $t->where('code', 'SHORT'));
+                })
+                ->whereYear('start_date', $year)
+                ->whereMonth('start_date', $currentMonth)
+                ->whereNotIn('status', ['Rejected', 'Canceled', 'Cancelled'])
+                ->count();
+
+            foreach ($activeLeaveTypes as $lt) {
+                $code = strtoupper($lt->code ?? '');
+                if (in_array($code, ['HALF', 'HALF_DAY'])) continue;
+
+                $bal = $balancesByCode->get($code);
+                $theme = $this->getThemeForCode($code);
+                $icon = $this->getIconForCode($code);
+
+                if ($code === 'SHORT') {
+                    $eligibleNum = 2;
+                    $takenNum = $monthlyShortLeavesUsed;
+                    $balanceNum = max(0, 2 - $takenNum);
+                    $unit = 'Slots';
+                    $eligibleLabel = '2 per Month';
+                    $conditionBadge = '2 per Month';
+                    $pctUsed = min(100, round(($takenNum / 2) * 100));
+                } elseif ($code === 'NIGHT_SHIFT_RECOVERY') {
+                    $allocated = (float)($bal->allocated ?? 0);
+                    $eligibleNum = $allocated;
+                    $takenNum = (float)($bal->used ?? 0);
+                    $balanceNum = max(0, $eligibleNum - $takenNum);
+                    $unit = 'Days';
+                    $eligibleLabel = $eligibleNum . ' Days';
+                    $conditionBadge = 'Shift Rule Concession';
+                    $pctUsed = $eligibleNum > 0 ? min(100, round(($takenNum / $eligibleNum) * 100)) : 0;
+                } else {
+                    $allocated = (float)($bal->allocated ?? $lt->days ?? 0);
+                    $cf = (float)($bal->carried_forward ?? 0);
+                    $eligibleNum = $allocated + $cf;
+                    $takenNum = (float)($bal->used ?? 0);
+                    $balanceNum = max(0, $eligibleNum - $takenNum);
+                    $unit = 'Days';
+                    $eligibleLabel = $eligibleNum . ' Days';
+                    $conditionBadge = $cf > 0 ? "+{$cf} Carry Forward Included" : ($code === 'LIEU' ? 'Claim-Based' : ($code === 'DUTY' ? 'Max 30 Days' : null));
+                    $pctUsed = $eligibleNum > 0 ? min(100, round(($takenNum / $eligibleNum) * 100)) : 0;
+
+                    if (!in_array($code, ['DUTY', 'NO_PAY'])) {
+                        $totalEligibleDays += $eligibleNum;
+                        $totalDaysTaken += $takenNum;
+                    }
+                }
+
+                $pctLeft = max(0, 100 - $pctUsed);
+
+                $summaryCards[] = [
+                    'id' => $lt->id,
+                    'name' => $lt->name,
+                    'code' => $code,
+                    'icon' => $icon,
+                    'theme' => $theme,
+                    'eligible_num' => $eligibleNum,
+                    'eligible_label' => $eligibleLabel,
+                    'taken_num' => $takenNum,
+                    'taken_label' => $takenNum . ' ' . $unit,
+                    'balance_num' => $balanceNum,
+                    'balance_label' => $balanceNum . ' ' . $unit,
+                    'unit' => $unit,
+                    'pct_used' => $pctUsed,
+                    'pct_left' => $pctLeft,
+                    'badge' => $conditionBadge,
+                ];
+            }
+        } else {
+            // Organization / Team Aggregate Balances Pool
+            $leaveBalances = EmployeeLeaveBalance::with('leaveType')
+                ->whereIn('employee_id', $scopeEmployeeIds)
+                ->where('year', $year)
+                ->whereHas('leaveType', fn($q) => $q->where('is_active', true))
+                ->get();
+
+            $balancesGrouped = $leaveBalances->groupBy(fn($b) => strtoupper($b->leaveType->code ?? ''));
+
+            foreach ($activeLeaveTypes as $lt) {
+                $code = strtoupper($lt->code ?? '');
+                if (in_array($code, ['HALF', 'HALF_DAY'])) continue;
+
+                $group = $balancesGrouped->get($code, collect([]));
+                $theme = $this->getThemeForCode($code);
+                $icon = $this->getIconForCode($code);
+
+                $allocatedSum = $group->sum(fn($b) => (float)($b->allocated ?? 0) + (float)($b->carried_forward ?? 0));
+                $takenSum = $group->sum(fn($b) => (float)($b->used ?? 0));
+                $balanceSum = max(0, $allocatedSum - $takenSum);
+                $unit = $code === 'SHORT' ? 'Slots' : 'Days';
+                $pctUsed = $allocatedSum > 0 ? min(100, round(($takenSum / $allocatedSum) * 100)) : 0;
+                $pctLeft = max(0, 100 - $pctUsed);
+
+                if (!in_array($code, ['DUTY', 'NO_PAY', 'SHORT'])) {
+                    $totalEligibleDays += $allocatedSum;
+                    $totalDaysTaken += $takenSum;
+                }
+
+                $summaryCards[] = [
+                    'id' => $lt->id,
+                    'name' => $lt->name,
+                    'code' => $code,
+                    'icon' => $icon,
+                    'theme' => $theme,
+                    'eligible_num' => $allocatedSum,
+                    'eligible_label' => $allocatedSum . ' ' . $unit,
+                    'taken_num' => $takenSum,
+                    'taken_label' => $takenSum . ' ' . $unit,
+                    'balance_num' => $balanceSum,
+                    'balance_label' => $balanceSum . ' ' . $unit,
+                    'unit' => $unit,
+                    'pct_used' => $pctUsed,
+                    'pct_left' => $pctLeft,
+                    'badge' => count($scopeEmployeeIds) . ' Employees in Scope',
+                ];
+            }
+        }
+
+        // Individual Employee Balances for Multi-Employee Scope (Team, Dept, All)
+        $employeeBalancesList = [];
+        if (!$isIndividualView) {
+            $scopeEmployees = Employee::with(['user', 'department', 'designation'])
+                ->whereIn('id', $scopeEmployeeIds)
+                ->get()
+                ->sortBy(fn($e) => $e->user->name ?? '', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values();
+
+            foreach ($scopeEmployees as $emp) {
+                $this->ensureEmployeeLeaveBalances($emp, $year);
+                $emp->load(['leaveBalances' => fn($q) => $q->where('year', $year)->with('leaveType')]);
+
+                $empBalances = $emp->leaveBalances->keyBy(fn($b) => strtoupper($b->leaveType->code ?? ''));
+
+                $annualBal = $empBalances->get('ANNUAL');
+                $annualAlloc = (float)($annualBal->allocated ?? 0) + (float)($annualBal->carried_forward ?? 0);
+                $annualTaken = (float)($annualBal->used ?? 0);
+                $annualRem = max(0, $annualAlloc - $annualTaken);
+
+                $casualBal = $empBalances->get('CASUAL');
+                $casualAlloc = (float)($casualBal->allocated ?? 0);
+                $casualTaken = (float)($casualBal->used ?? 0);
+                $casualRem = max(0, $casualAlloc - $casualTaken);
+
+                $medicalBal = $empBalances->get('MEDICAL');
+                $medicalAlloc = (float)($medicalBal->allocated ?? 0);
+                $medicalTaken = (float)($medicalBal->used ?? 0);
+                $medicalRem = max(0, $medicalAlloc - $medicalTaken);
+
+                $shortTaken = LeaveRequest::where('employee_id', $emp->id)
+                    ->where(function($q) {
+                        $q->where('is_short_leave', true)
+                          ->orWhereHas('leaveType', fn($lt) => $lt->where('code', 'SHORT'));
+                    })
+                    ->whereYear('start_date', $year)
+                    ->whereMonth('start_date', $month === 'all' || !is_numeric($month) ? $currentMonth : (int)$month)
+                    ->whereIn('status', ['Approved', 'HR Approved', 'Pending', 'Pending Manager Approval'])
+                    ->count();
+                $shortRem = max(0, 2 - $shortTaken);
+
+                $totalTaken = $annualTaken + $casualTaken + $medicalTaken;
+                $netBalance = $annualRem + $casualRem + $medicalRem;
+                $isSelected = ($targetEmployee && $emp->id === $targetEmployee->id);
+
+                $employeeBalancesList[] = [
+                    'id' => $emp->id,
+                    'name' => $emp->user->name ?? ($emp->first_name . ' ' . $emp->last_name),
+                    'emp_id' => $emp->employee_id_number ?? ('EMP-' . $emp->id),
+                    'department' => $emp->department->name ?? 'Staff',
+                    'designation' => $emp->designation->name ?? '',
+                    'initial' => strtoupper(substr($emp->user->name ?? $emp->first_name ?? 'E', 0, 1)),
+                    'profile_picture' => $emp->profile_picture,
+                    'username' => $emp->user->username ?? '',
+                    'annual' => ['alloc' => $annualAlloc, 'taken' => $annualTaken, 'rem' => $annualRem],
+                    'casual' => ['alloc' => $casualAlloc, 'taken' => $casualTaken, 'rem' => $casualRem],
+                    'medical' => ['alloc' => $medicalAlloc, 'taken' => $medicalTaken, 'rem' => $medicalRem],
+                    'short' => ['taken' => $shortTaken, 'rem' => $shortRem],
+                    'total_taken' => $totalTaken,
+                    'net_balance' => $netBalance,
+                    'is_selected' => $isSelected,
+                    'inspect_url' => route('my-usage-records.index', array_filter([
+                        'scope' => $scope,
+                        'employee_id' => $isSelected ? null : $emp->id,
+                        'department_id' => $departmentId,
+                        'year' => $year,
+                        'month' => $month,
+                        'status' => $status
+                    ]))
+                ];
+            }
+        }
+
+        // Leave Usage Records Query
+        $usageQuery = LeaveRequest::with(['leaveType', 'coveringEmployee.user', 'employee.user', 'employee.department', 'employee.designation']);
+
+        if ($targetEmployee) {
+            $usageQuery->where('employee_id', $targetEmployee->id);
+        } else {
+            $usageQuery->whereIn('employee_id', $scopeEmployeeIds);
+            if ($departmentId) {
+                $usageQuery->whereHas('employee', fn($eq) => $eq->where('department_id', $departmentId));
+            }
+        }
+
+        // Date Filtering
+        if ($startDate && $endDate) {
+            $usageQuery->where(function($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate, $endDate])
+                  ->orWhereBetween('end_date', [$startDate, $endDate])
+                  ->orWhere(function($sub) use ($startDate, $endDate) {
+                      $sub->where('start_date', '<=', $startDate)
+                          ->where('end_date', '>=', $endDate);
+                  });
+            });
+        } elseif ($startDate) {
+            $usageQuery->where('start_date', '>=', $startDate);
+        } elseif ($endDate) {
+            $usageQuery->where('start_date', '<=', $endDate);
+        } else {
+            if ($year) {
+                $usageQuery->whereYear('start_date', $year);
+            }
+            if ($month && $month !== 'all' && is_numeric($month)) {
+                $usageQuery->whereMonth('start_date', (int)$month);
+            }
+        }
+
+        if ($leaveTypeId) {
+            $usageQuery->where('leave_type_id', $leaveTypeId);
+        }
+
+        if ($search) {
+            $usageQuery->where(function ($q) use ($search) {
+                $q->where('req_number', 'like', "%{$search}%")
+                  ->orWhere('reason', 'like', "%{$search}%")
+                  ->orWhere('project_client_name', 'like', "%{$search}%")
+                  ->orWhereHas('employee.user', fn($uq) => $uq->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('coveringEmployee.user', fn($uq) => $uq->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('leaveType', fn($tq) => $tq->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($status === 'approved') {
+            $usageQuery->where(function($q) {
+                $q->where('status', 'Approved')
+                  ->orWhere('manager_status', 'Approved');
+            });
+        } elseif ($status === 'pending') {
+            $usageQuery->where(function($q) {
+                $q->whereIn('status', ['Pending', 'Pending Covering Approval', 'Pending Manager Approval', 'Step 2: Pending HR Admin'])
+                  ->orWhere('manager_status', 'Pending');
+            });
+        } elseif ($status === 'rejected') {
+            $usageQuery->where(function($q) {
+                $q->where('status', 'Rejected')
+                  ->orWhere('manager_status', 'Rejected')
+                  ->orWhere('covering_status', 'Rejected');
+            });
+        } elseif ($status === 'canceled') {
+            $usageQuery->whereIn('status', ['Canceled', 'Cancelled']);
+        }
+
+        $usageRecords = $usageQuery->latest('start_date')->get();
+
+        // Count queries for status tabs
+        $baseCountQuery = LeaveRequest::query();
+        if ($targetEmployee) {
+            $baseCountQuery->where('employee_id', $targetEmployee->id);
+        } else {
+            $baseCountQuery->whereIn('employee_id', $scopeEmployeeIds);
+            if ($departmentId) {
+                $baseCountQuery->whereHas('employee', fn($eq) => $eq->where('department_id', $departmentId));
+            }
+        }
+
+        if ($startDate && $endDate) {
+            $baseCountQuery->where(function($q) use ($startDate, $endDate) {
+                $q->whereBetween('start_date', [$startDate, $endDate])
+                  ->orWhereBetween('end_date', [$startDate, $endDate])
+                  ->orWhere(function($sub) use ($startDate, $endDate) {
+                      $sub->where('start_date', '<=', $startDate)
+                          ->where('end_date', '>=', $endDate);
+                  });
+            });
+        } elseif ($startDate) {
+            $baseCountQuery->where('start_date', '>=', $startDate);
+        } elseif ($endDate) {
+            $baseCountQuery->where('start_date', '<=', $endDate);
+        } else {
+            if ($year) {
+                $baseCountQuery->whereYear('start_date', $year);
+            }
+            if ($month && $month !== 'all' && is_numeric($month)) {
+                $baseCountQuery->whereMonth('start_date', (int)$month);
+            }
+        }
+
+        if ($leaveTypeId) {
+            $baseCountQuery->where('leave_type_id', $leaveTypeId);
+        }
+        if ($search) {
+            $baseCountQuery->where(function ($q) use ($search) {
+                $q->where('req_number', 'like', "%{$search}%")
+                  ->orWhere('reason', 'like', "%{$search}%")
+                  ->orWhere('project_client_name', 'like', "%{$search}%")
+                  ->orWhereHas('employee.user', fn($uq) => $uq->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('coveringEmployee.user', fn($uq) => $uq->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('leaveType', fn($tq) => $tq->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"));
+            });
+        }
+
+        $counts = [
+            'all' => (clone $baseCountQuery)->count(),
+            'approved' => (clone $baseCountQuery)->where(function($q) {
+                $q->where('status', 'Approved')->orWhere('manager_status', 'Approved');
+            })->count(),
+            'pending' => (clone $baseCountQuery)->where(function($q) {
+                $q->whereIn('status', ['Pending', 'Pending Covering Approval', 'Pending Manager Approval', 'Step 2: Pending HR Admin'])
+                  ->orWhere('manager_status', 'Pending');
+            })->count(),
+            'rejected' => (clone $baseCountQuery)->where(function($q) {
+                $q->where('status', 'Rejected')->orWhere('manager_status', 'Rejected')->orWhere('covering_status', 'Rejected');
+            })->count(),
+            'canceled' => (clone $baseCountQuery)->whereIn('status', ['Canceled', 'Cancelled'])->count(),
+        ];
+
+        // Header Metrics
+        $pendingApprovalsCount = LeaveRequest::whereIn('employee_id', $targetEmployee ? [$targetEmployee->id] : $scopeEmployeeIds)
+            ->where(function($q) {
+                $q->whereIn('status', ['Pending', 'Pending Covering Approval', 'Pending Manager Approval', 'Step 2: Pending HR Admin'])
+                  ->orWhere('manager_status', 'Pending');
+            })->count();
+
+        $totalBalanceDays = max(0, $totalEligibleDays - $totalDaysTaken);
+
+        // List of colleagues for Covering Person dropdown
+        $colleagues = Employee::with('user')
+            ->where('id', '!=', $loggedEmployee->id ?? 0)
+            ->get()
+            ->sortBy(fn($e) => $e->user->name ?? '');
+
+        // Departments for filtering
+        $departments = Department::orderBy('name')->get()->unique('name');
+
+        $yearsList = range($now->year - 2, $now->year + 1);
+        $monthsList = [
+            'all' => 'All Months',
+            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+        ];
+        $periodsList = [
+            'all' => 'All Periods',
+            'q1' => 'Q1 (Jan – Mar)',
+            'q2' => 'Q2 (Apr – Jun)',
+            'q3' => 'Q3 (Jul – Sep)',
+            'q4' => 'Q4 (Oct – Dec)',
+            1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+            5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+            9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
+        ];
+
+        return view('pages.my_usage_records', compact(
+            'loggedEmployee',
+            'targetEmployee',
+            'role',
+            'isSuperAdmin',
+            'isHrLead',
+            'isManager',
+            'isEmployee',
+            'scope',
+            'isIndividualView',
+            'selectableEmployees',
+            'departments',
+            'departmentId',
+            'summaryCards',
+            'usageRecords',
+            'counts',
+            'status',
+            'year',
+            'month',
+            'period',
+            'startDate',
+            'endDate',
+            'currentMonth',
+            'currentYear',
+            'leaveTypeId',
+            'search',
+            'yearsList',
+            'monthsList',
+            'periodsList',
+            'activeLeaveTypes',
+            'colleagues',
+            'totalEligibleDays',
+            'totalDaysTaken',
+            'totalBalanceDays',
+            'pendingApprovalsCount',
+            'scopeEmployeeIds',
+            'employeeBalancesList'
+        ));
+    }
+
+    private function getThemeForCode(string $code): array
+    {
+        return match($code) {
+            'ANNUAL' => [
+                'accent' => 'emerald',
+                'border' => 'border-emerald-200 dark:border-emerald-800/80',
+                'hover' => 'hover:border-emerald-400 dark:hover:border-emerald-600',
+                'badge' => 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
+                'bar' => 'bg-emerald-500',
+                'bar_bg' => 'bg-emerald-100 dark:bg-emerald-950',
+                'icon_bg' => 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
+            ],
+            'CASUAL' => [
+                'accent' => 'purple',
+                'border' => 'border-purple-200 dark:border-purple-800/80',
+                'hover' => 'hover:border-purple-400 dark:hover:border-purple-600',
+                'badge' => 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
+                'bar' => 'bg-purple-500',
+                'bar_bg' => 'bg-purple-100 dark:bg-purple-950',
+                'icon_bg' => 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-500/20'
+            ],
+            'MEDICAL' => [
+                'accent' => 'rose',
+                'border' => 'border-rose-200 dark:border-rose-800/80',
+                'hover' => 'hover:border-rose-400 dark:hover:border-rose-600',
+                'badge' => 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800',
+                'bar' => 'bg-rose-500',
+                'bar_bg' => 'bg-rose-100 dark:bg-rose-950',
+                'icon_bg' => 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20'
+            ],
+            'SHORT' => [
+                'accent' => 'amber',
+                'border' => 'border-amber-200 dark:border-amber-800/80',
+                'hover' => 'hover:border-amber-400 dark:hover:border-amber-600',
+                'badge' => 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
+                'bar' => 'bg-amber-500',
+                'bar_bg' => 'bg-amber-100 dark:bg-amber-950',
+                'icon_bg' => 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'
+            ],
+            'DUTY' => [
+                'accent' => 'indigo',
+                'border' => 'border-indigo-200 dark:border-indigo-800/80',
+                'hover' => 'hover:border-indigo-400 dark:hover:border-indigo-600',
+                'badge' => 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800',
+                'bar' => 'bg-indigo-500',
+                'bar_bg' => 'bg-indigo-100 dark:bg-indigo-950',
+                'icon_bg' => 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20'
+            ],
+            'LIEU' => [
+                'accent' => 'teal',
+                'border' => 'border-teal-200 dark:border-teal-800/80',
+                'hover' => 'hover:border-teal-400 dark:hover:border-teal-600',
+                'badge' => 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
+                'bar' => 'bg-teal-500',
+                'bar_bg' => 'bg-teal-100 dark:bg-teal-950',
+                'icon_bg' => 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-100 dark:border-teal-500/20'
+            ],
+            default => [
+                'accent' => 'blue',
+                'border' => 'border-blue-200 dark:border-blue-800/80',
+                'hover' => 'hover:border-blue-400 dark:hover:border-blue-600',
+                'badge' => 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800',
+                'bar' => 'bg-blue-500',
+                'bar_bg' => 'bg-blue-100 dark:bg-blue-950',
+                'icon_bg' => 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20'
+            ]
+        };
+    }
+
+    private function getIconForCode(string $code): string
+    {
+        return match($code) {
+            'ANNUAL' => 'palmtree',
+            'CASUAL' => 'calendar-check',
+            'MEDICAL' => 'stethoscope',
+            'SHORT' => 'clock',
+            'LIEU' => 'award',
+            'DUTY' => 'briefcase',
+            'NIGHT_SHIFT_RECOVERY' => 'moon',
+            'MATERNITY' => 'baby',
+            'PATERNITY' => 'users',
+            default => 'calendar'
+        };
+    }
+
+    private function ensureEmployeeLeaveBalances(Employee $employee, int $year): void
+    {
+        $leaveTypes = LeaveType::where('is_active', true)->get();
+
+        foreach ($leaveTypes as $lt) {
+            $code = strtoupper($lt->code ?? '');
+
+            if ($code === 'ANNUAL') {
+                $allocated = $this->leavePolicyService->calculateAnnualLeaveQuota($employee, $year);
+            } elseif ($code === 'CASUAL') {
+                $allocated = $this->leavePolicyService->calculateCasualLeaveQuota($employee, $year);
+            } else {
+                $allocated = $lt->days;
+            }
+
+            EmployeeLeaveBalance::firstOrCreate(
+                ['employee_id' => $employee->id, 'leave_type_id' => $lt->id, 'year' => $year],
+                ['allocated' => $allocated, 'used' => 0, 'carried_forward' => 0]
+            );
+        }
+    }
+}

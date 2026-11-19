@@ -54,7 +54,7 @@ class PayrollController extends Controller
         $now = Carbon::now('Asia/Colombo');
         $month = (int) $request->get('month', $now->month);
         $year = (int) $request->get('year', $now->year);
-        $category = $request->get('staff_category', 'All');
+        $category = $request->get('job_category') ?: $request->get('staff_category', 'All');
         $paymentMethodFilter = $request->get('payment_method', 'All');
 
         if ($month < 1 || $month > 12) $month = $now->month;
@@ -70,7 +70,9 @@ class PayrollController extends Controller
 
         $employeesQuery = Employee::with(['user', 'department', 'designation']);
         if ($category !== 'All') {
-            $employeesQuery->where('staff_category', $category);
+            $employeesQuery->where(function($q) use ($category) {
+                $q->where('job_category', $category)->orWhere('staff_category', $category);
+            });
         }
         if ($paymentMethodFilter !== 'All') {
             $employeesQuery->where('payment_method', $paymentMethodFilter);
@@ -88,7 +90,12 @@ class PayrollController extends Controller
         if ($payroll && $payroll->payslips->count() > 0) {
             $payslipsQuery = $payroll->payslips();
             if ($category !== 'All') {
-                $payslipsQuery->where('staff_category', $category);
+                $payslipsQuery->where(function($q) use ($category) {
+                    $q->where('staff_category', $category)
+                      ->orWhereHas('employee', function($eq) use ($category) {
+                          $eq->where('job_category', $category);
+                      });
+                });
             }
             if ($paymentMethodFilter !== 'All') {
                 $payslipsQuery->where('payment_method', $paymentMethodFilter);
@@ -147,7 +154,9 @@ class PayrollController extends Controller
             9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'
         ];
         $yearsList = range(2024, 2030);
-        $categoriesList = ['All', 'Executive', 'Non-Executive', 'Shift Staff', 'Management', 'Contract'];
+        $defaultCategories = ['All', 'Full Time', 'Part Time', 'Probation', 'Contract', 'Intern', 'Freelance'];
+        $existingJobCategories = Employee::whereNotNull('job_category')->pluck('job_category')->toArray();
+        $categoriesList = array_values(array_unique(array_merge($defaultCategories, $existingJobCategories)));
         $paymentMethodsList = ['All', 'Bank Transfer', 'Cash', 'Cheque'];
 
         return view('payroll::index', compact(
@@ -399,7 +408,7 @@ class PayrollController extends Controller
 
         $payroll = Payroll::with(['payslips.employee.user', 'payslips.employee.department', 'payslips.employee.designation'])->findOrFail($id);
         
-        $category = $request->query('staff_category', 'All');
+        $category = $request->query('job_category') ?: $request->query('staff_category', 'All');
         $paymentMethodFilter = $request->query('payment_method', 'All');
         $format = strtolower($request->query('format', 'pdf'));
 
@@ -407,7 +416,8 @@ class PayrollController extends Controller
 
         if ($category && $category !== 'All') {
             $payslips = $payslips->filter(function ($ps) use ($category) {
-                return ($ps->staff_category ?? $ps->employee->staff_category ?? '') === $category;
+                $psCategory = $ps->employee->job_category ?? $ps->staff_category ?? $ps->employee->staff_category ?? '';
+                return $psCategory === $category;
             });
         }
 

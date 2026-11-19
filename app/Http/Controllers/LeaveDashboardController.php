@@ -225,9 +225,10 @@ class LeaveDashboardController extends Controller
         $departments = Department::all();
 
         $sampleBirthdays = [
+            11 => ['Supuni Rathnayake'],
             12 => ['Shimal Perera'],
             21 => ['Arosh Wickramasinghe'],
-            28 => ['Supuni Fernando']
+            28 => ['Supuni Rathnayake']
         ];
 
         $satOff = DB::table('settings')->where('key', 'weekend_saturday_off')->value('value') ?? '1';
@@ -413,13 +414,16 @@ class LeaveDashboardController extends Controller
                 }
             } else {
                 // Fallback to legacy overtime_records if no claims created yet
+                $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+                $weekendCondition = $isSqlite ? "strftime('%w', ot_date) IN ('0', '6')" : "DAYOFWEEK(ot_date) IN (1, 7)";
+
                 $otRecords = DB::table('overtime_records')
                     ->where('employee_id', $employee->id)
                     ->where('status', 'Approved')
-                    ->where(function($q) {
+                    ->where(function($q) use ($weekendCondition) {
                         $q->where('rate_multiplier_type', 'like', '%Holiday%')
                           ->orWhere('rate_multiplier_type', 'like', '%Weekend%')
-                          ->orWhereRaw('DAYOFWEEK(ot_date) IN (1, 7)');
+                          ->orWhereRaw($weekendCondition);
                     })
                     ->orderByDesc('ot_date')
                     ->get();

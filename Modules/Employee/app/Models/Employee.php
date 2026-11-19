@@ -12,6 +12,35 @@ class Employee extends Model
 
     protected $guarded = [];
 
+    public function getHigherEducationListAttribute(): array
+    {
+        $val = $this->higher_education;
+        if (empty($val)) return [];
+        if (is_array($val)) return $val;
+        $decoded = json_decode($val, true);
+        if (is_array($decoded)) return $decoded;
+        return [[
+            'qualification' => (string) $val,
+            'institute' => '',
+            'country' => '',
+            'duration' => '',
+        ]];
+    }
+
+    public function getWorkingExperienceListAttribute(): array
+    {
+        $val = $this->working_experience ?: $this->professional_qualifications;
+        if (empty($val)) return [];
+        if (is_array($val)) return $val;
+        $decoded = json_decode($val, true);
+        if (is_array($decoded)) return $decoded;
+        return [[
+            'company' => '',
+            'designation' => (string) $val,
+            'duration' => '',
+        ]];
+    }
+
     public function user()
     {
         return $this->belongsTo(\App\Models\User::class);
@@ -32,9 +61,24 @@ class Employee extends Model
         return $this->belongsTo(Employee::class, 'reporting_person_id');
     }
 
+    public function hod()
+    {
+        return $this->belongsTo(Employee::class, 'hod_id');
+    }
+
     public function subordinates()
     {
         return $this->hasMany(Employee::class, 'reporting_person_id');
+    }
+
+    public function departmentSubordinates()
+    {
+        return $this->hasMany(Employee::class, 'hod_id');
+    }
+
+    public function appraisals()
+    {
+        return $this->hasMany(\Modules\Performance\Models\Appraisal::class, 'employee_id');
     }
 
     public function leaveBalances()

@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (!Schema::hasTable('salary_advances')) {
+            return;
+        }
+
         Schema::table('salary_advances', function (Blueprint $table) {
             if (!Schema::hasColumn('salary_advances', 'advance_number')) {
                 $table->string('advance_number')->nullable()->after('id');

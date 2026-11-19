@@ -11,7 +11,43 @@
             </span>
         </div>
 
-        <form action="{{ route('settings.profile.update') }}" method="POST" class="space-y-4 text-xs font-semibold">
+        @php
+            $initialProfileEdu = old('higher_education');
+            if (!$initialProfileEdu) {
+                $initialProfileEdu = !empty($employee?->higher_education_list) ? $employee->higher_education_list : [['qualification' => '', 'institute' => '', 'country' => '', 'duration' => '']];
+            }
+            $initialProfileExp = old('working_experience');
+            if (!$initialProfileExp) {
+                $initialProfileExp = !empty($employee?->working_experience_list) ? $employee->working_experience_list : [['company' => '', 'designation' => '', 'duration' => '']];
+            }
+        @endphp
+
+        <form action="{{ route('settings.profile.update') }}" method="POST"
+              x-data="{
+                  educationList: @js($initialProfileEdu),
+                  experienceList: @js($initialProfileExp),
+                  addEducation() {
+                      this.educationList.push({ qualification: '', institute: '', country: '', duration: '' });
+                  },
+                  removeEducation(index) {
+                      if (this.educationList.length > 1) {
+                          this.educationList.splice(index, 1);
+                      } else {
+                          this.educationList[0] = { qualification: '', institute: '', country: '', duration: '' };
+                      }
+                  },
+                  addExperience() {
+                      this.experienceList.push({ company: '', designation: '', duration: '' });
+                  },
+                  removeExperience(index) {
+                      if (this.experienceList.length > 1) {
+                          this.experienceList.splice(index, 1);
+                      } else {
+                          this.experienceList[0] = { company: '', designation: '', duration: '' };
+                      }
+                  }
+              }"
+              class="space-y-4 text-xs font-semibold">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -49,37 +85,114 @@
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Bank Name</label>
-                        <input type="text" name="bank_name" value="{{ old('bank_name', $employee->bank_name ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. Commercial Bank of Ceylon">
-                    </div>
-                    <div>
-                        <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Branch Name</label>
-                        <input type="text" name="bank_branch" value="{{ old('bank_branch', $employee->bank_branch ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. Kollupitiya Branch">
+                        <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Name</label>
+                        <input type="text" name="account_holder_name" value="{{ old('account_holder_name', $employee->account_holder_name ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. A. B. Perera">
                     </div>
                     <div>
                         <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Account Number</label>
                         <input type="text" name="account_number" value="{{ old('account_number', $employee->account_number ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. 10002345678">
                     </div>
                     <div>
-                        <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Account Holder Name</label>
-                        <input type="text" name="account_holder_name" value="{{ old('account_holder_name', $employee->account_holder_name ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. A. B. Perera">
+                        <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Bank</label>
+                        <input type="text" name="bank_name" value="{{ old('bank_name', $employee->bank_name ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. Commercial Bank of Ceylon">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Branch</label>
+                        <input type="text" name="bank_branch" value="{{ old('bank_branch', $employee->bank_branch ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. Kollupitiya Branch">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Branch Code</label>
+                        <input type="text" name="branch_code" value="{{ old('branch_code', $employee->branch_code ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. 035">
                     </div>
                 </div>
             </div>
 
-            <!-- Qualifications -->
-            <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+            <!-- Higher Education & Working Experience -->
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-4">
                 <h3 class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <i class="ph ph-graduation-cap text-rose-600"></i> Higher Education & Professional Qualifications
+                    <i class="ph ph-graduation-cap text-rose-600"></i> Higher Education & Working Experience
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Higher Education & Degrees</label>
-                        <textarea name="higher_education" rows="2" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-medium p-2.5" placeholder="e.g. BSc in Computer Science (Univ. of Colombo)">{{ old('higher_education', $employee->higher_education ?? '') }}</textarea>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Higher Education -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-slate-800 dark:text-slate-200 font-extrabold flex items-center gap-1.5 text-xs">
+                                <i class="ph ph-graduation-cap text-blue-600 dark:text-blue-400 text-sm"></i> Higher Education
+                            </label>
+                            <button type="button" @click="addEducation()" class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:hover:bg-blue-500/25 dark:text-blue-400 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
+                                <i class="ph ph-plus-circle"></i> Add
+                            </button>
+                        </div>
+
+                        <div class="space-y-2.5">
+                            <template x-for="(edu, eIdx) in educationList" :key="'prof-edu-' + eIdx">
+                                <div class="p-3 bg-slate-50/80 dark:bg-[#1e2d4d] rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-2 relative">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-bold uppercase text-slate-400" x-text="'Qualification #' + (eIdx + 1)"></span>
+                                        <button type="button" @click="removeEducation(eIdx)" x-show="educationList.length > 1" class="text-rose-500 text-[10px] font-bold flex items-center gap-0.5 cursor-pointer">
+                                            <i class="ph ph-trash"></i> Remove
+                                        </button>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Qualification</label>
+                                            <input type="text" :name="'higher_education[' + eIdx + '][qualification]'" x-model="edu.qualification" placeholder="e.g. B.Sc. in IT" class="w-full border-slate-200 dark:border-slate-700 bg-white dark:bg-[#152038] text-slate-900 dark:text-white rounded-lg text-xs font-medium p-2">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Institute</label>
+                                            <input type="text" :name="'higher_education[' + eIdx + '][institute]'" x-model="edu.institute" placeholder="e.g. Univ. of Colombo" class="w-full border-slate-200 dark:border-slate-700 bg-white dark:bg-[#152038] text-slate-900 dark:text-white rounded-lg text-xs font-medium p-2">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Country</label>
+                                            <input type="text" :name="'higher_education[' + eIdx + '][country]'" x-model="edu.country" placeholder="e.g. Sri Lanka" class="w-full border-slate-200 dark:border-slate-700 bg-white dark:bg-[#152038] text-slate-900 dark:text-white rounded-lg text-xs font-medium p-2">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Duration</label>
+                                            <input type="text" :name="'higher_education[' + eIdx + '][duration]'" x-model="edu.duration" placeholder="e.g. 2018 - 2022" class="w-full border-slate-200 dark:border-slate-700 bg-white dark:bg-[#152038] text-slate-900 dark:text-white rounded-lg text-xs font-medium p-2">
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Professional Certifications</label>
-                        <textarea name="professional_qualifications" rows="2" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-medium p-2.5" placeholder="e.g. CIPM Chartered HR, PMP, AWS Certified">{{ old('professional_qualifications', $employee->professional_qualifications ?? '') }}</textarea>
+
+                    <!-- Working Experience -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-slate-800 dark:text-slate-200 font-extrabold flex items-center gap-1.5 text-xs">
+                                <i class="ph ph-briefcase text-purple-600 dark:text-purple-400 text-sm"></i> Working Experience
+                            </label>
+                            <button type="button" @click="addExperience()" class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 hover:bg-purple-100 text-purple-600 dark:bg-purple-500/15 dark:hover:bg-purple-500/25 dark:text-purple-400 text-[10px] font-bold rounded-lg transition-colors cursor-pointer">
+                                <i class="ph ph-plus-circle"></i> Add
+                            </button>
+                        </div>
+
+                        <div class="space-y-2.5">
+                            <template x-for="(exp, xIdx) in experienceList" :key="'prof-exp-' + xIdx">
+                                <div class="p-3 bg-slate-50/80 dark:bg-[#1e2d4d] rounded-xl border border-slate-200/80 dark:border-slate-700/60 space-y-2 relative">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-bold uppercase text-slate-400" x-text="'Experience #' + (xIdx + 1)"></span>
+                                        <button type="button" @click="removeExperience(xIdx)" x-show="experienceList.length > 1" class="text-rose-500 text-[10px] font-bold flex items-center gap-0.5 cursor-pointer">
+                                            <i class="ph ph-trash"></i> Remove
+                                        </button>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Company</label>
+                                            <input type="text" :name="'working_experience[' + xIdx + '][company]'" x-model="exp.company" placeholder="e.g. ABC Tech" class="w-full border-slate-200 dark:border-slate-700 bg-white dark:bg-[#152038] text-slate-900 dark:text-white rounded-lg text-xs font-medium p-2">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Designation</label>
+                                            <input type="text" :name="'working_experience[' + xIdx + '][designation]'" x-model="exp.designation" placeholder="e.g. Lead Engineer" class="w-full border-slate-200 dark:border-slate-700 bg-white dark:bg-[#152038] text-slate-900 dark:text-white rounded-lg text-xs font-medium p-2">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-0.5">Duration</label>
+                                            <input type="text" :name="'working_experience[' + xIdx + '][duration]'" x-model="exp.duration" placeholder="e.g. 2021 - 2024" class="w-full border-slate-200 dark:border-slate-700 bg-white dark:bg-[#152038] text-slate-900 dark:text-white rounded-lg text-xs font-medium p-2">
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>

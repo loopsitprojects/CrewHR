@@ -61,7 +61,7 @@ class PayrollCalculationService
             $otAmount = (float) ($inputs['ot_amount'] ?? round(($basic / 200) * $otHours * 1.5, 2));
         }
 
-        $isShiftStaff = str_contains(strtolower($emp->staff_category ?? ''), 'shift');
+        $isShiftStaff = str_contains(strtolower($emp->job_category ?? $emp->staff_category ?? ''), 'shift');
         $shiftAllowance = (float) ($inputs['shift_allowance'] ?? ($isShiftStaff ? 15000 : 0));
         $incentiveCommission = (float) ($inputs['incentive_commission'] ?? ($inputs['performance_incentive'] ?? 0));
         $salaryArrearsBasic = (float) ($inputs['salary_arrears_basic'] ?? 0);
@@ -140,7 +140,7 @@ class PayrollCalculationService
             'employee_id' => $emp->id,
             'month' => $month,
             'year' => $year,
-            'staff_category' => $emp->staff_category ?? 'Executive',
+            'staff_category' => $emp->job_category ?? $emp->staff_category ?? 'Full Time',
             'payment_method' => $emp->payment_method ?? 'Bank Transfer',
             'department_name' => $deptName,
             'cost_classification' => $costClassification,

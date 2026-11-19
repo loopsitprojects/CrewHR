@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LeaveDashboardController;
 use App\Http\Controllers\MyLeavesController;
+use App\Http\Controllers\MyUsageRecordsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ApprovalController;
 
@@ -31,6 +32,9 @@ Route::post('/lieu-claims/store', [LeaveDashboardController::class, 'storeLieuCl
 // My Leaves Module
 Route::get('/my-leaves', [MyLeavesController::class, 'index'])->name('my-leaves.index');
 Route::post('/my-leaves/{id}/cancel', [MyLeavesController::class, 'cancel'])->name('my-leaves.cancel');
+
+// My Usage Records
+Route::get('/my-usage-records', [MyUsageRecordsController::class, 'index'])->name('my-usage-records.index');
 
 // Employees Directory
 Route::resource('employees', EmployeeController::class)->names('employee');
@@ -139,5 +143,35 @@ Route::post('/role/switch', [SettingsController::class, 'switchRole'])->name('ro
 
 // Appraisal System
 Route::get('/appraisal-system', [AppraisalController::class, 'index'])->name('appraisal.index');
+Route::get('/appraisal/{id}', [AppraisalController::class, 'show'])->name('appraisal.show');
+Route::post('/appraisal/{id}/draft', [AppraisalController::class, 'saveDraft'])->name('appraisal.draft');
+Route::post('/appraisal/{id}/submit-self', [AppraisalController::class, 'submitSelfEvaluation'])->name('appraisal.submit-self');
+Route::post('/appraisal/{id}/submit-manager', [AppraisalController::class, 'submitManagerEvaluation'])->name('appraisal.submit-manager');
+Route::post('/appraisal/{id}/submit-hod', [AppraisalController::class, 'submitHodEvaluation'])->name('appraisal.submit-hod');
+Route::post('/appraisal/{id}/increment-promotion', [AppraisalController::class, 'updateIncrementPromotion'])->name('appraisal.increment-promotion');
+Route::post('/appraisal/{id}/request-change', [AppraisalController::class, 'requestChange'])->name('appraisal.request-change');
+Route::post('/appraisal/{id}/unlock', [AppraisalController::class, 'unlockAppraisal'])->name('appraisal.unlock');
+
+// Change Requests Center
+Route::get('/appraisal-change-requests', [AppraisalController::class, 'changeRequestsIndex'])->name('appraisal.change-requests.index');
+Route::post('/appraisal-change-requests/{id}/action', [AppraisalController::class, 'actionChangeRequest'])->name('appraisal.change-requests.action');
+
+// Templates Management
+Route::get('/appraisal-templates', [AppraisalController::class, 'templatesIndex'])->name('appraisal.templates.index');
+Route::post('/appraisal-templates', [AppraisalController::class, 'storeTemplate'])->name('appraisal.templates.store');
+Route::delete('/appraisal-templates/{id}', [AppraisalController::class, 'destroyTemplate'])->name('appraisal.templates.destroy');
+
+// Cycles Management
+Route::post('/appraisal-cycles', [AppraisalController::class, 'storeCycle'])->name('appraisal.cycles.store');
+
+// Letters & E-Signatures
+Route::post('/appraisal/{id}/generate-letter', [AppraisalController::class, 'generateLetter'])->name('appraisal.generate-letter');
+Route::post('/appraisal-letters/{id}/sign', [AppraisalController::class, 'signLetter'])->name('appraisal.letters.sign');
+Route::post('/appraisal-letters/{id}/acknowledge', [AppraisalController::class, 'acknowledgeLetter'])->name('appraisal.letters.acknowledge');
+Route::get('/appraisal-letters/{id}/pdf', [AppraisalController::class, 'downloadLetterPdf'])->name('appraisal.letters.pdf');
+
+// Reminders & Analytics
+Route::post('/appraisal/reminders/send', [AppraisalController::class, 'sendReminder'])->name('appraisal.reminders.send');
+Route::get('/appraisal-analytics', [AppraisalController::class, 'analytics'])->name('appraisal.analytics');
 
 require __DIR__.'/auth.php';

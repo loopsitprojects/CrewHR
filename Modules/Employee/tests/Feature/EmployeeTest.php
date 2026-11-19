@@ -79,14 +79,24 @@ class EmployeeTest extends TestCase
             'other_allowance' => 10000,
             'apit_tax' => 5000,
             'bank_name' => 'Commercial Bank',
+            'bank_branch' => 'Colombo Fort',
+            'branch_code' => '035',
             'account_number' => '1234567890',
+            'account_holder_name' => 'Test Developer',
         ];
 
         $response = $this->post(route('employee.store'), $payload);
 
         $response->assertRedirect(route('employee.index'));
         $this->assertDatabaseHas('users', ['email' => 'test.dev@loopshr.lk']);
-        $this->assertDatabaseHas('employees', ['employee_id_number' => 'EMP-TEST-001']);
+        $this->assertDatabaseHas('employees', [
+            'employee_id_number' => 'EMP-TEST-001',
+            'bank_name' => 'Commercial Bank',
+            'bank_branch' => 'Colombo Fort',
+            'branch_code' => '035',
+            'account_number' => '1234567890',
+            'account_holder_name' => 'Test Developer',
+        ]);
 
         // Check if leave balance was automatically seeded
         $emp = Employee::where('employee_id_number', 'EMP-TEST-001')->first();
@@ -111,7 +121,18 @@ class EmployeeTest extends TestCase
             'employee_id_number' => 'EMP-TEST-002',
             'department_id' => $this->department->id,
             'designation_id' => $this->designation->id,
-            'basic_salary' => 180000
+            'job_category' => 'Full Time',
+            'staff_category' => 'Executive',
+            'cost_classification' => 'Direct',
+            'payment_method' => 'Bank Transfer',
+            'bank_name' => 'Commercial Bank',
+            'bank_branch' => 'Colombo Fort',
+            'branch_code' => '035',
+            'account_number' => '1004829104',
+            'account_holder_name' => 'Jane Developer',
+            'basic_salary' => 180000,
+            'increments_basic' => 5000,
+            'budget_allowance' => 10000,
         ]);
 
         $response = $this->get(route('employee.show', $employee->id));
@@ -119,6 +140,14 @@ class EmployeeTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Jane Developer');
         $response->assertSee('EMP-TEST-002');
+        $response->assertSee('Role Details');
+        $response->assertSee('Executive');
+        $response->assertSee('Direct');
+        $response->assertSee('Compensation');
+        $response->assertSee('Bank Account Details');
+        $response->assertSee('Branch Code');
+        $response->assertSee('035');
+        $response->assertSee('Higher Education');
     }
 
     public function test_can_update_employee_profile_and_leave_balances()

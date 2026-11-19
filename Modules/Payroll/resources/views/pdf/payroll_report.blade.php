@@ -178,7 +178,7 @@
                 <tr>
                     <td class="text-left">
                         <div class="emp-name">{{ $emp->user->name ?? 'Employee' }}</div>
-                        <div class="emp-sub">{{ $emp->employee_id_number ?? 'EMP-'.$emp->id }} &bull; {{ $ps->staff_category ?? 'Executive' }}</div>
+                        <div class="emp-sub">{{ $emp->employee_id_number ?? 'EMP-'.$emp->id }} &bull; {{ $emp->job_category ?? $ps->staff_category ?? 'Full Time' }}</div>
                     </td>
                     <td class="text-center">
                         <div>{{ $emp->epf_registration_no ?? 'N/A' }}</div>

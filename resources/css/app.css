@@ -18,18 +18,145 @@
     background: #334155;
 }
 
-/* Base Dark Mode Root Styling */
+/* =========================================================
+   APPLE HUMAN INTERFACE GUIDELINES (HIG) DESIGN SYSTEM
+   SF Pro Typography Scale, Liquid Glass Materials & Tokens
+   ========================================================= */
+
+:root {
+    --apple-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Plus Jakarta Sans", system-ui, sans-serif;
+    --apple-accent: #007AFF;
+    --apple-accent-hover: #0071E3;
+    --apple-accent-active: #0062C4;
+    --apple-canvas: #EEF2F6;
+    --apple-surface: #FFFFFF;
+    --apple-surface-elevated: #FFFFFF;
+    --apple-surface-secondary: #F1F4F9;
+    --apple-surface-tertiary: #E2E8F0;
+    --apple-separator: rgba(60, 60, 67, 0.12);
+    --apple-hairline: rgba(226, 232, 240, 0.9);
+    --apple-label-primary: #1D1D1F;
+    --apple-label-secondary: #6E6E73;
+    --apple-label-tertiary: #86868B;
+    --apple-glass-bg: rgba(255, 255, 255, 0.92);
+    --apple-glass-border: rgba(226, 232, 240, 0.8);
+    --apple-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+    --apple-shadow-md: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    --apple-shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+}
+
 html.dark {
     color-scheme: dark;
-    background-color: #0b1329;
+    --apple-accent: #0A84FF;
+    --apple-accent-hover: #0077ED;
+    --apple-accent-active: #006BD6;
+    --apple-canvas: #000000;
+    --apple-surface: #121826;
+    --apple-surface-elevated: #161F32;
+    --apple-surface-secondary: #1B253B;
+    --apple-surface-tertiary: #222E48;
+    --apple-separator: rgba(255, 255, 255, 0.08);
+    --apple-hairline: rgba(255, 255, 255, 0.08);
+    --apple-label-primary: #F5F5F7;
+    --apple-label-secondary: #A1A1A6;
+    --apple-label-tertiary: #6E6E73;
+    --apple-glass-bg: rgba(18, 24, 38, 0.82);
+    --apple-glass-border: rgba(255, 255, 255, 0.09);
+    --apple-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --apple-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+    --apple-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.35);
+    background-color: #070B14;
 }
 
+body {
+    font-family: var(--apple-font-family);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.tabular-nums,
+table,
+.metric-value,
+[data-tabular-nums] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+}
+
+/* Base Dark Mode Root Styling */
 .dark body {
-    background-color: #0b1329;
-    color: #f8fafc;
+    background-color: #070B14;
+    color: #F5F5F7;
 }
 
-/* Global Form Inputs Dark Support */
+/* Liquid Glass & Translucent Materials */
+.apple-glass {
+    background: var(--apple-glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--apple-glass-border);
+}
+
+.apple-card,
+.card-surface {
+    background: #FFFFFF;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+    border-radius: 18px;
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dark .apple-card,
+.dark .card-surface {
+    background: #111827;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: var(--apple-shadow-md);
+}
+
+/* Apple Buttons */
+.apple-btn-primary {
+    background-color: var(--apple-accent);
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.01em;
+    padding: 8px 16px;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 122, 255, 0.2);
+    transition: all 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.apple-btn-primary:hover {
+    background-color: var(--apple-accent-hover);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+.apple-btn-primary:active {
+    transform: scale(0.98);
+}
+
+.apple-btn-secondary {
+    background-color: var(--apple-surface-secondary);
+    color: var(--apple-label-primary);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.01em;
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--apple-separator);
+    transition: all 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.apple-btn-secondary:hover {
+    background-color: var(--apple-surface-tertiary);
+}
+.apple-btn-secondary:active {
+    transform: scale(0.98);
+}
+
+/* Global Form Inputs Dark Support (Apple Recessed Surface) */
 .dark input[type="text"],
 .dark input[type="number"],
 .dark input[type="email"],
@@ -38,21 +165,22 @@ html.dark {
 .dark input[type="file"],
 .dark select,
 .dark textarea {
-    background-color: #1e2d4d !important;
-    color: #f8fafc !important;
-    border-color: #334155 !important;
+    background-color: #162032 !important;
+    color: #F5F5F7 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .dark input::placeholder,
 .dark textarea::placeholder {
-    color: #64748b !important;
+    color: #6E7B92 !important;
 }
 
 .dark input:focus,
 .dark select:focus,
 .dark textarea:focus {
-    border-color: #3b82f6 !important;
-    ring-color: rgba(59, 130, 246, 0.3) !important;
+    border-color: #0A84FF !important;
+    background-color: #1B263B !important;
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25) !important;
 }
 
 /* Remove Tailwind Forms default SVG dropdown arrow when custom icon / appearance-none is used */
@@ -64,9 +192,9 @@ select[class*="appearance-none"],
 
 /* Global Dark Mode Surface Overrides for Cards, Panels & Backgrounds */
 html.dark .bg-white {
-    background-color: #152038;
-    border-color: #1e293b;
-    color: #f8fafc;
+    background-color: #111827;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #F5F5F7;
 }
 
 html.dark .bg-gray-50,
@@ -76,9 +204,9 @@ html.dark .bg-slate-50\/50,
 html.dark .bg-slate-50\/60,
 html.dark .bg-slate-50\/70,
 html.dark .bg-slate-50\/80 {
-    background-color: #1a2744 !important;
-    border-color: #1e293b !important;
-    color: #cbd5e1;
+    background-color: #162032 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #CBD5E1;
 }
 
 html.dark .bg-slate-100,
@@ -91,9 +219,31 @@ html.dark .bg-gray-100\/90,
 html.dark .bg-gray-100\/80,
 html.dark .bg-slate-200,
 html.dark .bg-gray-200 {
-    background-color: #1a2744 !important;
-    border-color: #2e3e60 !important;
-    color: #cbd5e1;
+    background-color: #1C273D !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #CBD5E1;
+}
+
+/* Global Data Tables Dark Support */
+.dark table thead th,
+.dark table th {
+    background-color: #141D2E !important;
+    color: #94A3B8 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark table tbody td,
+.dark table td {
+    border-color: rgba(255, 255, 255, 0.06) !important;
+    color: #E2E8F0 !important;
+}
+
+.dark table tbody tr {
+    background-color: #111827 !important;
+}
+
+.dark table tbody tr:hover {
+    background-color: #182338 !important;
 }
 
 /* =========================================================
@@ -500,4 +650,390 @@ a.cursor-pointer:not([class*="no-press"]):active {
     opacity: 0;
     transition: width 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
 }
+
+/* =========================================================
+   5. BIRTHDAY & MILESTONE CARD ANIMATION SUITE
+   - Staggered Fade & Rise on mount / scroll
+   - Floating SVGs & Confetti Particles (continuous loop)
+   - Ambient Gradient Mesh Shift
+   - Avatar Halo Ring Glow & Pulse
+   - Spring button physics (whileHover: 1.05, whileTap: 0.95)
+   - Real-time counter pop animation
+   - Accessible prefers-reduced-motion support
+   ========================================================= */
+
+/* Entry & Mount Staggered Animations */
+@keyframes bdayCardEnter {
+    0% {
+        opacity: 0;
+        transform: scale(0.98) translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes bdayHeroFloat {
+    0% {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bdayActionsSlide {
+    0% {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bday-card-enter {
+    animation: bdayCardEnter 480ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
+}
+
+.bday-hero-float {
+    animation: bdayHeroFloat 560ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
+    will-change: transform, opacity;
+}
+
+.bday-actions-slide {
+    animation: bdayActionsSlide 480ms cubic-bezier(0.16, 1, 0.3, 1) 220ms both;
+    will-change: transform, opacity;
+}
+
+/* Ambient Animated Gradient Mesh Background Shift */
+@keyframes bdayGradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.bday-gradient-mesh {
+    background-size: 200% 200% !important;
+    animation: bdayGradientShift 12s ease-in-out infinite;
+    will-change: background-position;
+}
+
+/* Floating Confetti Particles & Festive Shapes */
+@keyframes bdayFloatSlow {
+    0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-9px) rotate(5deg);
+    }
+}
+
+@keyframes bdayFloatMed {
+    0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-7px) rotate(-6deg);
+    }
+}
+
+@keyframes bdayFloatFast {
+    0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-5px) rotate(10deg);
+    }
+}
+
+.bday-float-slow {
+    animation: bdayFloatSlow 5.2s ease-in-out infinite;
+    will-change: transform;
+}
+
+.bday-float-med {
+    animation: bdayFloatMed 4.1s ease-in-out infinite 0.6s;
+    will-change: transform;
+}
+
+.bday-float-fast {
+    animation: bdayFloatFast 3.4s ease-in-out infinite 1.2s;
+    will-change: transform;
+}
+
+/* Profile Focal Point Halo Glow & Pulse */
+@keyframes bdayHaloGlow {
+    0%, 100% {
+        transform: scale(0.98);
+        opacity: 0.55;
+        filter: blur(10px);
+    }
+    50% {
+        transform: scale(1.12);
+        opacity: 0.95;
+        filter: blur(16px);
+    }
+}
+
+.bday-halo-pulse {
+    animation: bdayHaloGlow 2.8s ease-in-out infinite;
+    will-change: transform, opacity, filter;
+}
+
+/* Candle Flame & Flickering Fire Animations */
+@keyframes flameFlicker {
+    0%, 100% {
+        transform: scale(1) rotate(-1.5deg);
+        opacity: 0.95;
+        filter: drop-shadow(0 0 5px #f59e0b) drop-shadow(0 0 10px #ef4444);
+    }
+    25% {
+        transform: scale(1.08, 0.92) rotate(2deg) translateY(-1px);
+        opacity: 1;
+        filter: drop-shadow(0 0 7px #fbbf24) drop-shadow(0 0 14px #f97316);
+    }
+    50% {
+        transform: scale(0.95, 1.05) rotate(-2deg);
+        opacity: 0.9;
+        filter: drop-shadow(0 0 4px #f59e0b) drop-shadow(0 0 9px #ef4444);
+    }
+    75% {
+        transform: scale(1.04, 0.97) rotate(1deg) translateY(-0.5px);
+        opacity: 0.98;
+        filter: drop-shadow(0 0 6px #fbbf24) drop-shadow(0 0 13px #f97316);
+    }
+}
+
+.candle-flame-1 {
+    animation: flameFlicker 0.9s ease-in-out infinite alternate;
+    transform-origin: 50% 100%;
+}
+.candle-flame-2 {
+    animation: flameFlicker 1.1s ease-in-out 0.15s infinite alternate;
+    transform-origin: 50% 100%;
+}
+.candle-flame-3 {
+    animation: flameFlicker 0.85s ease-in-out 0.3s infinite alternate;
+    transform-origin: 50% 100%;
+}
+.candle-flame-4 {
+    animation: flameFlicker 1.05s ease-in-out 0.2s infinite alternate;
+    transform-origin: 50% 100%;
+}
+.candle-flame-5 {
+    animation: flameFlicker 0.95s ease-in-out 0.35s infinite alternate;
+    transform-origin: 50% 100%;
+}
+
+@keyframes candleGlow {
+    0%, 100% {
+        opacity: 0.55;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.85;
+        transform: scale(1.2);
+    }
+}
+
+.candle-glow-pulse {
+    animation: candleGlow 1.8s ease-in-out infinite;
+    transform-origin: center;
+}
+
+/* Smoke puff when candles are blown out */
+@keyframes smokeDissipate {
+    0% {
+        opacity: 0.8;
+        transform: translateY(0) scale(0.5);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-26px) scale(1.6);
+    }
+}
+
+.smoke-puff {
+    animation: smokeDissipate 1.2s ease-out forwards;
+}
+
+/* Floating Balloons & Strings Physics */
+@keyframes balloonFloatLeft {
+    0%, 100% {
+        transform: translateY(0px) rotate(-3deg);
+    }
+    50% {
+        transform: translateY(-11px) rotate(3deg);
+    }
+}
+
+@keyframes balloonFloatRight {
+    0%, 100% {
+        transform: translateY(0px) rotate(2deg);
+    }
+    50% {
+        transform: translateY(-13px) rotate(-4deg);
+    }
+}
+
+@keyframes balloonFloatCenter {
+    0%, 100% {
+        transform: translateY(0px) rotate(-1deg);
+    }
+    50% {
+        transform: translateY(-8px) rotate(2deg);
+    }
+}
+
+.balloon-anim-left {
+    animation: balloonFloatLeft 4.5s ease-in-out infinite;
+    transform-origin: bottom center;
+}
+.balloon-anim-right {
+    animation: balloonFloatRight 5.2s ease-in-out 0.4s infinite;
+    transform-origin: bottom center;
+}
+.balloon-anim-center {
+    animation: balloonFloatCenter 3.8s ease-in-out 0.8s infinite;
+    transform-origin: bottom center;
+}
+
+/* Party Hat Playful Bobbing */
+@keyframes hatBobWiggle {
+    0%, 100% {
+        transform: rotate(18deg) translateY(0);
+    }
+    25% {
+        transform: rotate(14deg) translateY(-4px) scale(1.02);
+    }
+    50% {
+        transform: rotate(20deg) translateY(-2px);
+    }
+    75% {
+        transform: rotate(15deg) translateY(-5px) scale(1.03);
+    }
+}
+
+.hat-bob-anim {
+    animation: hatBobWiggle 3.2s ease-in-out infinite;
+    transform-origin: bottom center;
+}
+
+/* Fizz Bubbles for Champagne Bottle */
+@keyframes bubbleFloatUp {
+    0% {
+        transform: translateY(0) scale(0.4);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translateY(-30px) scale(1.1);
+        opacity: 0;
+    }
+}
+
+.fizz-bubble-1 {
+    animation: bubbleFloatUp 2.1s ease-in infinite;
+}
+.fizz-bubble-2 {
+    animation: bubbleFloatUp 2.6s ease-in 0.7s infinite;
+}
+.fizz-bubble-3 {
+    animation: bubbleFloatUp 1.9s ease-in 1.3s infinite;
+}
+
+/* Twinkling festive stars & Confetti drift */
+@keyframes sparkleGlow {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(0.85);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.25) rotate(45deg);
+    }
+}
+
+.sparkle-twinkle {
+    animation: sparkleGlow 2.5s ease-in-out infinite;
+    transform-origin: center;
+}
+
+@keyframes pulseGlowButton {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.45);
+    }
+    50% {
+        box-shadow: 0 0 0 9px rgba(236, 72, 153, 0);
+    }
+}
+
+.pulse-glow-btn {
+    animation: pulseGlowButton 2.4s infinite;
+}
+.bday-btn-spring {
+    transform: translateZ(0);
+    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease, background-color 150ms ease, border-color 150ms ease;
+    will-change: transform, box-shadow;
+}
+
+.bday-btn-spring:hover {
+    transform: translateY(-2px) scale(1.05);
+}
+
+.bday-btn-spring:active {
+    transform: translateY(0.5px) scale(0.95);
+}
+
+/* Counter Pop Trigger Animation (+1 Spring Bump) */
+@keyframes bdayCounterPop {
+    0% {
+        transform: scale(1);
+    }
+    45% {
+        transform: scale(1.38) translateY(-2px);
+    }
+    100% {
+        transform: scale(1) translateY(0);
+    }
+}
+
+.bday-pop {
+    animation: bdayCounterPop 340ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Accessibility: Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+    .bday-card-enter,
+    .bday-hero-float,
+    .bday-actions-slide,
+    .bday-gradient-mesh,
+    .bday-float-slow,
+    .bday-float-med,
+    .bday-float-fast,
+    .bday-halo-pulse,
+    .bday-pop {
+        animation: none !important;
+        transform: none !important;
+    }
+    .bday-btn-spring {
+        transition: none !important;
+    }
+    .bday-btn-spring:hover,
+    .bday-btn-spring:active {
+        transform: none !important;
+    }
+}
+
 

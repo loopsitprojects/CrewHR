@@ -122,6 +122,7 @@
          addCompanyLeaveModal: false, 
          dayModalOpen: false, 
          quotaModalOpen: false,
+         showBirthdayCardInline: true,
          selectedQuota: null,
          allMyHistory: {{ json_encode($myLeaveHistory) }},
          leaveTypesMap: {{ json_encode($leaveTypeMap) }},
@@ -1257,7 +1258,7 @@
             <!-- Events & Birthdays Card (Shown only if there are events, holidays, or birthdays) -->
             <div x-show="hasEventsOrBirthdays()" 
                  x-cloak
-                 class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-col space-y-2">
+                 class="bg-white dark:bg-[#111927] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] flex flex-col space-y-3">
                 <div class="flex items-center justify-between shrink-0">
                     <div class="flex items-center gap-2">
                         <i data-lucide="sparkles" class="w-4 h-4 text-amber-500 dark:text-amber-400"></i>
@@ -1267,16 +1268,35 @@
                 </div>
 
                 <!-- Selected Day Event & Birthday Details -->
-                <div class="space-y-2 max-h-48 overflow-y-auto">
-                    <!-- 1. Employee Birthdays -->
+                <div class="space-y-3">
+                    <!-- 1. Employee Birthdays (Interactive & Animated Celebration Card) -->
                     <template x-if="selectedDay?.birthdays && selectedDay?.birthdays.length > 0">
-                        <div class="p-3 bg-slate-50 dark:bg-white/[0.04] rounded-xl border border-slate-200/70 dark:border-white/[0.08] space-y-1.5">
-                            <div class="text-[10px] font-semibold uppercase text-purple-600 dark:text-purple-300 tracking-wider flex items-center gap-1.5">
-                                <i data-lucide="cake" class="w-3.5 h-3.5 text-purple-500 dark:text-purple-400"></i>
-                                <span>Employee Birthday Today</span>
-                            </div>
+                        <div class="space-y-3">
                             <template x-for="bday in selectedDay.birthdays" :key="bday">
-                                <div class="font-bold text-xs text-slate-800 dark:text-slate-100" x-text="bday + '\'s Birthday'"></div>
+                                <div class="space-y-2">
+                                    <!-- Compact Summary Pill Banner (Matching Reference Design) -->
+                                    <div class="p-3 bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 dark:from-[#181126] dark:via-[#221226] dark:to-[#1f1917] rounded-xl border border-purple-200/80 dark:border-purple-800/60 flex items-center justify-between gap-2.5">
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <div class="w-8 h-8 rounded-full bg-[#4834d4] text-white flex items-center justify-center shrink-0 shadow-xs text-sm">
+                                                🎂
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" x-text="bday + '\'s Birthday'"></div>
+                                                <div class="text-[10px] text-purple-600 dark:text-purple-300 font-bold truncate" x-text="bday + ' celebrates her birthday today 🎉'"></div>
+                                            </div>
+                                        </div>
+                                        <button type="button" 
+                                                @click="showBirthdayCardInline = !showBirthdayCardInline" 
+                                                class="btn-secondary px-2.5 py-1 rounded-lg text-[10px] font-bold text-purple-600 dark:text-purple-300 hover:text-purple-700 shrink-0 cursor-pointer flex items-center gap-1 transition-all">
+                                            <span x-text="showBirthdayCardInline ? 'Hide Card ✕' : 'View Card 🎈'"></span>
+                                        </button>
+                                    </div>
+
+                                    <!-- The Rich Animated Birthday Celebration Card (Rendered Inside Events & Birthdays) -->
+                                    <div x-show="showBirthdayCardInline" x-collapse>
+                                        <x-birthday-wish-card :isAlpine="true" class="w-full shadow-md" />
+                                    </div>
+                                </div>
                             </template>
                         </div>
                     </template>
@@ -1475,29 +1495,19 @@
                         </div>
                     </template>
 
-                    <!-- Birthday Celebration Card -->
+                    <!-- Birthday Celebration Banners (compact, no card popup) -->
                     <template x-if="selectedDay.birthdays && selectedDay.birthdays.length > 0">
-                        <div class="p-3.5 bg-pink-50 dark:bg-pink-950 rounded-xl border border-pink-200 dark:border-pink-900 space-y-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-black uppercase tracking-wider text-pink-700 dark:text-pink-300 flex items-center gap-1.5">
-                                    <i data-lucide="cake" class="w-4 h-4 text-pink-600 dark:text-pink-400"></i>
-                                    <span>Employee Birthday Celebration! 🎂</span>
-                                </span>
-                                <span class="text-[10px] font-black bg-pink-600 text-white px-2 py-0.5 rounded-full uppercase">Birthday</span>
-                            </div>
-                            <div class="space-y-1.5 pt-1">
-                                <template x-for="bday in selectedDay.birthdays" :key="bday">
-                                    <div class="flex items-center gap-2.5 p-2 bg-white dark:bg-[#1c2128] rounded-lg border border-pink-200 dark:border-pink-900">
-                                        <div class="w-8 h-8 rounded-full bg-pink-600 text-white font-black text-xs flex items-center justify-center shrink-0 uppercase">
-                                            🎂
-                                        </div>
-                                        <div>
-                                            <div class="font-extrabold text-xs text-slate-900 dark:text-slate-100" x-text="bday + '\'s Birthday'"></div>
-                                            <div class="text-[10px] text-pink-600 dark:text-pink-400 font-bold">Wish them a Happy Birthday! 🎉</div>
-                                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">🎂 Birthdays Today</h4>
+                            <template x-for="bday in selectedDay.birthdays" :key="bday">
+                                <div class="p-3 bg-gradient-to-r from-purple-50 via-pink-50 to-amber-50 dark:from-[#181126] dark:via-[#221226] dark:to-[#1f1917] rounded-xl border border-purple-200/80 dark:border-purple-800/60 flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-full bg-[#4834d4] text-white flex items-center justify-center shrink-0 shadow-xs text-sm">🎂</div>
+                                    <div class="min-w-0">
+                                        <div class="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate" x-text="bday + '\'s Birthday'"></div>
+                                        <div class="text-[10px] text-purple-600 dark:text-purple-300 font-bold truncate" x-text="bday + ' celebrates their birthday today 🎉'"></div>
                                     </div>
-                                </template>
-                            </div>
+                                </div>
+                            </template>
                         </div>
                     </template>
 
@@ -2001,7 +2011,7 @@
          x-transition:leave-end="opacity-0"
          @keydown.escape.window="quotaModalOpen = false">
         <div @click.away="quotaModalOpen = false" 
-             class="bg-white dark:bg-[#161b22] rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-[#30363d] space-y-5 overflow-hidden flex flex-col max-h-[90vh]"
+             class="bg-white dark:bg-[#161b22] rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-[#30363d] space-y-5 overflow-hidden flex flex-col"
              x-transition:enter="transition cubic-bezier(0.16, 1, 0.3, 1) duration-300 transform"
              x-transition:enter-start="opacity-0 scale-95 translate-y-3"
              x-transition:enter-end="opacity-100 scale-100 translate-y-0"
@@ -2058,46 +2068,15 @@
                 </div>
             </div>
 
-            <!-- Usage Record History Section -->
-            <div class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
-                <div class="flex items-center justify-between">
-                    <h4 class="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider flex items-center gap-1.5">
-                        <i data-lucide="history" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i> My Usage Records
-                    </h4>
-                    <span class="text-[10px] font-black bg-slate-100 dark:bg-[#21262d] text-slate-900 dark:text-slate-300 px-2 py-0.5 rounded-full border border-slate-200 dark:border-[#30363d]" x-text="(selectedQuota?.records?.length || 0) + ' Records Found'"></span>
+            <!-- Link to My Usage Records Tab -->
+            <div class="p-3 bg-slate-50 dark:bg-[#1c2128] rounded-xl border border-slate-200/80 dark:border-[#30363d] flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                    <i data-lucide="info" class="w-4 h-4 text-blue-500 shrink-0"></i>
+                    <span class="font-medium">View itemized leave history and breakdown in</span>
                 </div>
-
-                <div class="space-y-2">
-                    <template x-for="rec in (selectedQuota?.records || [])" :key="rec.id">
-                        <div class="p-3 bg-white dark:bg-[#1c2128] rounded-xl border border-slate-200 dark:border-[#30363d] hover:border-blue-300 dark:hover:border-blue-500 transition-all flex items-center justify-between text-xs">
-                            <div class="space-y-0.5">
-                                <div class="font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                                    <span x-text="rec.start_date === rec.end_date ? rec.start_date : (rec.start_date + ' to ' + rec.end_date)"></span>
-                                    <span class="text-[10px] font-black bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-900" 
-                                          x-text="rec.is_short_leave || ((rec.leave_type?.code || '').toUpperCase() === 'SHORT') ? ('Short Leave' + (rec.short_leave_slot ? ' (' + rec.short_leave_slot + ')' : '')) : (rec.is_half_day ? ('Half Day (' + (rec.half_day_slot || '0.5d') + ')') : parseFloat(rec.duration) + (parseFloat(rec.duration) === 1 ? ' Day' : ' Days'))"></span>
-                                </div>
-                                <div class="text-[11px] text-slate-600 dark:text-slate-400 font-bold" x-text="rec.reason"></div>
-                            </div>
-                            <div class="text-right space-y-1">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-black block"
-                                      :class="{
-                                          'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800': rec.status === 'Approved' || rec.status === 'HR Approved',
-                                          'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800': rec.status.includes('Pending'),
-                                          'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800': rec.status === 'Rejected'
-                                      }"
-                                      x-text="rec.status"></span>
-                            </div>
-                        </div>
-                    </template>
-
-                    <template x-if="!selectedQuota?.records || selectedQuota?.records?.length === 0">
-                        <div class="p-6 text-center bg-slate-50 dark:bg-[#1c2128] rounded-xl border border-dashed border-slate-200 dark:border-[#30363d] space-y-1">
-                            <i data-lucide="check-circle" class="w-8 h-8 text-emerald-500 dark:text-emerald-400 mx-auto opacity-80"></i>
-                            <p class="text-xs font-black text-slate-900 dark:text-slate-100">No usage recorded for <span x-text="selectedQuota?.name"></span> yet.</p>
-                            <p class="text-[10px] text-slate-600 dark:text-slate-400 font-bold">Your full entitlement balance is untouched and available for application.</p>
-                        </div>
-                    </template>
-                </div>
+                <a href="{{ route('my-usage-records.index') }}" class="inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 hover:underline shrink-0">
+                    My Usage Records <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
             </div>
 
             <!-- Modal Footer -->

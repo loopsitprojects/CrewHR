@@ -40,7 +40,7 @@
                 </div>
 
                 <div class="relative">
-                    <select name="leave_type_id" onchange="this.form.submit()" class="appearance-none [background-image:none]! bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-bold text-slate-800 dark:text-slate-100 py-1.5 pl-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
+                    <select name="leave_type_id" onchange="this.form.submit()" class="appearance-none [background-image:none]! bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-bold text-slate-800 dark:text-slate-100 py-1.5 pl-3.5 pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
                         <option value="">All Types</option>
                         @foreach($leaveTypes as $lt)
                             @if(!in_array(strtolower($lt->name ?? ''), ['half day leave', 'half day', 'maternity leave', 'maternity', 'paternity leave', 'paternity']) && !in_array(strtoupper($lt->code ?? ''), ['HALF', 'MATERNITY', 'PATERNITY', 'MAT', 'PAT']))
@@ -48,26 +48,26 @@
                             @endif
                         @endforeach
                     </select>
-                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-300 absolute right-2.5 top-2.5 pointer-events-none"></i>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-300 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                 </div>
 
                 <div class="relative">
-                    <select name="month" onchange="this.form.submit()" class="appearance-none [background-image:none]! bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-bold text-slate-800 dark:text-slate-100 py-1.5 pl-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
+                    <select name="month" onchange="this.form.submit()" class="appearance-none [background-image:none]! bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-bold text-slate-800 dark:text-slate-100 py-1.5 pl-3.5 pr-8.5 min-w-[118px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
                         <option value="">All Months</option>
                         @foreach($monthsList as $mNum => $mName)
                             <option value="{{ $mNum }}" {{ (string)$month === (string)$mNum ? 'selected' : '' }}>{{ $mName }}</option>
                         @endforeach
                     </select>
-                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-300 absolute right-2.5 top-2.5 pointer-events-none"></i>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-300 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                 </div>
 
                 <div class="relative">
-                    <select name="year" onchange="this.form.submit()" class="appearance-none [background-image:none]! bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-bold text-slate-800 dark:text-slate-100 py-1.5 pl-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
+                    <select name="year" onchange="this.form.submit()" class="appearance-none [background-image:none]! bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-xs font-bold text-slate-800 dark:text-slate-100 py-1.5 pl-3.5 pr-8 min-w-[85px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
                         @foreach($yearsList as $y)
                             <option value="{{ $y }}" {{ $y == $year ? 'selected' : '' }}>{{ $y }}</option>
                         @endforeach
                     </select>
-                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-300 absolute right-2.5 top-2.5 pointer-events-none"></i>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 dark:text-slate-300 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
                 </div>
             </form>
         </div>

@@ -52,7 +52,7 @@ class SriLankaCalendarTest extends TestCase
 
     public function test_leave_duration_calculation_excludes_weekends_and_poya_days()
     {
-        $leaveType = LeaveType::first();
+        $leaveType = LeaveType::where('code', 'ANNUAL')->first() ?? LeaveType::whereNotIn('code', ['NIGHT_SHIFT_RECOVERY', 'SHORT', 'HALF_DAY'])->first();
 
         // 2026-08-24 (Mon) to 2026-08-28 (Fri). Note 2026-08-26 (Milad-Un-Nabi) & 2026-08-27 (Nikini Poya) are Holidays.
         // Total 5 calendar days - 2 Holidays = 3 working days!

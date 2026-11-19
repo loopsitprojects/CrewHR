@@ -71,8 +71,8 @@
             </div>
 
             <div class="flex items-center gap-1.5">
-                <span class="text-slate-400 font-semibold">Staff Category:</span>
-                <select name="staff_category" onchange="this.form.submit()" class="border-slate-200 rounded-xl text-xs font-extrabold bg-slate-50 py-2 px-3">
+                <span class="text-slate-400 font-semibold">Job Category:</span>
+                <select name="job_category" onchange="this.form.submit()" class="border-slate-200 rounded-xl text-xs font-extrabold bg-slate-50 py-2 px-3">
                     @foreach($categoriesList as $cat)
                         <option value="{{ $cat }}" {{ $category == $cat ? 'selected' : '' }}>{{ $cat }}</option>
                     @endforeach
@@ -159,7 +159,7 @@
                             <tr class="hover:bg-slate-50/70 transition-colors">
                                 <td class="p-3">
                                     <div class="font-extrabold text-slate-900">{{ $emp->user->name ?? 'Employee' }}</div>
-                                    <div class="text-[11px] text-slate-400 font-medium">EPF: {{ $emp->epf_registration_no ?? 'EPF-'.$emp->id }} • {{ $ps->staff_category }}</div>
+                                    <div class="text-[11px] text-slate-400 font-medium">EPF: {{ $emp->epf_registration_no ?? 'EPF-'.$emp->id }} • {{ $emp->job_category ?? $ps->staff_category }}</div>
                                 </td>
                                 <td class="p-3">
                                     <div class="font-bold text-slate-800">{{ $ps->department_name ?: ($emp->department->name ?? 'Corporate') }}</div>
@@ -239,7 +239,7 @@
                             <tr class="hover:bg-slate-50/70 transition-colors">
                                 <td class="p-3">
                                     <div class="font-extrabold text-slate-900">{{ $emp->user->name ?? 'Employee' }}</div>
-                                    <div class="text-[11px] text-slate-400 font-medium">EPF: {{ $emp->epf_registration_no ?? 'EPF-'.$emp->id }} • {{ $emp->staff_category ?? 'Executive' }}</div>
+                                    <div class="text-[11px] text-slate-400 font-medium">EPF: {{ $emp->epf_registration_no ?? 'EPF-'.$emp->id }} • {{ $emp->job_category ?? $emp->staff_category ?? 'Full Time' }}</div>
                                 </td>
                                 <td class="p-3">
                                     <div class="font-bold text-slate-800">{{ $calc['department_name'] }}</div>

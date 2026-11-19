@@ -173,16 +173,44 @@ class SettingsController extends Controller
             'emergency_contact' => 'nullable|string|max:100',
             'bank_name' => 'nullable|string|max:255',
             'bank_branch' => 'nullable|string|max:255',
+            'branch_code' => 'nullable|string|max:100',
             'account_number' => 'nullable|string|max:100',
             'account_holder_name' => 'nullable|string|max:255',
-            'higher_education' => 'nullable|string',
-            'professional_qualifications' => 'nullable|string',
+            'higher_education' => 'nullable',
+            'working_experience' => 'nullable',
+            'professional_qualifications' => 'nullable',
         ]);
 
         $user->update([
             'name' => $request->name,
             'email' => $request->email,
         ]);
+
+        $higherEducation = null;
+        if ($request->has('higher_education')) {
+            if (is_array($request->higher_education)) {
+                $filtered = array_values(array_filter($request->higher_education, function ($item) {
+                    return !empty(trim($item['qualification'] ?? '')) || !empty(trim($item['institute'] ?? '')) || !empty(trim($item['country'] ?? '')) || !empty(trim($item['duration'] ?? ''));
+                }));
+                $higherEducation = !empty($filtered) ? json_encode($filtered) : null;
+            } else {
+                $higherEducation = $request->higher_education;
+            }
+        }
+
+        $workingExperience = null;
+        if ($request->has('working_experience')) {
+            if (is_array($request->working_experience)) {
+                $filtered = array_values(array_filter($request->working_experience, function ($item) {
+                    return !empty(trim($item['company'] ?? '')) || !empty(trim($item['designation'] ?? '')) || !empty(trim($item['duration'] ?? ''));
+                }));
+                $workingExperience = !empty($filtered) ? json_encode($filtered) : null;
+            } else {
+                $workingExperience = $request->working_experience;
+            }
+        } elseif ($request->has('professional_qualifications')) {
+            $workingExperience = $request->professional_qualifications;
+        }
 
         $employee = \Modules\Employee\Models\Employee::where('user_id', $user->id)->first();
         if ($employee) {
@@ -192,10 +220,12 @@ class SettingsController extends Controller
                 'nic_passport' => $request->nic_passport ?? $employee->nic_passport,
                 'bank_name' => $request->bank_name,
                 'bank_branch' => $request->bank_branch,
+                'branch_code' => $request->branch_code,
                 'account_number' => $request->account_number,
                 'account_holder_name' => $request->account_holder_name,
-                'higher_education' => $request->higher_education,
-                'professional_qualifications' => $request->professional_qualifications,
+                'higher_education' => $higherEducation,
+                'working_experience' => $workingExperience,
+                'professional_qualifications' => $workingExperience,
             ]);
         }
 

@@ -41,13 +41,52 @@ class EmployeeController extends Controller
         }
 
         if ($deptId && $deptId !== 'all') {
-            $query->where('department_id', $deptId);
+            $targetDept = Department::find($deptId);
+            if ($targetDept) {
+                $matchingDeptIds = Department::where('name', $targetDept->name)->pluck('id')->toArray();
+                $query->whereIn('department_id', $matchingDeptIds);
+            } else {
+                $query->where('department_id', $deptId);
+            }
         }
 
         $employees = $query->latest()->paginate(12)->withQueryString();
-        $departments = Department::withCount('employees')->get();
 
-        return view('employee::index', compact('employees', 'departments', 'search', 'deptId'));
+        // Deduplicate departments by name and sum counts
+        $departments = Department::withCount('employees')
+            ->get()
+            ->groupBy('name')
+            ->map(function ($group) {
+                $first = $group->first();
+                $first->employees_count = $group->sum('employees_count');
+                return $first;
+            })
+            ->sortBy('name')
+            ->values();
+
+        $totalWorkforce = Employee::count();
+
+        // Fetch all active employees for real-time typeahead search dropdown
+        $allEmployees = Employee::with(['user', 'department', 'designation'])
+            ->get()
+            ->map(function ($emp) {
+                return [
+                    'id' => $emp->id,
+                    'name' => $emp->user->name ?? 'Employee',
+                    'raw_name' => $emp->user->name ?? '',
+                    'emp_no' => $emp->employee_id_number ?? '',
+                    'epf_no' => $emp->epf_registration_no ?? '',
+                    'designation' => $emp->designation->name ?? 'Staff',
+                    'department' => $emp->department->name ?? 'General',
+                    'department_id' => $emp->department_id,
+                    'avatar' => $emp->profile_picture,
+                    'initials' => strtoupper(substr($emp->user->name ?? 'EM', 0, 2)),
+                    'url' => route('employee.show', $emp->id),
+                ];
+            })
+            ->values();
+
+        return view('employee::index', compact('employees', 'departments', 'search', 'deptId', 'totalWorkforce', 'allEmployees'));
     }
 
     private function authorizeAdminOrHr()
@@ -58,13 +97,42 @@ class EmployeeController extends Controller
         }
     }
 
+    private function formatEducationInput($input)
+    {
+        if (empty($input)) return null;
+        if (is_array($input)) {
+            $filtered = array_values(array_filter($input, function ($item) {
+                return !empty(trim($item['qualification'] ?? '')) || 
+                       !empty(trim($item['institute'] ?? '')) || 
+                       !empty(trim($item['country'] ?? '')) || 
+                       !empty(trim($item['duration'] ?? ''));
+            }));
+            return !empty($filtered) ? json_encode($filtered) : null;
+        }
+        return $input;
+    }
+
+    private function formatExperienceInput($input)
+    {
+        if (empty($input)) return null;
+        if (is_array($input)) {
+            $filtered = array_values(array_filter($input, function ($item) {
+                return !empty(trim($item['company'] ?? '')) || 
+                       !empty(trim($item['designation'] ?? '')) || 
+                       !empty(trim($item['duration'] ?? ''));
+            }));
+            return !empty($filtered) ? json_encode($filtered) : null;
+        }
+        return $input;
+    }
+
     public function create()
     {
         $this->authorizeAdminOrHr();
 
         $departments = Department::all();
         $designations = Designation::all();
-        $reportingPersons = Employee::with('user')->get();
+        $reportingPersons = Employee::with(['user', 'designation', 'department'])->get();
         $allowanceTypes = \Modules\Payroll\Models\AllowanceType::where('status', 'Active')->orderBy('name')->get();
         $employee = new Employee();
 
@@ -76,7 +144,9 @@ class EmployeeController extends Controller
         $this->authorizeAdminOrHr();
         $request->validate([
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'company_email' => 'nullable|email|unique:users,email|max:255',
+            'personal_email' => 'nullable|email|max:255',
+            'email' => 'nullable|email|unique:users,email',
             'employee_id_number' => 'required|string|max:100|unique:employees,employee_id_number',
             'department_id' => 'required|exists:departments,id',
             'designation_id' => 'required',
@@ -84,13 +154,18 @@ class EmployeeController extends Controller
             'profile_picture_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
         ]);
 
+        $primaryEmail = $request->company_email ?: ($request->email ?: $request->personal_email);
+        if (!$primaryEmail) {
+            return back()->withInput()->withErrors(['company_email' => 'Please provide at least a Company Email or Personal Email.']);
+        }
+
         $designationId = $this->resolveDesignationId($request);
 
-        DB::transaction(function () use ($request, $designationId) {
+        DB::transaction(function () use ($request, $designationId, $primaryEmail) {
             $user = User::create([
                 'name' => $request->full_name,
                 'username' => $request->username ?? strtolower(str_replace(' ', '.', $request->full_name)) . rand(10, 99),
-                'email' => $request->email,
+                'email' => $primaryEmail,
                 'password' => Hash::make($request->password ?? 'password123'),
             ]);
 
@@ -103,7 +178,10 @@ class EmployeeController extends Controller
             $emp = Employee::create([
                 'user_id' => $user->id,
                 'employee_id_number' => $request->employee_id_number,
-                'title' => $request->title ?? 'Mr.',
+                'title' => null,
+                'gender' => $request->gender,
+                'personal_email' => $request->personal_email,
+                'company_email' => $request->company_email ?: $primaryEmail,
                 'profile_picture' => $profilePicture,
                 'date_of_birth' => $request->date_of_birth,
                 'nic_passport' => $request->nic_passport,
@@ -114,11 +192,13 @@ class EmployeeController extends Controller
                 'designation_id' => $designationId,
                 'system_role' => $request->system_role ?? 'Employee',
                 'reporting_person_id' => $request->reporting_person_id,
+                'hod_id' => $request->hod_id,
                 'joined_date' => $request->joined_date ?? now()->toDateString(),
-                'epf_registration_no' => $request->epf_registration_no,
-                'job_category' => $request->job_category ?? 'Full Time (Permanent)',
-                'staff_category' => $request->staff_category ?? 'Executive',
-                'cost_classification' => $request->cost_classification ?? 'Direct',
+                'epf_registration_no' => $request->epf_registration_no ?? $request->epf_number,
+                'etf_registration_no' => $request->etf_registration_no ?? $request->etf_number,
+                'job_category' => $request->job_category ?? $request->employment_status ?? 'Full Time',
+                'staff_category' => $request->staff_category ?? $request->job_category ?? 'Executive',
+                'cost_classification' => $request->cost_classification ?? $request->cost_center ?? 'Direct',
                 'payment_method' => $request->payment_method ?? 'Bank Transfer',
 
                 'increment_amount' => $request->increment_amount ?? 0,
@@ -137,11 +217,13 @@ class EmployeeController extends Controller
 
                 'bank_name' => $request->bank_name,
                 'bank_branch' => $request->bank_branch,
+                'branch_code' => $request->branch_code,
                 'account_number' => $request->account_number,
                 'account_holder_name' => $request->account_holder_name,
 
-                'higher_education' => $request->higher_education,
-                'professional_qualifications' => $request->professional_qualifications,
+                'higher_education' => $this->formatEducationInput($request->higher_education),
+                'working_experience' => $this->formatExperienceInput($request->working_experience ?? $request->professional_qualifications),
+                'professional_qualifications' => $this->formatExperienceInput($request->working_experience ?? $request->professional_qualifications),
             ]);
 
             // Sync dynamic allowances
@@ -177,9 +259,12 @@ class EmployeeController extends Controller
             'department', 
             'designation', 
             'reportingPerson.user',
+            'reportingPerson.designation',
+            'hod.user',
             'subordinates.user',
             'leaveBalances.leaveType',
-            'employeeAllowances.allowanceType'
+            'employeeAllowances.allowanceType',
+            'appraisals.cycle'
         ])->findOrFail($id);
 
         return view('employee::show', compact('employee'));
@@ -194,13 +279,14 @@ class EmployeeController extends Controller
             'department', 
             'designation', 
             'reportingPerson.user',
+            'reportingPerson.designation',
             'leaveBalances.leaveType',
             'employeeAllowances.allowanceType'
         ])->findOrFail($id);
 
         $departments = Department::all();
         $designations = Designation::all();
-        $reportingPersons = Employee::with('user')->where('id', '!=', $id)->get();
+        $reportingPersons = Employee::with(['user', 'designation', 'department'])->where('id', '!=', $id)->get();
         $allowanceTypes = \Modules\Payroll\Models\AllowanceType::where('status', 'Active')->orderBy('name')->get();
 
         return view('employee::edit', compact('employee', 'departments', 'designations', 'reportingPersons', 'allowanceTypes'));
@@ -215,7 +301,9 @@ class EmployeeController extends Controller
         $request->validate([
             'full_name' => 'required|string|max:255',
             'username' => ['required', 'string', 'max:100', Rule::unique('users', 'username')->ignore($employee->user_id)],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($employee->user_id)],
+            'company_email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($employee->user_id)],
+            'personal_email' => 'nullable|email|max:255',
+            'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($employee->user_id)],
             'employee_id_number' => ['required', 'string', 'max:100', Rule::unique('employees', 'employee_id_number')->ignore($employee->id)],
             'department_id' => 'required|exists:departments,id',
             'designation_id' => 'required',
@@ -224,14 +312,15 @@ class EmployeeController extends Controller
         ]);
 
         $designationId = $this->resolveDesignationId($request);
+        $primaryEmail = $request->company_email ?: ($request->email ?: $request->personal_email);
 
-        DB::transaction(function () use ($request, $employee, $designationId) {
+        DB::transaction(function () use ($request, $employee, $designationId, $primaryEmail) {
             // Update User record
             if ($employee->user) {
                 $employee->user->update([
                     'name' => $request->full_name,
                     'username' => $request->username,
-                    'email' => $request->email,
+                    'email' => $primaryEmail ?: $employee->user->email,
                 ]);
             }
 
@@ -244,7 +333,10 @@ class EmployeeController extends Controller
 
             // Update Employee Profile
             $employee->update([
-                'title' => $request->title,
+                'title' => null,
+                'gender' => $request->gender,
+                'personal_email' => $request->personal_email,
+                'company_email' => $request->company_email ?: ($primaryEmail ?: $employee->company_email),
                 'profile_picture' => $profilePicture,
                 'date_of_birth' => $request->date_of_birth,
                 'nic_passport' => $request->nic_passport,
@@ -256,11 +348,13 @@ class EmployeeController extends Controller
                 'designation_id' => $designationId,
                 'system_role' => $request->system_role ?? $employee->system_role,
                 'reporting_person_id' => $request->reporting_person_id,
+                'hod_id' => $request->hod_id,
                 'joined_date' => $request->joined_date,
-                'epf_registration_no' => $request->epf_registration_no,
-                'job_category' => $request->job_category ?? $employee->job_category,
-                'staff_category' => $request->staff_category ?? ($employee->staff_category ?? 'Executive'),
-                'cost_classification' => $request->cost_classification ?? ($employee->cost_classification ?? 'Direct'),
+                'epf_registration_no' => $request->epf_registration_no ?? $request->epf_number ?? $employee->epf_registration_no,
+                'etf_registration_no' => $request->etf_registration_no ?? $request->etf_number ?? $employee->etf_registration_no,
+                'job_category' => $request->job_category ?? $request->employment_status ?? ($employee->job_category ?? 'Full Time'),
+                'staff_category' => $request->staff_category ?? $request->job_category ?? ($employee->staff_category ?? 'Executive'),
+                'cost_classification' => $request->cost_classification ?? $request->cost_center ?? ($employee->cost_classification ?? 'Direct'),
                 'payment_method' => $request->payment_method ?? ($employee->payment_method ?? 'Bank Transfer'),
 
                 'increment_amount' => $request->increment_amount ?? 0,
@@ -279,11 +373,13 @@ class EmployeeController extends Controller
 
                 'bank_name' => $request->bank_name,
                 'bank_branch' => $request->bank_branch,
+                'branch_code' => $request->branch_code,
                 'account_number' => $request->account_number,
                 'account_holder_name' => $request->account_holder_name,
 
-                'higher_education' => $request->higher_education,
-                'professional_qualifications' => $request->professional_qualifications,
+                'higher_education' => $this->formatEducationInput($request->higher_education),
+                'working_experience' => $this->formatExperienceInput($request->working_experience ?? $request->professional_qualifications),
+                'professional_qualifications' => $this->formatExperienceInput($request->working_experience ?? $request->professional_qualifications),
             ]);
 
             // Update Leave Balances if passed in request

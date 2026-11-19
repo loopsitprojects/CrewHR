@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-50 overflow-hidden">
+<html lang="en" class="h-full bg-[#EEF2F6] dark:bg-[#070B14] overflow-hidden">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -34,12 +34,19 @@
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
+    <!-- Canvas Confetti for Celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Plus Jakarta Sans", system-ui, sans-serif;
+            letter-spacing: -0.012em;
+        }
         [x-cloak] { display: none !important; }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
     </style>
 </head>
-<body class="h-screen overflow-hidden antialiased text-slate-800 bg-[#eef2f6] dark:bg-[#070b14] dark:text-slate-200 transition-colors duration-200"
+<body class="h-screen overflow-hidden antialiased text-slate-800 bg-[#EEF2F6] dark:bg-[#070B14] dark:text-slate-100 transition-colors duration-200"
       x-data="{ 
           role: '{{ session('current_role', 'Super (Admin)') }}', 
           theme: localStorage.getItem('theme') || 'light',
@@ -130,7 +137,7 @@
             <nav class="p-2.5 space-y-3">
                 <!-- Group 1: LEAVE MANAGEMENT SUITE -->
                 @if(($isModuleActive('Leave') && $canAccess('Leave')) || $canAccess('Approvals') || $canAccess('Analytics'))
-                @php $isLeaveActive = request()->routeIs('dashboard', 'leave.*', 'my-leaves.*', 'approvals.index', 'analytics.index'); @endphp
+                @php $isLeaveActive = request()->routeIs('dashboard', 'leave.*', 'my-leaves.*', 'my-usage-records.*', 'approvals.index', 'analytics.index'); @endphp
                 <div>
                     <button type="button" 
                             @click="toggleModule('leave')" 
@@ -155,13 +162,13 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
-                        <a href="{{ route('my-leaves.index') }}" 
-                            title="Leave Record Directory"
+                        <a href="{{ route('my-usage-records.index') }}" 
+                            title="My Usage Records"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('my-leaves.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
-                            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Record Directory</span>
-                            @if(request()->routeIs('my-leaves.*'))
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('my-usage-records.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="history" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">My Usage Records</span>
+                            @if(request()->routeIs('my-usage-records.*'))
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
@@ -370,10 +377,40 @@
                         <a href="{{ route('appraisal.index') }}" 
                             title="Appraisal System"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.index', 'appraisal.show') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-amber-400 dark:text-yellow-400"></i>
                             <span x-show="!sidebarCollapsed" x-cloak class="truncate">Appraisal System</span>
-                            @if(request()->routeIs('appraisal.*'))
+                            @if(request()->routeIs('appraisal.index', 'appraisal.show'))
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+                        <a href="{{ route('appraisal.templates.index') }}" 
+                            title="KPI Templates"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.templates.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="sliders" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">KPI Templates</span>
+                            @if(request()->routeIs('appraisal.templates.*'))
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+                        <a href="{{ route('appraisal.change-requests.index') }}" 
+                            title="Change Requests"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.change-requests.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="lock" class="w-3.5 h-3.5 shrink-0 text-rose-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Change Requests</span>
+                            @if(request()->routeIs('appraisal.change-requests.*'))
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+                        <a href="{{ route('appraisal.analytics') }}" 
+                            title="Analytics & Reports"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.analytics') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Appraisal Analytics</span>
+                            @if(request()->routeIs('appraisal.analytics'))
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
@@ -398,23 +435,30 @@
     <!-- Main Content Canvas -->
     <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         
-        <!-- Header Bar (Matching Reference Shell UI) -->
-        <header class="h-16 bg-[#0b132b] dark:bg-[#070e1b] border-b border-slate-800/80 px-5 flex items-center justify-between shrink-0 z-10 transition-colors duration-200">
+        <!-- Header Bar (Apple Liquid Glass Header) -->
+        <header class="h-16 bg-white/95 dark:bg-[#0B101D]/85 backdrop-blur-xl border-b border-slate-200/90 dark:border-white/[0.08] px-5 flex items-center justify-between shrink-0 z-10 transition-colors duration-200 shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] dark:shadow-none">
             <!-- Left Controls: Sidebar Toggle Button & Page Title -->
-            <div class="flex items-center gap-3.5">
-                <button @click="toggleSidebar()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer" title="Toggle Sidebar">
+            <div class="flex items-center gap-3.5 min-w-0">
+                <button @click="toggleSidebar()" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 rounded-xl transition-all active:scale-95 cursor-pointer shrink-0" title="Toggle Sidebar">
                     <i data-lucide="panel-left" class="w-5 h-5"></i>
                 </button>
-                @if(isset($pageTitle) || isset($breadcrumb))
-                    <div class="h-5 w-px bg-slate-800 hidden sm:block"></div>
-                    <h1 class="text-base sm:text-lg font-black text-white tracking-tight leading-none">
+                @hasSection('header_left')
+                    @yield('header_left')
+                @elseif(isset($pageTitle) || isset($breadcrumb))
+                    <div class="h-5 w-px bg-slate-200 dark:bg-white/10 hidden sm:block shrink-0"></div>
+                    <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none truncate">
                         {{ $pageTitle ?? $breadcrumb }}
                     </h1>
                 @endif
             </div>
 
             <!-- Right Toolbar Controls: User Avatar + Bell + Theme + Sign Out -->
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5 shrink-0">
+                @hasSection('header_actions')
+                    <div class="flex items-center gap-2.5 border-r border-slate-200 dark:border-white/[0.08] pr-4 mr-4">
+                        @yield('header_actions')
+                    </div>
+                @endif
                 <!-- Notification Bell Component with Slide-Over Panel -->
                 <div class="relative" x-data="{ 
                     notificationsOpen: false, 
@@ -468,11 +512,11 @@
                     }
                 }" x-init="loadNotifications()">
                     <button @click="notificationsOpen = true; loadNotifications(); $nextTick(() => lucide.createIcons())" 
-                            class="p-2 text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all relative cursor-pointer"
+                            class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 rounded-xl transition-all relative cursor-pointer active:scale-95"
                             title="Open Notifications Drawer">
                         <i data-lucide="bell" class="w-5 h-5"></i>
                         <template x-if="unreadCount > 0">
-                            <span class="absolute top-1 right-1 bg-rose-600 text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs" x-text="unreadCount"></span>
+                            <span class="absolute top-1 right-1 bg-[#FF3B30] text-white font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-xs" x-text="unreadCount"></span>
                         </template>
                     </button>
 
@@ -499,66 +543,66 @@
                                  x-transition:leave-start="translate-x-0"
                                  x-transition:leave-end="translate-x-full"
                                  x-cloak 
-                                 class="fixed inset-y-0 right-0 w-80 sm:w-[420px] bg-white dark:bg-[#0f172a] shadow-2xl z-[1000] flex flex-col border-l border-slate-200/90 dark:border-slate-800 overflow-hidden">
+                                 class="fixed inset-y-0 right-0 w-80 sm:w-[420px] bg-white dark:bg-[#111827] shadow-2xl z-[1000] flex flex-col border-l border-slate-200/90 dark:border-white/[0.08] overflow-hidden">
                                 
                                 <!-- Drawer Top Header -->
-                                <div class="px-5 py-4 bg-[#0f172a] text-white flex items-center justify-between shrink-0 shadow-md border-b border-slate-800">
+                                <div class="px-5 py-4 bg-slate-50 dark:bg-[#0B101D] text-slate-900 dark:text-white flex items-center justify-between shrink-0 border-b border-slate-200/80 dark:border-white/[0.08]">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center font-bold">
+                                        <div class="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 text-[#007AFF] dark:text-[#0A84FF] flex items-center justify-center font-bold">
                                             <i data-lucide="bell" class="w-5 h-5"></i>
                                         </div>
                                         <div>
-                                            <h2 class="text-sm font-black tracking-tight text-white">Notifications Center</h2>
+                                            <h2 class="text-sm font-bold tracking-tight text-slate-900 dark:text-white">Notifications</h2>
                                             <template x-if="unreadCount > 0">
-                                                <span class="text-[10px] text-blue-400 font-bold" x-text="unreadCount + ' Unread Messages'"></span>
+                                                <span class="text-[10px] text-blue-600 dark:text-blue-400 font-bold" x-text="unreadCount + ' Unread'"></span>
                                             </template>
                                             <template x-if="unreadCount === 0">
-                                                <span class="text-[10px] text-slate-400 font-medium">All caught up</span>
+                                                <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium">All caught up</span>
                                             </template>
                                         </div>
                                     </div>
-                                    <button @click="notificationsOpen = false" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer">
+                                    <button @click="notificationsOpen = false" class="p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer">
                                         <i data-lucide="x" class="w-5 h-5"></i>
                                     </button>
                                 </div>
 
                                 <!-- Filter Tabs & Quick Action Bar -->
-                                <div class="p-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0 text-xs">
-                                    <div class="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-full border border-slate-200/80 dark:border-slate-700">
-                                        <button @click="filterTab = 'all'" :class="filterTab === 'all' ? 'bg-blue-600 text-white shadow-2xs font-extrabold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-bold'" class="px-3.5 py-1 rounded-full transition-all text-[11px] cursor-pointer">All</button>
-                                        <button @click="filterTab = 'unread'" :class="filterTab === 'unread' ? 'bg-blue-600 text-white shadow-2xs font-extrabold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-bold'" class="px-3.5 py-1 rounded-full transition-all text-[11px] cursor-pointer">Unread</button>
+                                <div class="p-3 bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200/80 dark:border-white/[0.08] flex items-center justify-between shrink-0 text-xs">
+                                    <div class="flex items-center gap-1 bg-slate-200/70 dark:bg-white/10 p-0.5 rounded-xl border border-black/[0.04] dark:border-white/[0.06]">
+                                        <button @click="filterTab = 'all'" :class="filterTab === 'all' ? 'bg-white dark:bg-[#1A2338] text-slate-900 dark:text-white shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium'" class="px-3 py-1 rounded-lg transition-all text-[11px] cursor-pointer">All</button>
+                                        <button @click="filterTab = 'unread'" :class="filterTab === 'unread' ? 'bg-white dark:bg-[#1A2338] text-slate-900 dark:text-white shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium'" class="px-3 py-1 rounded-lg transition-all text-[11px] cursor-pointer">Unread</button>
                                     </div>
 
                                     <div class="flex items-center gap-3">
-                                        <button @click="markAllAsRead()" class="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 hover:underline cursor-pointer transition-colors" title="Mark all as read">
+                                        <button @click="markAllAsRead()" class="text-[11px] font-semibold text-[#007AFF] dark:text-[#0A84FF] hover:underline flex items-center gap-1 cursor-pointer transition-colors" title="Mark all as read">
                                             <i data-lucide="check-check" class="w-3.5 h-3.5"></i>
-                                            <span>Mark all read</span>
+                                            <span>Mark read</span>
                                         </button>
 
                                         <button @click="clearAll()" 
                                                 x-show="notifications.length > 0"
-                                                class="text-[11px] font-bold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 flex items-center gap-1 hover:underline cursor-pointer transition-colors" 
+                                                class="text-[11px] font-semibold text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 flex items-center gap-1 hover:underline cursor-pointer transition-colors" 
                                                 title="Clear all notifications">
                                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                            <span>Clear all</span>
+                                            <span>Clear</span>
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- Drawer Body: Notification Items List -->
-                                <div class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80 p-3 space-y-1">
+                                <div class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-white/[0.06] p-3 space-y-1">
                                     <template x-for="item in notifications.filter(n => filterTab === 'all' || (filterTab === 'unread' && !n.is_read))" :key="item.id">
                                         <div @click="markAsRead(item.id, item.link)" 
-                                             class="p-3.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 cursor-pointer transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700 flex items-start gap-3 relative group"
-                                             :class="!item.is_read ? 'bg-blue-50/50 dark:bg-blue-950/30 font-semibold border-blue-100/80 dark:border-blue-900/50 shadow-2xs' : 'opacity-80'">
+                                             class="p-3.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/[0.04] cursor-pointer transition-all border border-transparent hover:border-slate-200/80 dark:hover:border-white/10 flex items-start gap-3 relative group"
+                                             :class="!item.is_read ? 'bg-blue-50/50 dark:bg-blue-950/20 font-semibold border-blue-100/80 dark:border-blue-900/40 shadow-xs' : 'opacity-80'">
                                             
-                                            <div class="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0" :class="!item.is_read ? 'bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-900/50' : 'bg-slate-300 dark:bg-slate-600'"></div>
+                                            <div class="w-2 h-2 rounded-full mt-1.5 shrink-0" :class="!item.is_read ? 'bg-[#007AFF] ring-4 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-300 dark:bg-slate-600'"></div>
 
                                             <div class="flex-1 space-y-1 min-w-0">
                                                 <div class="flex items-center justify-between gap-1">
-                                                    <span class="text-xs font-black text-slate-900 dark:text-white truncate" x-text="item.title"></span>
+                                                    <span class="text-xs font-bold text-slate-900 dark:text-white truncate" x-text="item.title"></span>
                                                     <div class="flex items-center gap-1.5 shrink-0">
-                                                        <span class="text-[9px] text-slate-400 font-bold" x-text="new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})"></span>
+                                                        <span class="text-[10px] text-slate-400 font-medium tabular-nums" x-text="new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})"></span>
                                                         <button @click.stop="clearNotification(item.id)" 
                                                                 class="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-rose-500 rounded hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-all cursor-pointer" 
                                                                 title="Delete notification">
@@ -586,20 +630,20 @@
                     </template>
                 </div>
 
-                <!-- User Profile Avatar matching Reference UI -->
-                <div class="flex items-center gap-2.5 pl-2 border-l border-slate-800">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 text-white flex items-center justify-center font-bold text-xs ring-2 ring-slate-700/80 shrink-0">
+                <!-- User Profile Avatar matching Apple SF rounded design -->
+                <div class="flex items-center gap-2.5 pl-2 border-l border-slate-200 dark:border-white/10">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-500/20 shrink-0 shadow-xs">
                         {{ strtoupper(substr(Auth::user()->name ?? 'SA', 0, 2)) }}
                     </div>
                     <div class="hidden sm:flex flex-col text-left">
-                        <span class="text-xs font-bold text-white leading-tight truncate max-w-[130px]">{{ Auth::user()->name ?? 'Super Admin' }}</span>
-                        <span class="text-[10px] text-slate-300 leading-tight">{{ session('current_role', Auth::user()?->employee?->system_role ?? 'Admin') }}</span>
+                        <span class="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate max-w-[130px]">{{ Auth::user()->name ?? 'Super Admin' }}</span>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight">{{ session('current_role', Auth::user()?->employee?->system_role ?? 'Admin') }}</span>
                     </div>
                 </div>
 
                 <!-- Dark / Light Mode Toggle Button -->
                 <button @click="toggleTheme()" 
-                        class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer" 
+                        class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 rounded-xl transition-all cursor-pointer active:scale-95" 
                         title="Toggle Light/Dark Theme">
                     <i data-lucide="moon" class="w-4 h-4" x-show="theme === 'light'"></i>
                     <i data-lucide="sun" class="w-4 h-4 text-amber-400" x-show="theme === 'dark'" x-cloak></i>
@@ -609,7 +653,7 @@
                 <form method="POST" action="{{ route('logout') }}" class="inline">
                     @csrf
                     <button type="submit" 
-                            class="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+                            class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-950/30 rounded-xl transition-all cursor-pointer active:scale-95"
                             title="Sign Out of Portal">
                         <i data-lucide="log-out" class="w-4 h-4"></i>
                     </button>

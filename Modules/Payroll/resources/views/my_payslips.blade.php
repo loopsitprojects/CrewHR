@@ -122,7 +122,7 @@
                                     </div>
                                     <div>
                                         <span class="block text-slate-900 font-extrabold">{{ $monthName }} {{ $ps->year }}</span>
-                                        <span class="text-[10px] text-slate-400 font-semibold">{{ $ps->staff_category ?? 'Executive' }}</span>
+                                        <span class="text-[10px] text-slate-400 font-semibold">{{ $ps->employee->job_category ?? $ps->staff_category ?? 'Full Time' }}</span>
                                     </div>
                                 </div>
                             </td>
