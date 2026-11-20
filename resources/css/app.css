@@ -20,238 +20,143 @@
 
 /* =========================================================
    APPLE HUMAN INTERFACE GUIDELINES (HIG) DESIGN SYSTEM
-   Exact Design Tokens, Stepped Elevation, Frosted Glass & Typography
+   SF Pro Typography Scale, Liquid Glass Materials & Tokens
    ========================================================= */
 
 :root {
-  /* Surfaces - Light Mode */
-  --bg-canvas: #F5F5F7;
-  --bg-surface: #FFFFFF;
-  --bg-elevated: #F2F2F7;
-  --bg-glass: rgba(245, 245, 247, 0.80);
-
-  /* Text Hierarchy - Light Mode */
-  --text-primary: #1D1D1F;
-  --text-secondary: #6E6E73;
-  --text-tertiary: #86868B;
-
-  /* Borders & Shadows */
-  --border-hairline: rgba(0, 0, 0, 0.08);
-  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 12px rgba(0, 0, 0, 0.02);
-
-  /* Apple Semantic Accents */
-  --accent-blue: #007AFF;
-  --accent-green: #28CD41;
-  --accent-orange: #FF9500;
-  --accent-red: #FF3B30;
-  --accent-purple: #AF52DE;
-
-  /* Subtle Tinted Pill Backgrounds (12% opacity) */
-  --tint-blue: rgba(0, 122, 255, 0.12);
-  --tint-green: rgba(40, 205, 65, 0.12);
-  --tint-orange: rgba(255, 149, 0, 0.12);
-  --tint-red: rgba(255, 59, 48, 0.12);
-  --tint-purple: rgba(175, 82, 222, 0.12);
-
-  /* Legacy & Internal Aliases */
-  --apple-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", sans-serif;
-  --apple-accent: var(--accent-blue);
-  --apple-accent-hover: #0071E3;
-  --apple-accent-active: #0062C4;
-  --apple-canvas: var(--bg-canvas);
-  --apple-surface: var(--bg-surface);
-  --apple-surface-elevated: var(--bg-elevated);
-  --apple-surface-secondary: var(--bg-elevated);
-  --apple-surface-tertiary: #E5E5EA;
-  --apple-separator: var(--border-hairline);
-  --apple-hairline: var(--border-hairline);
-  --apple-label-primary: var(--text-primary);
-  --apple-label-secondary: var(--text-secondary);
-  --apple-label-tertiary: var(--text-tertiary);
-  --apple-glass-bg: var(--bg-glass);
-  --apple-glass-border: var(--border-hairline);
-  --apple-shadow-sm: var(--card-shadow);
-  --apple-shadow-md: var(--card-shadow);
-  --apple-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.04);
+    --apple-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Plus Jakarta Sans", system-ui, sans-serif;
+    --apple-accent: #007AFF;
+    --apple-accent-hover: #0071E3;
+    --apple-accent-active: #0062C4;
+    --apple-canvas: #EEF2F6;
+    --apple-surface: #FFFFFF;
+    --apple-surface-elevated: #FFFFFF;
+    --apple-surface-secondary: #F1F4F9;
+    --apple-surface-tertiary: #E2E8F0;
+    --apple-separator: rgba(60, 60, 67, 0.12);
+    --apple-hairline: rgba(226, 232, 240, 0.9);
+    --apple-label-primary: #1D1D1F;
+    --apple-label-secondary: #6E6E73;
+    --apple-label-tertiary: #86868B;
+    --apple-glass-bg: rgba(255, 255, 255, 0.92);
+    --apple-glass-border: rgba(226, 232, 240, 0.8);
+    --apple-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
+    --apple-shadow-md: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    --apple-shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
 }
 
-.dark, [data-theme="dark"], html.dark {
-  /* Surfaces - Dark Mode (Stepped Elevation) */
-  --bg-canvas: #000000;
-  --bg-surface: #1C1C1E;
-  --bg-elevated: #2C2C2E;
-  --bg-glass: rgba(28, 28, 30, 0.78);
-
-  /* Text Hierarchy - Dark Mode */
-  --text-primary: #F5F5F7;
-  --text-secondary: #98989D;
-  --text-tertiary: #636366;
-
-  /* Borders & Shadows (No shadows in Dark Mode) */
-  --border-hairline: rgba(255, 255, 255, 0.09);
-  --card-shadow: none;
-
-  /* Apple Dark Mode Calibrated Accents */
-  --accent-blue: #0A84FF;
-  --accent-green: #30D158;
-  --accent-orange: #FF9F0A;
-  --accent-red: #FF453A;
-  --accent-purple: #BF5AF2;
-
-  /* Subtle Tinted Pill Backgrounds (16% opacity for dark contrast) */
-  --tint-blue: rgba(10, 132, 255, 0.16);
-  --tint-green: rgba(48, 209, 88, 0.16);
-  --tint-orange: rgba(255, 159, 10, 0.16);
-  --tint-red: rgba(255, 69, 58, 0.16);
-  --tint-purple: rgba(191, 90, 242, 0.16);
-
-  /* Legacy & Internal Aliases */
-  --apple-accent: var(--accent-blue);
-  --apple-accent-hover: #0077ED;
-  --apple-accent-active: #006BD6;
-  --apple-canvas: var(--bg-canvas);
-  --apple-surface: var(--bg-surface);
-  --apple-surface-elevated: var(--bg-elevated);
-  --apple-surface-secondary: var(--bg-elevated);
-  --apple-surface-tertiary: #3A3A3C;
-  --apple-separator: var(--border-hairline);
-  --apple-hairline: var(--border-hairline);
-  --apple-label-primary: var(--text-primary);
-  --apple-label-secondary: var(--text-secondary);
-  --apple-label-tertiary: var(--text-tertiary);
-  --apple-glass-bg: var(--bg-glass);
-  --apple-glass-border: var(--border-hairline);
-  --apple-shadow-sm: none;
-  --apple-shadow-md: none;
-  --apple-shadow-lg: none;
+html.dark {
+    color-scheme: dark;
+    --apple-accent: #0A84FF;
+    --apple-accent-hover: #0077ED;
+    --apple-accent-active: #006BD6;
+    --apple-canvas: #000000;
+    --apple-surface: #121826;
+    --apple-surface-elevated: #161F32;
+    --apple-surface-secondary: #1B253B;
+    --apple-surface-tertiary: #222E48;
+    --apple-separator: rgba(255, 255, 255, 0.08);
+    --apple-hairline: rgba(255, 255, 255, 0.08);
+    --apple-label-primary: #F5F5F7;
+    --apple-label-secondary: #A1A1A6;
+    --apple-label-tertiary: #6E6E73;
+    --apple-glass-bg: rgba(18, 24, 38, 0.82);
+    --apple-glass-border: rgba(255, 255, 255, 0.09);
+    --apple-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --apple-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+    --apple-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.35);
+    background-color: #070B14;
 }
 
-/* =========================================================
-   TYPOGRAPHY & TABULAR NUMBERS
-   ========================================================= */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
-  letter-spacing: -0.012em;
-  background-color: var(--bg-canvas);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    font-family: var(--apple-font-family);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6,
-.apple-heading {
-  letter-spacing: -0.02em;
-}
-
-/* Tabular Numbers for Tables & Balances */
 .tabular-nums,
 table,
 .metric-value,
 [data-tabular-nums] {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
 }
 
-/* Base Light and Dark Body Backgrounds */
-html:not(.dark),
-body:not(.dark) {
-  background-color: var(--bg-canvas);
-  color: var(--text-primary);
+/* Base Dark Mode Root Styling */
+.dark body {
+    background-color: #070B14;
+    color: #F5F5F7;
 }
 
-.dark body,
-html.dark {
-  background-color: var(--bg-canvas) !important;
-  color: var(--text-primary) !important;
+/* Liquid Glass & Translucent Materials */
+.apple-glass {
+    background: var(--apple-glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--apple-glass-border);
 }
 
-/* =========================================================
-   FROSTED GLASS HEADERS & MODALS
-   ========================================================= */
-.apple-glass,
-.header-glass,
-header.backdrop-blur-xl,
-header.backdrop-blur-lg,
-header.apple-glass {
-  background-color: var(--bg-glass) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  border-bottom: 1px solid var(--border-hairline) !important;
-}
-
-.modal-glass {
-  background-color: var(--bg-glass) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  border: 1px solid var(--border-hairline) !important;
-}
-
-/* =========================================================
-   CARD ARCHITECTURE
-   border-radius: 16px (20px large), 1px solid hairline,
-   whisper shadow light mode, no shadow in dark mode.
-   ========================================================= */
 .apple-card,
 .card-surface {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-hairline);
-  border-radius: 16px;
-  box-shadow: var(--card-shadow);
-  padding: 20px 24px;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.apple-card-lg,
-.card-container-lg {
-  border-radius: 20px;
+    background: #FFFFFF;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+    border-radius: 18px;
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dark .apple-card,
 .dark .card-surface {
-  background-color: var(--bg-surface) !important;
-  border-color: var(--border-hairline) !important;
-  box-shadow: none !important;
+    background: #111827;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: var(--apple-shadow-md);
 }
 
-/* =========================================================
-   GLOBAL DARK MODE STEPPED ELEVATION: #000000 -> #1C1C1E -> #2C2C2E
-   Never use pure black #000000 for cards in dark mode.
-   ========================================================= */
-html.dark .bg-white,
-html.dark [class*="dark:bg-[#111827]"],
-html.dark [class*="dark:bg-[#101726]"],
-html.dark [class*="dark:bg-[#121826]"],
-html.dark [class*="dark:bg-[#161F32]"],
-html.dark [class*="dark:bg-[#0f172a]"],
-html.dark [class*="dark:bg-[#0B101D]"],
-html.dark [class*="dark:bg-slate-900"],
-html.dark [class*="dark:bg-gray-900"] {
-  background-color: var(--bg-surface) !important; /* #1C1C1E */
-  border-color: var(--border-hairline) !important;
-  color: var(--text-primary) !important;
-  box-shadow: none !important;
+/* Apple Buttons */
+.apple-btn-primary {
+    background-color: var(--apple-accent);
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.01em;
+    padding: 8px 16px;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 122, 255, 0.2);
+    transition: all 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.apple-btn-primary:hover {
+    background-color: var(--apple-accent-hover);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+.apple-btn-primary:active {
+    transform: scale(0.98);
 }
 
-/* Elevated / Hover / Recessed Panels in Dark Mode: #2C2C2E */
-html.dark .bg-slate-50,
-html.dark .bg-gray-50,
-html.dark .bg-slate-100,
-html.dark .bg-gray-100,
-html.dark [class*="dark:bg-[#162032]"],
-html.dark [class*="dark:bg-[#1a2744]"],
-html.dark [class*="dark:bg-[#1B253B]"],
-html.dark [class*="dark:bg-[#222E48]"],
-html.dark [class*="dark:bg-slate-800"],
-html.dark [class*="dark:bg-gray-800"],
-html.dark [class*="dark:hover:bg-slate-800"],
-html.dark [class*="dark:hover:bg-white/10"],
-html.dark [class*="dark:hover:bg-white/[0.06]"] {
-  background-color: var(--bg-elevated) !important; /* #2C2C2E */
-  border-color: var(--border-hairline) !important;
-  color: var(--text-primary) !important;
+.apple-btn-secondary {
+    background-color: var(--apple-surface-secondary);
+    color: var(--apple-label-primary);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.01em;
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--apple-separator);
+    transition: all 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.apple-btn-secondary:hover {
+    background-color: var(--apple-surface-tertiary);
+}
+.apple-btn-secondary:active {
+    transform: scale(0.98);
 }
 
-/* Global Form Inputs Dark Support (Elevated Track #2C2C2E) */
+/* Global Form Inputs Dark Support (Apple Recessed Surface) */
 .dark input[type="text"],
 .dark input[type="number"],
 .dark input[type="email"],
@@ -260,298 +165,183 @@ html.dark [class*="dark:hover:bg-white/[0.06]"] {
 .dark input[type="file"],
 .dark select,
 .dark textarea {
-  background-color: var(--bg-elevated) !important; /* #2C2C2E */
-  color: var(--text-primary) !important;
-  border-color: var(--border-hairline) !important;
+    background-color: #162032 !important;
+    color: #F5F5F7 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .dark input::placeholder,
 .dark textarea::placeholder {
-  color: var(--text-tertiary) !important;
+    color: #6E7B92 !important;
 }
 
 .dark input:focus,
 .dark select:focus,
 .dark textarea:focus {
-  border-color: var(--accent-blue) !important;
-  background-color: #3A3A3C !important;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25) !important;
+    border-color: #0A84FF !important;
+    background-color: #1B263B !important;
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25) !important;
 }
 
-/* =========================================================
-   APPLE HIG DATA TABLES
-   Kill heavy dividers, remove vertical borders completely,
-   1px solid var(--border-hairline) only on horizontal dividers,
-   generous 14px 20px padding.
-   ========================================================= */
-table {
-  border-collapse: collapse !important;
-  width: 100%;
-  font-variant-numeric: tabular-nums;
-  border: none !important;
+/* Remove Tailwind Forms default SVG dropdown arrow when custom icon / appearance-none is used */
+select.appearance-none,
+select[class*="appearance-none"],
+.appearance-none {
+    background-image: none !important;
 }
 
-/* Remove vertical borders completely */
-table,
-table thead,
-table tbody,
-table tr,
-table th,
-table td {
-  border-left: none !important;
-  border-right: none !important;
+/* Global Dark Mode Surface Overrides for Cards, Panels & Backgrounds */
+html.dark .bg-white {
+    background-color: #111827;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #F5F5F7;
 }
 
-/* Table Header Cells */
-table thead th,
-table th {
-  background-color: var(--bg-surface) !important;
-  color: var(--text-secondary) !important;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 14px 20px !important;
-  border-top: none !important;
-  border-bottom: 1px solid var(--border-hairline) !important;
+html.dark .bg-gray-50,
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/40,
+html.dark .bg-slate-50\/50,
+html.dark .bg-slate-50\/60,
+html.dark .bg-slate-50\/70,
+html.dark .bg-slate-50\/80 {
+    background-color: #162032 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #CBD5E1;
 }
 
-/* Table Body Rows */
-table tbody tr {
-  background-color: var(--bg-surface) !important;
-  border-top: 1px solid var(--border-hairline) !important;
-  border-bottom: 1px solid var(--border-hairline) !important;
-  transition: background-color 0.15s ease;
+html.dark .bg-slate-100,
+html.dark .bg-slate-100\/90,
+html.dark .bg-slate-100\/80,
+html.dark .bg-slate-100\/70,
+html.dark .bg-slate-100\/60,
+html.dark .bg-gray-100,
+html.dark .bg-gray-100\/90,
+html.dark .bg-gray-100\/80,
+html.dark .bg-slate-200,
+html.dark .bg-gray-200 {
+    background-color: #1C273D !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #CBD5E1;
 }
 
-table tbody tr:hover {
-  background-color: var(--bg-elevated) !important;
-}
-
-/* Table Body Cells */
-table tbody td,
-table td {
-  padding: 14px 20px !important;
-  border-top: none !important;
-  border-bottom: none !important;
-  color: var(--text-primary) !important;
-}
-
+/* Global Data Tables Dark Support */
 .dark table thead th,
 .dark table th {
-  background-color: var(--bg-surface) !important; /* #1C1C1E */
-  color: var(--text-secondary) !important; /* #98989D */
-  border-bottom-color: var(--border-hairline) !important;
-}
-
-.dark table tbody tr {
-  background-color: var(--bg-surface) !important; /* #1C1C1E */
-  border-color: var(--border-hairline) !important;
-}
-
-.dark table tbody tr:hover {
-  background-color: var(--bg-elevated) !important; /* #2C2C2E */
+    background-color: #141D2E !important;
+    color: #94A3B8 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 .dark table tbody td,
 .dark table td {
-  color: var(--text-primary) !important; /* #F5F5F7 */
-  border-color: var(--border-hairline) !important;
+    border-color: rgba(255, 255, 255, 0.06) !important;
+    color: #E2E8F0 !important;
+}
+
+.dark table tbody tr {
+    background-color: #111827 !important;
+}
+
+.dark table tbody tr:hover {
+    background-color: #182338 !important;
 }
 
 /* =========================================================
-   SUBTLE STATUS PILLS (Apple HIG Translucent Tinted)
-   Translucent tinted backgrounds (12% light, 16% dark) paired
-   with crisp Apple system text colors.
+   DARK MODE TEXT VISIBILITY & CONTRAST (Universal Fix)
    ========================================================= */
 
-/* Apple Blue (#007AFF / #0A84FF) */
-.pill-apple-blue,
-.badge-blue,
-[class*="bg-blue-50"],
-[class*="bg-blue-100"],
-[class*="bg-blue-500/10"],
-[class*="bg-blue-500/15"] {
-  background-color: var(--tint-blue) !important;
-  color: var(--accent-blue) !important;
-  border: 1px solid rgba(0, 122, 255, 0.18) !important;
-}
-.dark [class*="bg-blue-50"],
-.dark [class*="bg-blue-100"],
-.dark [class*="bg-blue-500/10"],
-.dark [class*="bg-blue-500/15"],
-.dark .pill-apple-blue {
-  background-color: var(--tint-blue) !important;
-  color: var(--accent-blue) !important;
-  border-color: rgba(10, 132, 255, 0.22) !important;
-}
-
-/* Apple Green (#28CD41 / #30D158 / #34C759) */
-.pill-apple-green,
-.badge-green,
-.badge-emerald,
-.badge-success,
-[class*="bg-emerald-50"],
-[class*="bg-emerald-100"],
-[class*="bg-emerald-500/10"],
-[class*="bg-green-50"],
-[class*="bg-green-100"] {
-  background-color: var(--tint-green) !important;
-  color: var(--accent-green) !important;
-  border: 1px solid rgba(40, 205, 65, 0.18) !important;
-}
-.dark [class*="bg-emerald-50"],
-.dark [class*="bg-emerald-100"],
-.dark [class*="bg-emerald-500/10"],
-.dark [class*="bg-green-50"],
-.dark [class*="bg-green-100"],
-.dark .pill-apple-green {
-  background-color: var(--tint-green) !important;
-  color: var(--accent-green) !important;
-  border-color: rgba(48, 209, 88, 0.22) !important;
-}
-
-/* Apple Orange (#FF9500 / #FF9F0A) */
-.pill-apple-orange,
-.badge-orange,
-.badge-amber,
-.badge-warning,
-[class*="bg-amber-50"],
-[class*="bg-amber-100"],
-[class*="bg-amber-500/10"],
-[class*="bg-orange-50"],
-[class*="bg-orange-100"] {
-  background-color: var(--tint-orange) !important;
-  color: var(--accent-orange) !important;
-  border: 1px solid rgba(255, 149, 0, 0.18) !important;
-}
-.dark [class*="bg-amber-50"],
-.dark [class*="bg-amber-100"],
-.dark [class*="bg-amber-500/10"],
-.dark [class*="bg-orange-50"],
-.dark [class*="bg-orange-100"],
-.dark .pill-apple-orange {
-  background-color: var(--tint-orange) !important;
-  color: var(--accent-orange) !important;
-  border-color: rgba(255, 159, 10, 0.22) !important;
-}
-
-/* Apple Red (#FF3B30 / #FF453A) */
-.pill-apple-red,
-.badge-red,
-.badge-rose,
-.badge-danger,
-[class*="bg-red-50"],
-[class*="bg-red-100"],
-[class*="bg-rose-50"],
-[class*="bg-rose-100"],
-[class*="bg-red-500/10"] {
-  background-color: var(--tint-red) !important;
-  color: var(--accent-red) !important;
-  border: 1px solid rgba(255, 59, 48, 0.18) !important;
-}
-.dark [class*="bg-red-50"],
-.dark [class*="bg-red-100"],
-.dark [class*="bg-rose-50"],
-.dark [class*="bg-rose-100"],
-.dark [class*="bg-red-500/10"],
-.dark .pill-apple-red {
-  background-color: var(--tint-red) !important;
-  color: var(--accent-red) !important;
-  border-color: rgba(255, 69, 58, 0.22) !important;
-}
-
-/* Apple Purple (#AF52DE / #BF5AF2) */
-.pill-apple-purple,
-.badge-purple,
-[class*="bg-purple-50"],
-[class*="bg-purple-100"] {
-  background-color: var(--tint-purple) !important;
-  color: var(--accent-purple) !important;
-  border: 1px solid rgba(175, 82, 222, 0.18) !important;
-}
-.dark [class*="bg-purple-50"],
-.dark [class*="bg-purple-100"],
-.dark .pill-apple-purple {
-  background-color: var(--tint-purple) !important;
-  color: var(--accent-purple) !important;
-  border-color: rgba(191, 90, 242, 0.22) !important;
-}
-
-/* Universal text contrast helpers */
+/* Primary text in dark mode: pure crisp high-contrast */
 html.dark .text-slate-900,
 html.dark .text-gray-900,
 html.dark .text-slate-800,
-html.dark .text-gray-800 {
-  color: var(--text-primary) !important;
+html.dark .text-gray-800,
+html.dark .text-slate-700,
+html.dark .text-gray-700 {
+    color: #f8fafc !important;
 }
 
+/* Medium text in dark mode: bright silver-white */
 html.dark .text-slate-600,
 html.dark .text-gray-600,
-html.dark .text-slate-500,
-html.dark .text-gray-500 {
-  color: var(--text-secondary) !important;
+html.dark .text-zinc-600 {
+    color: #e2e8f0 !important;
 }
 
+/* All secondary, muted, grey & slate text in dark mode: clearly readable Slate-300 */
+html.dark .text-slate-500,
+html.dark .text-gray-500,
+html.dark .text-zinc-500,
 html.dark .text-slate-400,
-html.dark .text-gray-400 {
-  color: var(--text-secondary) !important;
+html.dark .text-gray-400,
+html.dark .text-zinc-400,
+html.dark [class*="dark:text-slate-400"],
+html.dark [class*="dark:text-slate-500"],
+html.dark [class*="dark:text-gray-400"],
+html.dark [class*="dark:text-gray-500"] {
+    color: #cbd5e1 !important;
 }
 
 html.dark .border-slate-200,
 html.dark .border-gray-200,
 html.dark .border-slate-100,
 html.dark .border-gray-100,
-html.dark [class*="border-slate-200"],
-html.dark [class*="border-white/"] {
-  border-color: var(--border-hairline) !important;
+html.dark .border-slate-200\/80,
+html.dark .border-slate-200\/90,
+html.dark .border-slate-200\/60 {
+    border-color: #1e293b !important;
 }
 
-/* Apple Buttons */
-.apple-btn-primary {
-  background-color: var(--accent-blue);
-  color: #FFFFFF !important;
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  padding: 8px 16px;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0, 122, 255, 0.2);
-  transition: all 0.15s cubic-bezier(0.22, 1, 0.36, 1);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.apple-btn-primary:hover {
-  background-color: #0071E3;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
-}
-.apple-btn-primary:active {
-  transform: scale(0.98);
+/* Dark mode specific badge & pill background fixes */
+html.dark .bg-blue-50 {
+    background-color: rgba(30, 58, 138, 0.4) !important;
+    color: #93c5fd !important;
 }
 
-.apple-btn-secondary {
-  background-color: var(--bg-elevated);
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  padding: 8px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--border-hairline);
-  transition: all 0.15s cubic-bezier(0.22, 1, 0.36, 1);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+html.dark .bg-amber-50 {
+    background-color: rgba(120, 53, 15, 0.4) !important;
+    color: #fde047 !important;
 }
-.apple-btn-secondary:hover {
-  background-color: #E5E5EA;
+
+html.dark .bg-emerald-50 {
+    background-color: rgba(6, 78, 59, 0.4) !important;
+    color: #6ee7b7 !important;
 }
-.dark .apple-btn-secondary:hover {
-  background-color: #3A3A3C;
+
+html.dark .bg-purple-50 {
+    background-color: rgba(88, 28, 135, 0.4) !important;
+    color: #d8b4fe !important;
 }
-.apple-btn-secondary:active {
-  transform: scale(0.98);
+
+html.dark .bg-pink-50 {
+    background-color: rgba(131, 24, 67, 0.4) !important;
+    color: #f472b6 !important;
+}
+
+html.dark .bg-rose-50 {
+    background-color: rgba(136, 19, 55, 0.4) !important;
+    color: #fda4af !important;
+}
+
+/* Global Data Tables Dark Support */
+.dark table thead th,
+.dark table th {
+    background-color: #1a2744 !important;
+    color: #94a3b8 !important;
+    border-color: #1e293b !important;
+}
+
+.dark table tbody td,
+.dark table td {
+    border-color: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+.dark table tbody tr {
+    background-color: #152038 !important;
+}
+
+.dark table tbody tr:hover {
+    background-color: #1e2d4d !important;
 }
 
 /* =========================================================

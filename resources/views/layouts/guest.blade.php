@@ -32,17 +32,11 @@
         <script src="https://unpkg.com/lucide@latest"></script>
 
         <style>
-            body { 
-                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
-                letter-spacing: -0.012em;
-                background-color: var(--bg-canvas);
-                color: var(--text-primary);
-            }
-            h1, h2, h3, h4, h5, h6 { letter-spacing: -0.02em; }
+            body { font-family: 'Plus Jakarta Sans', sans-serif; }
             [x-cloak] { display: none !important; }
         </style>
     </head>
-    <body class="h-full min-h-screen antialiased bg-[var(--bg-canvas)] dark:bg-[var(--bg-canvas)] text-[var(--text-primary)] transition-colors duration-200 relative selection:bg-blue-500 selection:text-white flex flex-col justify-center items-center p-4 sm:p-6"
+    <body class="h-full min-h-screen antialiased bg-[#eef2f6] dark:bg-[#070b14] text-slate-800 dark:text-slate-200 transition-colors duration-200 relative selection:bg-blue-500 selection:text-white flex flex-col justify-center items-center p-4 sm:p-6"
           x-data="{ 
               theme: localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
               toggleTheme() {

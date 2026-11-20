@@ -17,7 +17,7 @@
 <div class="w-full space-y-6 pb-12">
 
     <!-- Top Action Bar -->
-    <div class="sticky top-0 z-30 apple-glass rounded-2xl border border-[var(--border-hairline)] p-4 flex items-center justify-between transition-colors">
+    <div class="sticky top-0 z-30 bg-white/85 dark:bg-[#0F172A]/85 backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex items-center justify-between transition-colors">
         <div class="flex items-center gap-3">
             <a href="{{ route('employee.index') }}" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 flex items-center justify-center shadow-2xs transition-all active:scale-95" title="Back to Directory">
                 <i class="ph ph-arrow-left text-base"></i>
@@ -49,7 +49,7 @@
 
         <!-- Left Column: Personal Card (Section 01) -->
         <div class="lg:col-span-4 xl:col-span-3 space-y-6 lg:sticky lg:top-20">
-            <div class="apple-card space-y-5 transition-colors">
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-5 transition-colors">
                 <div class="flex flex-col items-center text-center pb-4 border-b border-slate-100 dark:border-white/[0.06]">
                     <img src="{{ $employee->profile_picture ? asset($employee->profile_picture) : ('https://ui-avatars.com/api/?name=' . urlencode($employee->user->name ?? 'Employee') . '&background=0D8ABC&color=fff') }}" class="w-24 h-24 rounded-full object-cover ring-4 ring-blue-500/30 shadow-md mb-3 bg-white dark:bg-slate-800" alt="Avatar">
                     <h2 class="text-lg font-black text-slate-900 dark:text-white">{{ $employee->user->name ?? 'Employee' }}</h2>
@@ -123,7 +123,7 @@
         <div class="lg:col-span-8 xl:col-span-9 space-y-6">
 
             <!-- SECTION 02: Employment & Role Details -->
-            <div class="apple-card space-y-5 transition-colors">
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-5 transition-colors">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
                     <div class="flex items-center gap-2.5">
                         <span class="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200/60 dark:bg-indigo-500/15 dark:text-indigo-400 dark:border-indigo-500/30 font-black text-[11px] flex items-center justify-center">02</span>
@@ -246,7 +246,7 @@
 
             <!-- SECTION 03: Compensation & Statutory Payroll -->
             @if($showCompensation && ($isHrOrAdmin || Auth::id() === $employee->user_id))
-            <div class="apple-card space-y-5 transition-colors">
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-5 transition-colors">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
                     <div class="flex items-center gap-2.5">
                         <span class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30 font-black text-[11px] flex items-center justify-center">03</span>
@@ -361,7 +361,7 @@
 
             <!-- SECTION 04: Financial & Bank Account Details -->
             @if($isHrOrAdmin || Auth::id() === $employee->user_id)
-            <div class="apple-card space-y-4 transition-colors">
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-4 transition-colors">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
                     <div class="flex items-center gap-2.5">
                         <span class="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 font-black text-[11px] flex items-center justify-center">{{ $showCompensation ? '04' : '03' }}</span>
@@ -396,7 +396,7 @@
             @endif
 
             <!-- SECTION 05: Higher Education & Working Experience -->
-            <div class="apple-card space-y-4 transition-colors">
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-4 transition-colors">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
                     <div class="flex items-center gap-2.5">
                         <span class="w-6 h-6 rounded-lg bg-violet-50 text-violet-600 border border-violet-200/60 dark:bg-violet-500/15 dark:text-violet-400 dark:border-violet-500/30 font-black text-[11px] flex items-center justify-center">05</span>
@@ -477,7 +477,7 @@
             </div>
 
             <!-- Performance Appraisal History (Chronological View) -->
-            <div class="apple-card space-y-4 transition-colors">
+            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-4 transition-colors">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
                     <span class="font-extrabold text-slate-900 dark:text-white flex items-center gap-2 text-sm">
                         <i class="ph ph-award text-blue-600 text-lg"></i> Performance Appraisal History
