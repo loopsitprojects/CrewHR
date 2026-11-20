@@ -278,9 +278,6 @@
                         Leave Balance & Quota Summary ({{ $targetEmployee->user->name ?? $targetEmployee->first_name }})
                     </h2>
                 </div>
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">
-                    Data-dense quota metrics @if($targetEmployee && $loggedEmployee && $targetEmployee->id === $loggedEmployee->id) • Click row to apply @endif
-                </span>
             </div>
 
             @include('pages.partials.leave_balance_table')

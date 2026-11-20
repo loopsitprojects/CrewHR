@@ -36,8 +36,7 @@
                             default => 'bg-[#34C759]'
                         };
                     @endphp
-                    <tr @if($targetEmployee && $loggedEmployee && $targetEmployee->id === $loggedEmployee->id) @click="openApplyModal('{{ $card['id'] }}', '{{ $card['code'] }}')" @endif
-                        class="group hover:bg-slate-50/70 dark:hover:bg-white/[0.03] transition-colors {{ $targetEmployee && $loggedEmployee && $targetEmployee->id === $loggedEmployee->id ? 'cursor-pointer' : '' }}">
+                    <tr class="group hover:bg-slate-50/70 dark:hover:bg-white/[0.03] transition-colors">
                         
                         <!-- Column 1: LEAVE TYPE -->
                         <td class="py-3.5 px-4 sticky left-0 bg-white group-hover:bg-slate-50 dark:bg-[#111827] dark:group-hover:bg-[#161F32] transition-colors z-10">
