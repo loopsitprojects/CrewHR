@@ -379,15 +379,6 @@
                         <!-- 5-Column Modern Table of Usage for $targetEmployee -->
                         @include('pages.partials.leave_balance_table')
                     </div>
-                @else
-                    <!-- Empty Selection Prompt -->
-                    <div class="rounded-2xl border border-dashed border-slate-200 dark:border-white/[0.1] p-6 text-center bg-white/40 dark:bg-white/[0.02]">
-                        <div class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-2 border border-blue-200 dark:border-blue-800">
-                            <i data-lucide="mouse-pointer-click" class="w-5 h-5"></i>
-                        </div>
-                        <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200">Select an Employee Tile Above</h3>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Click any employee tile to inspect their Leave Balance Quota table and detailed Leave Usage History.</p>
-                    </div>
                 @endif
 
             </div>
