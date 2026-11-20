@@ -121,13 +121,13 @@
 
     <!-- Top Action Bar -->
     <div class="sticky top-0 z-30 bg-white/85 dark:bg-[#0F172A]/85 backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex items-center justify-between transition-colors">
-        <a href="{{ route('employee.index') }}" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 flex items-center gap-2 text-xs font-semibold shadow-2xs transition-all active:scale-95">
+        <a href="{{ route('employee.index') }}" onclick="handleModuleBack(event, '{{ route('employee.index') }}')" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 flex items-center gap-2 text-xs font-semibold shadow-2xs transition-all active:scale-95 cursor-pointer">
             <i class="ph ph-arrow-left text-base"></i>
             <span>Back to Employees</span>
         </a>
 
         <div class="flex items-center gap-2.5">
-            <a href="{{ route('employee.index') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl border border-slate-200/70 dark:border-white/10 transition-all active:scale-95">Cancel</a>
+            <a href="{{ route('employee.index') }}" onclick="handleModuleBack(event, '{{ route('employee.index') }}')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl border border-slate-200/70 dark:border-white/10 transition-all active:scale-95 cursor-pointer">Cancel</a>
             <button form="createEmployeeForm" type="submit" class="bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm shadow-blue-500/25 transition-all cursor-pointer">
                 <i class="ph ph-plus-circle text-base"></i>
                 <span>Create Profile & Save</span>
@@ -662,7 +662,7 @@
 
         <!-- Bottom Actions -->
         <div class="flex items-center justify-end gap-3 pt-4">
-            <a href="{{ route('employee.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl border border-slate-200/70 dark:border-white/10 transition-all active:scale-95">Cancel</a>
+            <a href="{{ route('employee.index') }}" onclick="handleModuleBack(event, '{{ route('employee.index') }}')" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl border border-slate-200/70 dark:border-white/10 transition-all active:scale-95 cursor-pointer">Cancel</a>
             <button type="submit" class="px-6 py-2.5 bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-semibold rounded-xl shadow-sm shadow-blue-500/25 transition-all flex items-center gap-2 active:scale-95 cursor-pointer">
                 <i class="ph ph-plus-circle text-base"></i>
                 <span>Create Profile & Save</span>

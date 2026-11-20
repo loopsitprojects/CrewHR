@@ -15,10 +15,7 @@
 
 @section('header_left')
     <div class="h-5 w-px bg-slate-200 dark:bg-white/10 hidden sm:block shrink-0"></div>
-    <div class="flex items-center gap-2.5 min-w-0">
-        <a href="{{ route('employee.index') }}" class="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors shrink-0" title="Back to Directory">
-            <i class="ph ph-arrow-left text-base"></i>
-        </a>
+    <div class="flex items-center gap-2 min-w-0">
         <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none shrink-0">
             {{ $employee->user->name ?? 'Employee Profile' }}
         </h1>
@@ -39,7 +36,7 @@
 @endsection
 
 @section('content')
-<div class="w-full space-y-6 pb-12 max-w-7xl mx-auto">
+<div class="w-full space-y-6 pb-12">
 
     <!-- SECTION 01: Personal & Contact Details -->
     <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-5 transition-colors">

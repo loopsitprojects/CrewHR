@@ -539,6 +539,102 @@
     <!-- Main Content Canvas -->
     <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         
+@php
+    $currentRouteName = request()->route()?->getName() ?? '';
+    $currentPath = trim(request()->path(), '/');
+
+    // Modules configuration with root pages and inner pages/paths
+    $moduleConfig = [
+        'employee' => [
+            'roots' => ['employee.index'],
+            'root_paths' => ['employees'],
+            'inner' => ['employee.show', 'employee.edit', 'employee.create', 'attendance.index', 'shifts.index'],
+            'inner_prefixes' => ['employees/', 'attendance', 'shifts'],
+            'fallback' => route('employee.index'),
+        ],
+        'leave' => [
+            'roots' => ['dashboard', 'home'],
+            'root_paths' => ['', 'dashboard'],
+            'inner' => ['leave.create', 'leave.index', 'leave.show', 'my-leaves.index', 'my-usage-records.index', 'approvals.index', 'analytics.index', 'leave.calendar'],
+            'inner_prefixes' => ['leave', 'leaves', 'my-leaves', 'my-usage-records', 'approvals', 'analytics'],
+            'fallback' => route('dashboard'),
+        ],
+        'settings' => [
+            'roots' => [],
+            'root_paths' => ['settings'],
+            'inner' => ['settings.index'],
+            'inner_prefixes' => ['settings/'],
+            'fallback' => url('/settings'),
+        ],
+        'payroll' => [
+            'roots' => ['payroll.index'],
+            'root_paths' => ['payrolls'],
+            'inner' => ['payroll.my_payslips', 'payroll.advances.index', 'payroll.loans.index', 'payroll.overtime.index', 'payroll.statutory', 'payroll.payslip_details'],
+            'inner_prefixes' => ['payrolls/'],
+            'fallback' => route('payroll.index'),
+        ],
+        'performance' => [
+            'roots' => ['performance.index', 'appraisal.index'],
+            'root_paths' => ['performances', 'appraisal-system'],
+            'inner' => ['appraisal.show', 'appraisal.templates.index', 'appraisal.change-requests.index', 'appraisal.analytics'],
+            'inner_prefixes' => ['appraisal/', 'appraisal-templates', 'appraisal-change-requests', 'appraisal-analytics'],
+            'fallback' => route('appraisal.index'),
+        ],
+        'recruitment' => [
+            'roots' => ['recruitment.index'],
+            'root_paths' => ['recruitments'],
+            'inner' => ['recruitment.candidates', 'recruitment.pipeline'],
+            'inner_prefixes' => ['recruitments/'],
+            'fallback' => route('recruitment.index'),
+        ],
+    ];
+
+    $isInnerPage = false;
+    $moduleBackFallbackUrl = '';
+
+    foreach ($moduleConfig as $modKey => $conf) {
+        $isRoot = in_array($currentRouteName, $conf['roots']) || in_array($currentPath, $conf['root_paths']);
+        
+        // Settings: bare /settings is root, /settings/{module} is inner
+        if ($modKey === 'settings') {
+            if ($currentPath === 'settings') {
+                $isRoot = true;
+            } elseif (str_starts_with($currentPath, 'settings/')) {
+                $isRoot = false;
+            }
+        }
+
+        if ($isRoot) {
+            continue;
+        }
+
+        $isInner = in_array($currentRouteName, $conf['inner']);
+        if (!$isInner) {
+            foreach ($conf['inner_prefixes'] as $prefix) {
+                if (str_starts_with($currentPath, $prefix)) {
+                    $isInner = true;
+                    break;
+                }
+            }
+        }
+
+        if ($isInner) {
+            $isInnerPage = true;
+            $moduleBackFallbackUrl = $conf['fallback'];
+
+            // Nested fallback for employee edit: back to employee profile show view
+            if ($currentRouteName === 'employee.edit') {
+                $empParam = request()->route('employee');
+                $empId = is_object($empParam) ? $empParam->id : $empParam;
+                if ($empId) {
+                    $moduleBackFallbackUrl = route('employee.show', $empId);
+                }
+            }
+            break;
+        }
+    }
+@endphp
+
         <!-- Header Bar (Apple Liquid Glass Header) -->
         <header class="h-16 bg-white/95 dark:bg-[#0B101D]/85 backdrop-blur-xl border-b border-slate-200/90 dark:border-white/[0.08] px-5 flex items-center justify-between shrink-0 z-10 transition-colors duration-200 shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] dark:shadow-none">
             <!-- Left Controls: Sidebar Toggle Button & Page Title -->
@@ -546,6 +642,18 @@
                 <button @click="toggleSidebar()" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 rounded-xl transition-all active:scale-95 cursor-pointer shrink-0" title="Toggle Sidebar">
                     <i data-lucide="panel-left" class="w-5 h-5"></i>
                 </button>
+
+                @if($isInnerPage)
+                    <div class="h-5 w-px bg-slate-200 dark:bg-white/10 shrink-0"></div>
+                    <a href="{{ $moduleBackFallbackUrl }}"
+                       onclick="handleModuleBack(event, '{{ $moduleBackFallbackUrl }}')"
+                       class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl border border-slate-200/80 dark:border-white/10 transition-all active:scale-95 cursor-pointer shrink-0 shadow-2xs group"
+                       title="Back to previous page">
+                        <i data-lucide="arrow-left" class="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"></i>
+                        <span class="hidden sm:inline">Back</span>
+                    </a>
+                @endif
+
                 @hasSection('header_left')
                     @yield('header_left')
                 @elseif(isset($pageTitle) || isset($breadcrumb))
@@ -808,6 +916,39 @@
 
 <!-- Auto-initialize Lucide Icons & Top Progress Bar -->
 <script>
+    // Universal back button handler within module
+    window.handleModuleBack = function(event, fallbackUrl) {
+        if (event) {
+            event.preventDefault();
+        }
+
+        // Check if history is available and referrer is from this same site and not identical to current page
+        if (window.history.length > 1 && document.referrer) {
+            try {
+                const refUrl = new URL(document.referrer);
+                const currentUrl = new URL(window.location.href);
+
+                if (refUrl.origin === currentUrl.origin && (refUrl.pathname !== currentUrl.pathname || refUrl.search !== currentUrl.search)) {
+                    // If returning from form submit, avoid going back into the form if we are not editing
+                    const isFormReturn = (refUrl.pathname.endsWith('/edit') || refUrl.pathname.endsWith('/create')) && !currentUrl.pathname.endsWith('/edit');
+                    if (!isFormReturn) {
+                        window.history.back();
+                        return false;
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // Fallback navigation
+        if (fallbackUrl) {
+            window.location.href = fallbackUrl;
+            return false;
+        }
+
+        window.history.back();
+        return false;
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
         if (window.lucide) { lucide.createIcons(); }
     });

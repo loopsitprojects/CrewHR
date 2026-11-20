@@ -11,10 +11,7 @@
 
 @section('header_left')
     <div class="h-5 w-px bg-slate-200 dark:bg-white/10 hidden sm:block shrink-0"></div>
-    <div class="flex items-center gap-2.5 min-w-0">
-        <a href="{{ route('employee.index') }}" class="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors shrink-0" title="Back to Directory">
-            <i class="ph ph-arrow-left text-base"></i>
-        </a>
+    <div class="flex items-center gap-2 min-w-0">
         <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none shrink-0">
             Edit Employee
         </h1>
@@ -26,7 +23,7 @@
 @endsection
 
 @section('header_actions')
-    <a href="{{ route('employee.index') }}" class="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg transition-colors">
+    <a href="{{ route('employee.show', $employee->id) }}" onclick="handleModuleBack(event, '{{ route('employee.show', $employee->id) }}')" class="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer">
         Cancel
     </a>
     <button form="editEmployeeForm" type="submit" class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white rounded-lg text-xs font-semibold shadow-sm shadow-blue-500/25 transition-all cursor-pointer">
