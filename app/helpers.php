@@ -52,3 +52,16 @@ if (!function_exists('is_compensation_enabled')) {
         return Setting::isCompensationEnabled();
     }
 }
+
+if (!function_exists('is_settings_module_enabled')) {
+    /**
+     * Check if a settings module is enabled in navigation and settings hub.
+     *
+     * @param string $module
+     * @return bool
+     */
+    function is_settings_module_enabled(string $module): bool
+    {
+        return Setting::isSettingsModuleEnabled($module);
+    }
+}

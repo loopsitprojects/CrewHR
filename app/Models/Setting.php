@@ -135,4 +135,23 @@ class Setting extends Model
         // Initially disabled by default unless explicitly enabled
         return false;
     }
+
+    /**
+     * Check if a settings module is enabled in navigation and settings hub.
+     */
+    public static function isSettingsModuleEnabled(string $module): bool
+    {
+        // Organization & System is core and always enabled
+        if ($module === 'organization' || $module === 'system' || $module === 'general') {
+            return true;
+        }
+
+        $setting = static::get('settings_module_' . $module);
+        if ($setting !== null) {
+            return filter_var($setting, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        // Default to enabled (true)
+        return true;
+    }
 }

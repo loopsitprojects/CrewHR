@@ -30,6 +30,11 @@ class SettingsController extends Controller
             $activeModule = 'profile';
         }
 
+        if (!is_settings_module_enabled($activeModule) && $activeModule !== 'organization') {
+            return redirect()->route('settings.index', ['module' => 'organization', 'tab' => 'system'])
+                ->with('error', 'The requested settings module is currently turned off in System & Diagnostics.');
+        }
+
         // Seamless redirection for legacy general & system module routes
         if ($activeModule === 'general') {
             return redirect()->route('settings.index', ['module' => 'organization', 'tab' => 'general']);
@@ -293,11 +298,21 @@ class SettingsController extends Controller
             }
         }
 
-        if (in_array($activeModule, ['leave', 'general', 'organization'])) {
-            foreach (['auto_sync_holidays', 'allow_half_day', 'weekend_saturday_off', 'weekend_sunday_off', 'show_employee_compensation'] as $cbKey) {
+        if (in_array($activeModule, ['leave', 'general', 'organization', 'system'])) {
+            foreach (['auto_sync_holidays', 'allow_half_day', 'weekend_saturday_off', 'weekend_sunday_off', 'show_employee_compensation', 'developer_mode', 'debug_logging_enabled'] as $cbKey) {
                 if ($request->has('submitted_' . $cbKey) || $request->has($cbKey)) {
                     $val = $request->has($cbKey) ? '1' : '0';
                     DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
+                }
+            }
+        }
+
+        if ($activeModule === 'system' || $request->has('submitted_settings_modules')) {
+            $toggleableModules = ['leave', 'roles', 'attendance', 'payroll', 'recruitment', 'performance', 'profile'];
+            foreach ($toggleableModules as $m) {
+                if ($request->has('submitted_settings_modules') || $request->has('settings_module_' . $m)) {
+                    $val = $request->has('settings_module_' . $m) ? '1' : '0';
+                    DB::table('settings')->updateOrInsert(['key' => 'settings_module_' . $m], ['value' => $val, 'updated_at' => now()]);
                 }
             }
         }
@@ -493,6 +508,34 @@ class SettingsController extends Controller
 
         $statusText = $new ? 'enabled and visible' : 'hidden';
         return redirect()->back()->with('success', "Employee compensation & payroll section is now {$statusText} in employee profiles.");
+    }
+
+    public function toggleSettingsModule(Request $request)
+    {
+        $this->authorizeAdminOrHr();
+        $module = $request->input('module');
+        $valid = ['leave', 'roles', 'attendance', 'payroll', 'recruitment', 'performance', 'profile'];
+
+        if (!in_array($module, $valid)) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Invalid settings module'], 422);
+            }
+            return redirect()->back()->with('error', 'Invalid settings module selected.');
+        }
+
+        $enabled = $request->boolean('enabled');
+        \App\Models\Setting::set('settings_module_' . $module, $enabled ? '1' : '0');
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'module' => $module,
+                'enabled' => $enabled,
+                'message' => 'Settings module ' . ($enabled ? 'switched ON' : 'switched OFF') . ' successfully.'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Settings module ' . ($enabled ? 'switched ON' : 'switched OFF') . ' successfully.');
     }
 
     private function authorizeAdminOrHr()

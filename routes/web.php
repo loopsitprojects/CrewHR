@@ -111,6 +111,7 @@ Route::get('/settings/{module?}', [SettingsController::class, 'index'])->name('s
 Route::post('/settings/save', [SettingsController::class, 'save'])->name('settings.save');
 Route::post('/settings/logo/reset', [SettingsController::class, 'resetLogo'])->name('settings.logo.reset');
 Route::post('/settings/compensation/toggle', [SettingsController::class, 'toggleCompensation'])->name('settings.compensation.toggle');
+Route::post('/settings/module/toggle', [SettingsController::class, 'toggleSettingsModule'])->name('settings.module.toggle');
 Route::post('/settings/cache-clear', [SettingsController::class, 'clearCache'])->name('settings.cache.clear');
 Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile.update');
 Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');

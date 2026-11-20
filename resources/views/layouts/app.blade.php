@@ -442,6 +442,7 @@
                     </button>
                     <div x-show="openModules.settings" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         @if($isSettingsAdminOrHr)
+                        @if(is_settings_module_enabled('organization'))
                         <a href="{{ route('settings.index', ['module' => 'organization']) }}" 
                             title="Organization & System"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
@@ -452,7 +453,9 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
+                        @endif
 
+                        @if(is_settings_module_enabled('leave'))
                         <a href="{{ route('settings.index', ['module' => 'leave']) }}" 
                             title="Leave Management"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
@@ -463,7 +466,9 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
+                        @endif
 
+                        @if(is_settings_module_enabled('roles'))
                         <a href="{{ route('settings.index', ['module' => 'roles']) }}" 
                             title="Roles & Access Control"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
@@ -474,7 +479,9 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
+                        @endif
 
+                        @if(is_settings_module_enabled('attendance'))
                         <a href="{{ route('settings.index', ['module' => 'attendance']) }}" 
                             title="Attendance & Shifts"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
@@ -485,7 +492,9 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
+                        @endif
 
+                        @if(is_settings_module_enabled('payroll'))
                         <a href="{{ route('settings.index', ['module' => 'payroll']) }}" 
                             title="Payroll & Tax"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
@@ -496,7 +505,9 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
+                        @endif
 
+                        @if(is_settings_module_enabled('recruitment'))
                         <a href="{{ route('settings.index', ['module' => 'recruitment']) }}" 
                             title="Recruitment & ATS"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
@@ -507,7 +518,9 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
+                        @endif
 
+                        @if(is_settings_module_enabled('performance'))
                         <a href="{{ route('settings.index', ['module' => 'performance']) }}" 
                             title="Performance & Appraisal"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
@@ -519,7 +532,9 @@
                             @endif
                         </a>
                         @endif
+                        @endif
 
+                        @if(is_settings_module_enabled('profile'))
                         <a href="{{ route('settings.index', ['module' => 'profile']) }}" 
                             title="My Account & Security"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
@@ -530,6 +545,7 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
+                        @endif
                     </div>
                 </div>
             </nav>
