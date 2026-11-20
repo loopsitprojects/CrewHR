@@ -12,8 +12,9 @@
     $isHrOrAdmin = in_array($currentRole, ['HR Lead', 'Super (Admin)']);
     $showCompensation = $showCompensation ?? is_compensation_enabled();
 
-    // Calculate profile completion count for personal info (out of 8 fields)
+    // Calculate profile completion count for personal info (out of 9 fields)
     $infoFields = [
+        $employee->user->name ?? null,
         $employee->user->username ?? null,
         $employee->company_email ?: ($employee->user->email ?? null),
         $employee->date_of_birth ?? null,
@@ -24,7 +25,7 @@
         $employee->emergency_contact ?? null,
     ];
     $filledCount = collect($infoFields)->filter(fn($f) => !empty($f) && $f !== 'N/A')->count();
-    $totalFields = 8;
+    $totalFields = 9;
     $completionPct = round(($filledCount / $totalFields) * 100);
 
     // Calculate joined duration
@@ -91,7 +92,16 @@
 
                 <!-- 3-Column Info Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-6 pt-1 text-xs font-semibold">
-                    <!-- Column 1 -->
+                    <!-- Row 1: Full Name, Username, Company Email -->
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Full Name</span>
+                        @if(!empty($employee->user->name))
+                            <span class="font-bold text-slate-900 dark:text-white text-xs block truncate" title="{{ $employee->user->name }}">{{ $employee->user->name }}</span>
+                        @else
+                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
+                        @endif
+                    </div>
+
                     <div>
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Username</span>
                         @if(!empty($employee->user->username))
@@ -101,7 +111,6 @@
                         @endif
                     </div>
 
-                    <!-- Column 2 -->
                     <div x-data="{ copied: false }">
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Company Email</span>
                         @if(!empty($compEmail))
@@ -116,7 +125,7 @@
                         @endif
                     </div>
 
-                    <!-- Column 3 -->
+                    <!-- Row 2: Date of Birth, Gender, NIC / Passport -->
                     <div>
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Date of Birth</span>
                         @if(!empty($employee->date_of_birth))
@@ -133,7 +142,6 @@
                         @endif
                     </div>
 
-                    <!-- Row 2 -->
                     <div>
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Gender</span>
                         @if(!empty($employee->gender) && $employee->gender !== 'N/A')
@@ -144,9 +152,19 @@
                     </div>
 
                     <div>
+                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">NIC / Passport</span>
+                        @if(!empty($employee->nic_passport) && $employee->nic_passport !== 'N/A')
+                            <span class="font-bold text-slate-900 dark:text-white text-xs">{{ $employee->nic_passport }}</span>
+                        @else
+                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
+                        @endif
+                    </div>
+
+                    <!-- Row 3: Personal Email, Phone Number, Emergency Contact -->
+                    <div>
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Personal Email</span>
                         @if(!empty($employee->personal_email) && $employee->personal_email !== 'N/A')
-                            <span class="font-bold text-slate-900 dark:text-white text-xs truncate block">{{ $employee->personal_email }}</span>
+                            <span class="font-bold text-slate-900 dark:text-white text-xs truncate block" title="{{ $employee->personal_email }}">{{ $employee->personal_email }}</span>
                         @else
                             <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
                         @endif
@@ -156,16 +174,6 @@
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Phone Number</span>
                         @if(!empty($employee->phone_number) && $employee->phone_number !== 'N/A')
                             <span class="font-bold text-slate-900 dark:text-white text-xs">{{ $employee->phone_number }}</span>
-                        @else
-                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
-                        @endif
-                    </div>
-
-                    <!-- Row 3 -->
-                    <div>
-                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">NIC / Passport</span>
-                        @if(!empty($employee->nic_passport) && $employee->nic_passport !== 'N/A')
-                            <span class="font-bold text-slate-900 dark:text-white text-xs">{{ $employee->nic_passport }}</span>
                         @else
                             <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
                         @endif
@@ -181,9 +189,9 @@
                     </div>
 
                     @if(!empty($employee->residential_address) || !empty($employee->permanent_address))
-                    <div>
+                    <div class="sm:col-span-3 pt-2 border-t border-slate-100 dark:border-white/[0.04]">
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Address</span>
-                        <span class="font-bold text-slate-900 dark:text-white text-xs truncate block" title="{{ $employee->residential_address ?: $employee->permanent_address }}">
+                        <span class="font-bold text-slate-900 dark:text-white text-xs block" title="{{ $employee->residential_address ?: $employee->permanent_address }}">
                             {{ $employee->residential_address ?: $employee->permanent_address }}
                         </span>
                     </div>
