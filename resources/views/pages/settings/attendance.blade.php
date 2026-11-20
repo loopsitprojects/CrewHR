@@ -45,24 +45,6 @@
                 <span class="text-[10px] text-slate-400 font-semibold mt-1 block">e.g. 1.5x of hourly rate</span>
             </div>
         </div>
-
-        <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3 text-xs font-bold text-slate-700 dark:text-slate-300">
-            <label class="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#1e2d4d] border border-slate-200 dark:border-slate-700 cursor-pointer">
-                <input type="checkbox" name="allow_remote_clock_in" value="1" {{ ($settingsRaw['allow_remote_clock_in'] ?? '1') == '1' ? 'checked' : '' }} class="rounded border-slate-300 text-cyan-600 focus:ring-cyan-500">
-                <div>
-                    <span class="text-slate-900 dark:text-white font-extrabold block">Allow Remote / Work-From-Home Clock-In</span>
-                    <span class="text-[11px] font-normal text-slate-400">Permit employees to check-in outside physical office IP subnets</span>
-                </div>
-            </label>
-
-            <label class="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-[#1e2d4d] border border-slate-200 dark:border-slate-700 cursor-pointer">
-                <input type="checkbox" name="auto_overtime_calculation" value="1" {{ ($settingsRaw['auto_overtime_calculation'] ?? '1') == '1' ? 'checked' : '' }} class="rounded border-slate-300 text-cyan-600 focus:ring-cyan-500">
-                <div>
-                    <span class="text-slate-900 dark:text-white font-extrabold block">Automatic Overtime Calculation</span>
-                    <span class="text-[11px] font-normal text-slate-400">Automatically compute overtime hours for approved extra shifts</span>
-                </div>
-            </label>
-        </div>
     </div>
 
     <!-- Save Actions -->
