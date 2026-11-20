@@ -914,8 +914,11 @@
 
                 <!-- Reason Textarea -->
                 <div class="space-y-1">
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">Reason / Notes</label>
-                    <textarea name="reason" x-model="reason" rows="2" required placeholder="State brief reason or handover note..."
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">Reason / Notes</label>
+                        <span class="text-[10px] text-slate-400 lowercase">(optional)</span>
+                    </div>
+                    <textarea name="reason" x-model="reason" rows="2" placeholder="State brief reason or handover note (optional)..."
                               class="w-full bg-slate-100/90 dark:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-xs font-medium text-slate-900 dark:text-slate-100 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20"></textarea>
                 </div>
 

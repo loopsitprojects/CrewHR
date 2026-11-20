@@ -593,10 +593,11 @@
          },
 
          checkHandoverNotes() {
-             if (this.handoverNotes && this.handoverNotes.trim().length >= 3) {
-                 return { pass: true, message: 'Handover brief — details provided.' };
+             const hasNotes = Boolean(this.handoverNotes && this.handoverNotes.trim().length > 0);
+             if (hasNotes) {
+                 return { pass: true, hasNotes: true, message: 'Handover brief — details provided.' };
              }
-             return { pass: false, message: 'Handover brief — live jobs, deadlines & details needed.' };
+             return { pass: true, hasNotes: false, message: 'Handover brief — optional (none provided).' };
          },
 
          allChecksPass() {
@@ -604,8 +605,7 @@
                     this.checkNoticePeriod().pass &&
                     this.checkBalance().pass &&
                     this.checkConsecutiveDays().pass &&
-                    this.checkCovering().pass &&
-                    this.checkHandoverNotes().pass;
+                    this.checkCovering().pass;
          },
 
          openApplyModal(code) {
@@ -1815,11 +1815,14 @@
                             </div>
                         </div>
 
-                        <!-- Single Handover Brief / Notes Field -->
+                        <!-- Single Handover Brief / Notes Field (Optional) -->
                         <div class="space-y-1">
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Brief / Handover Notes</label>
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Brief / Handover Notes</label>
+                                <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium lowercase">(optional)</span>
+                            </div>
                             <textarea name="handover_notes" x-model="handoverNotes" rows="2" 
-                                      placeholder="Brief details, live jobs, deadlines, file locations or context for your manager..."
+                                      placeholder="Brief details, live jobs, deadlines, file locations or context for your manager (optional)..."
                                       class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg p-2 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none transition-all"></textarea>
                         </div>
 
@@ -1893,13 +1896,17 @@
                                           x-text="checkCovering().message"></span>
                                 </div>
 
-                                <!-- 6. Handover Brief -->
+                                <!-- 6. Handover Brief (Optional) -->
                                 <div class="flex items-start gap-2">
                                     <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5 border"
-                                          :class="checkHandoverNotes().pass ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40' : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40'"
-                                          x-text="checkHandoverNotes().pass ? '✓' : '✕'"></span>
+                                          :class="checkHandoverNotes().hasNotes 
+                                              ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40' 
+                                              : 'bg-slate-500/10 dark:bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30 dark:border-slate-500/40'"
+                                          x-text="checkHandoverNotes().hasNotes ? '✓' : '•'"></span>
                                     <span class="font-medium leading-snug" 
-                                          :class="checkHandoverNotes().pass ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-300 font-semibold'" 
+                                          :class="checkHandoverNotes().hasNotes 
+                                              ? 'text-slate-700 dark:text-slate-300' 
+                                              : 'text-slate-500 dark:text-slate-400'" 
                                           x-text="checkHandoverNotes().message"></span>
                                 </div>
 
