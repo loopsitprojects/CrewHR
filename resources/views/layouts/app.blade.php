@@ -630,15 +630,26 @@
                     </template>
                 </div>
 
-                <!-- User Profile Avatar matching Apple SF rounded design -->
-                <div class="flex items-center gap-2.5 pl-2 border-l border-slate-200 dark:border-white/10">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-500/20 shrink-0 shadow-xs">
-                        {{ strtoupper(substr(Auth::user()->name ?? 'SA', 0, 2)) }}
-                    </div>
-                    <div class="hidden sm:flex flex-col text-left">
-                        <span class="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate max-w-[130px]">{{ Auth::user()->name ?? 'Super Admin' }}</span>
-                        <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-tight">{{ session('current_role', Auth::user()?->employee?->system_role ?? 'Admin') }}</span>
-                    </div>
+                @php
+                    $fullName = Auth::user()->name ?? 'User';
+                    $firstName = explode(' ', trim($fullName))[0] ?? $fullName;
+                    $userAvatar = Auth::user()?->employee?->profile_picture;
+                @endphp
+
+                <!-- User Profile: Profile Picture & First Name Only -->
+                <div class="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-white/10" title="{{ $fullName }}">
+                    @if($userAvatar)
+                        <img src="{{ str_starts_with($userAvatar, 'http') ? $userAvatar : asset($userAvatar) }}" 
+                             class="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500/20 shrink-0 shadow-xs" 
+                             alt="{{ $firstName }}">
+                    @else
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-500/20 shrink-0 shadow-xs">
+                            {{ strtoupper(substr($firstName, 0, 2)) }}
+                        </div>
+                    @endif
+                    <span class="hidden sm:inline-block text-xs font-bold text-slate-900 dark:text-white leading-none truncate max-w-[120px]">
+                        {{ $firstName }}
+                    </span>
                 </div>
 
                 <!-- Dark / Light Mode Toggle Button -->
