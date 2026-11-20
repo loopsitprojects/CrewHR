@@ -107,7 +107,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-5xl mx-auto mt-6 pb-12 w-full" x-data="{
+<div class="w-full mt-6 pb-12" x-data="{
     activeTab: '{{ ($showCompensation || request('tab') !== 'compensation') ? request('tab', 'personal') : 'personal' }}',
     showCompensation: {{ $showCompensation ? 'true' : 'false' }},
     avatarPreview: '{{ $employee->profile_picture ? asset($employee->profile_picture) : ('https://ui-avatars.com/api/?name=' . urlencode($employee->user->name ?? 'Employee') . '&background=0D8ABC&color=fff') }}',

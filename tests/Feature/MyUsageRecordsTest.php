@@ -153,9 +153,7 @@ class MyUsageRecordsTest extends TestCase
         $response = $this->get(route('my-usage-records.index', ['scope' => 'all']));
         $response->assertStatus(200);
         $response->assertSee('Employee Leave Balances');
-        $response->assertSee('Tiles');
-        $response->assertSee('Table');
-        $response->assertSee('Filter staff by name or ID...');
+        $response->assertSee('Staff');
 
         // 2. Select a specific employee tile
         $target = $this->staffEmployee ?? Employee::where('id', '!=', $this->adminEmployee->id)->first();

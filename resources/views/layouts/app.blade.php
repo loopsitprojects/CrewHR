@@ -53,11 +53,12 @@
           sidebarCollapsed: localStorage.getItem('sidebarCollapsed') !== null ? (localStorage.getItem('sidebarCollapsed') === 'true') : false,
           activeContext: '{{ request()->routeIs('dashboard', 'leave.*', 'my-leaves.*', 'approvals.index', 'analytics.index') ? 'leave' : (request()->routeIs('appraisal.*') ? 'appraisal' : (request()->routeIs('employee.*', 'attendance.*', 'payroll.*', 'recruitment.*') ? 'employees' : 'none')) }}',
           openModules: {
-              leave: {{ request()->routeIs('dashboard', 'leave.*', 'my-leaves.*', 'approvals.index', 'analytics.index') ? 'true' : 'false' }},
+              leave: {{ request()->routeIs('dashboard', 'leave.*', 'my-leaves.*', 'my-usage-records.*', 'approvals.index', 'analytics.index') ? 'true' : 'false' }},
               employees: {{ request()->routeIs('employee.*', 'attendance.*') ? 'true' : 'false' }},
               payroll: {{ request()->routeIs('payroll.*') ? 'true' : 'false' }},
               recruitment: {{ request()->routeIs('recruitment.*') ? 'true' : 'false' }},
-              performance: {{ request()->routeIs('appraisal.*') ? 'true' : 'false' }}
+              performance: {{ request()->routeIs('appraisal.*') ? 'true' : 'false' }},
+              settings: {{ request()->routeIs('settings.*') ? 'true' : 'false' }}
           },
           toggleModule(modKey) {
               this.openModules[modKey] = !this.openModules[modKey];
@@ -417,18 +418,121 @@
                     </div>
                 </div>
                 @endif
-            </nav>
-        </div>
 
-        <!-- Sidebar Footer Settings Button -->
-        <div :class="sidebarCollapsed ? 'p-2 flex justify-center' : 'p-3'" class="border-t border-slate-800/80 shrink-0 bg-[#0b132b] dark:bg-[#070e1b]">
-            <a href="{{ route('settings.index') }}" 
-               title="Settings"
-               :class="{ 'justify-center': sidebarCollapsed }"
-               class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 {{ request()->routeIs('settings.index') ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-600/25' : 'text-slate-300 hover:text-white hover:bg-slate-800/60' }}">
-                <i data-lucide="settings" class="w-5 h-5 shrink-0 text-slate-300"></i>
-                <span x-show="!sidebarCollapsed" x-cloak class="truncate font-bold">Settings</span>
-            </a>
+                <div class="border-t border-slate-800/80 mx-2 my-1.5"></div>
+
+                <!-- Group 6: SYSTEM & MODULE SETTINGS SUITE -->
+                @php 
+                    $isSettingsActive = request()->routeIs('settings.*'); 
+                    $currSettingsModule = request()->route('module') ?? request()->query('module', ($normalizedRole === 'Employee' ? 'profile' : 'organization'));
+                    $isSettingsAdminOrHr = in_array($normalizedRole, ['HR Lead', 'Super Admin']);
+                    $isOrgSystemActive = $isSettingsActive && in_array($currSettingsModule, ['organization', 'general', 'system']);
+                @endphp
+                <div>
+                    <button type="button" 
+                            @click="toggleModule('settings')" 
+                            title="Settings & System Hub"
+                            :class="{ 'justify-center': sidebarCollapsed }"
+                            class="w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-all text-left group cursor-pointer mb-1 text-slate-300 hover:text-white hover:bg-slate-800/60">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="settings" class="w-4 h-4 shrink-0 text-slate-400 group-hover:text-white"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="text-[11px] font-bold uppercase tracking-wider text-slate-300 group-hover:text-white">Settings</span>
+                        </div>
+                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 text-slate-400 group-hover:text-white" :class="openModules.settings ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div x-show="openModules.settings" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
+                        @if($isSettingsAdminOrHr)
+                        <a href="{{ route('settings.index', ['module' => 'organization']) }}" 
+                            title="Organization & System"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ $isOrgSystemActive ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="building-2" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Organization & System</span>
+                            @if($isOrgSystemActive)
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+
+                        <a href="{{ route('settings.index', ['module' => 'leave']) }}" 
+                            title="Leave Management"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'leave' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="calendar-check" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Leave Management</span>
+                            @if($isSettingsActive && $currSettingsModule === 'leave')
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+
+                        <a href="{{ route('settings.index', ['module' => 'roles']) }}" 
+                            title="Roles & Access Control"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'roles' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0 text-purple-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Roles & Access Control</span>
+                            @if($isSettingsActive && $currSettingsModule === 'roles')
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+
+                        <a href="{{ route('settings.index', ['module' => 'attendance']) }}" 
+                            title="Attendance & Shifts"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'attendance' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-cyan-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Attendance & Shifts</span>
+                            @if($isSettingsActive && $currSettingsModule === 'attendance')
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+
+                        <a href="{{ route('settings.index', ['module' => 'payroll']) }}" 
+                            title="Payroll & Tax"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'payroll' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="banknote" class="w-3.5 h-3.5 shrink-0 text-amber-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Payroll & Tax</span>
+                            @if($isSettingsActive && $currSettingsModule === 'payroll')
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+
+                        <a href="{{ route('settings.index', ['module' => 'recruitment']) }}" 
+                            title="Recruitment & ATS"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'recruitment' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="briefcase" class="w-3.5 h-3.5 shrink-0 text-pink-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Recruitment & ATS</span>
+                            @if($isSettingsActive && $currSettingsModule === 'recruitment')
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+
+                        <a href="{{ route('settings.index', ['module' => 'performance']) }}" 
+                            title="Performance & Appraisal"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'performance' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-orange-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Performance & Appraisal</span>
+                            @if($isSettingsActive && $currSettingsModule === 'performance')
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+                        @endif
+
+                        <a href="{{ route('settings.index', ['module' => 'profile']) }}" 
+                            title="My Account & Security"
+                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                            class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'profile' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                            <i data-lucide="user-cog" class="w-3.5 h-3.5 shrink-0 text-rose-400"></i>
+                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">My Account & Security</span>
+                            @if($isSettingsActive && $currSettingsModule === 'profile')
+                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                            @endif
+                        </a>
+                    </div>
+                </div>
+            </nav>
         </div>
     </aside>
 

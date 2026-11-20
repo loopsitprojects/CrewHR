@@ -27,7 +27,7 @@
 @endphp
 
 @section('content')
-<div class="max-w-6xl mx-auto space-y-6" x-data="{
+<div class="w-full space-y-6 pb-12" x-data="{
     basic: {{ old('basic_salary', 150000) }},
     incrementsBasic: {{ old('increments_basic', 0) }},
     budgetAllowance: {{ old('budget_allowance', 0) }},

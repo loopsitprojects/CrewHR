@@ -21,13 +21,21 @@ class SettingsController extends Controller
 
         $validModules = ['general', 'leave', 'organization', 'roles', 'attendance', 'payroll', 'recruitment', 'performance', 'system', 'profile'];
         
-        $activeModule = $module ?? $request->query('module', ($isAdminOrHr ? 'general' : 'profile'));
+        $activeModule = $module ?? $request->query('module', ($isAdminOrHr ? 'organization' : 'profile'));
         if (!in_array($activeModule, $validModules)) {
-            $activeModule = $isAdminOrHr ? 'general' : 'profile';
+            $activeModule = $isAdminOrHr ? 'organization' : 'profile';
         }
         
         if (!$isAdminOrHr && $activeModule !== 'profile') {
             $activeModule = 'profile';
+        }
+
+        // Seamless redirection for legacy general & system module routes
+        if ($activeModule === 'general') {
+            return redirect()->route('settings.index', ['module' => 'organization', 'tab' => 'general']);
+        }
+        if ($activeModule === 'system') {
+            return redirect()->route('settings.index', ['module' => 'organization', 'tab' => 'system']);
         }
 
         $settingsRaw = DB::table('settings')->get()->pluck('value', 'key')->toArray();
@@ -58,12 +66,12 @@ class SettingsController extends Controller
 
         // Modular Settings Configuration Registry
         $modulesList = [
-            'general' => [
-                'title' => 'General Organization',
-                'desc' => 'Company profile, timezone, currency, fiscal year & official holidays',
+            'organization' => [
+                'title' => 'Organization & System',
+                'desc' => 'Company profile, branding, departments structure, and core system engine',
                 'icon' => 'ph-buildings',
                 'color' => 'text-blue-600 dark:text-blue-300',
-                'badge' => 'Core'
+                'badge' => count($departments) . ' Depts'
             ],
             'leave' => [
                 'title' => 'Leave Management',
@@ -71,13 +79,6 @@ class SettingsController extends Controller
                 'icon' => 'ph-calendar-check',
                 'color' => 'text-emerald-600 dark:text-emerald-300',
                 'badge' => 'Policy'
-            ],
-            'organization' => [
-                'title' => 'Departments & Structure',
-                'desc' => 'Company departments, department codes, HOD leadership',
-                'icon' => 'ph-tree-structure',
-                'color' => 'text-indigo-600 dark:text-indigo-300',
-                'badge' => count($departments) . ' Depts'
             ],
             'roles' => [
                 'title' => 'Roles & Access Control',
@@ -113,13 +114,6 @@ class SettingsController extends Controller
                 'icon' => 'ph-award',
                 'color' => 'text-orange-600 dark:text-orange-300',
                 'badge' => 'KPIs'
-            ],
-            'system' => [
-                'title' => 'System & Developer Engine',
-                'desc' => 'Developer mode, debug logging, cache flush & health diagnostics',
-                'icon' => 'ph-cpu',
-                'color' => 'text-slate-600 dark:text-slate-200',
-                'badge' => 'Engine'
             ],
             'profile' => [
                 'title' => 'My Account & Security',
@@ -261,7 +255,7 @@ class SettingsController extends Controller
         \Illuminate\Support\Facades\Artisan::call('view:clear');
         \Illuminate\Support\Facades\Artisan::call('config:clear');
 
-        return redirect()->route('settings.index', ['module' => 'system'])->with('success', 'Application cache and compiled views cleared successfully!');
+        return redirect()->route('settings.index', ['module' => 'organization', 'tab' => 'system'])->with('success', 'Application cache and compiled views cleared successfully!');
     }
 
     public function save(Request $request)
@@ -299,7 +293,7 @@ class SettingsController extends Controller
             }
         }
 
-        if (in_array($activeModule, ['leave', 'general'])) {
+        if (in_array($activeModule, ['leave', 'general', 'organization'])) {
             foreach (['auto_sync_holidays', 'allow_half_day', 'weekend_saturday_off', 'weekend_sunday_off', 'show_employee_compensation'] as $cbKey) {
                 if ($request->has('submitted_' . $cbKey) || $request->has($cbKey)) {
                     $val = $request->has($cbKey) ? '1' : '0';
@@ -308,7 +302,7 @@ class SettingsController extends Controller
             }
         }
 
-        if ($activeModule === 'general') {
+        if (in_array($activeModule, ['general', 'organization'])) {
             $request->validate([
                 'app_logo' => 'nullable|file|mimes:png,jpg,jpeg,svg,webp|max:3072',
                 'app_logo_light' => 'nullable|file|mimes:png,jpg,jpeg,svg,webp|max:3072',
@@ -387,7 +381,7 @@ class SettingsController extends Controller
             }
         }
 
-        if ($activeModule === 'system') {
+        if (in_array($activeModule, ['system', 'organization'])) {
             foreach (['developer_mode', 'debug_logging_enabled'] as $cbKey) {
                 $val = $request->has($cbKey) ? '1' : '0';
                 DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
@@ -431,6 +425,11 @@ class SettingsController extends Controller
 
             $statusesPath = base_path('modules_statuses.json');
             file_put_contents($statusesPath, json_encode($statuses, JSON_PRETTY_PRINT));
+        }
+
+        if (in_array($activeModule, ['general', 'system', 'organization'])) {
+            $tab = $activeModule === 'general' ? 'general' : ($activeModule === 'system' ? 'system' : 'departments');
+            return redirect()->route('settings.index', ['module' => 'organization', 'tab' => $tab])->with('success', "Organization & System configurations updated successfully!");
         }
 
         $moduleTitle = ucfirst($activeModule);
@@ -482,7 +481,7 @@ class SettingsController extends Controller
             default => 'Primary app logo',
         };
 
-        return redirect()->route('settings.index', ['module' => 'general'])->with('success', "{$label} reset to system default successfully!");
+        return redirect()->route('settings.index', ['module' => 'organization', 'tab' => 'general'])->with('success', "{$label} reset to system default successfully!");
     }
 
     public function toggleCompensation(Request $request)

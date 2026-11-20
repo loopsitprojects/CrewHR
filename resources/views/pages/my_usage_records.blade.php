@@ -1,5 +1,25 @@
 @extends('layouts.app', ['title' => 'Loops HR - Usage Records', 'breadcrumb' => 'Usage Records'])
 
+@section('header_left')
+    <div class="h-5 w-px bg-slate-200 dark:bg-white/10 hidden sm:block shrink-0"></div>
+    <div class="flex items-center gap-2 min-w-0">
+        <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none truncate">
+            @if($scope === 'employee' && $targetEmployee)
+                {{ $targetEmployee->user->name ?? $targetEmployee->first_name }}'s Usage Records
+            @elseif($scope === 'all')
+                All Employee Usage Records
+            @elseif($scope === 'team')
+                My Team Usage Records
+            @else
+                My Usage Records
+            @endif
+        </h1>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 tracking-wide uppercase tabular-nums shrink-0">
+            {{ $year }} Leave Cycle
+        </span>
+    </div>
+@endsection
+
 @section('content')
 <div class="space-y-6 pb-16" 
      x-data="{
@@ -64,206 +84,165 @@
         }
      }">
 
-    <!-- ============================================================== -->
-    <!-- 1. TOP HEADER & ACTION BAR                                      -->
-    <!-- ============================================================== -->
-    <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/90 dark:border-white/[0.08] p-4 sm:p-5 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.06),0_1px_3px_0_rgba(15,23,42,0.04)] transition-all">
-        
-        <!-- Top Row: Title, Subtitle, Cycle Badge, Role Switchers & + Apply Leave Button -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    @if(!$isEmployee)
+        <!-- ============================================================== -->
+        <!-- ROLE SCOPE SWITCHER & SELECTION TOOLBAR (Admin / Manager only) -->
+        <!-- ============================================================== -->
+        <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/90 dark:border-white/[0.08] p-3 shadow-xs flex flex-wrap items-center justify-between gap-3 transition-all">
             
-            <!-- Left: Title, Subtitle & Cycle Badge -->
-            <div class="flex items-start gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#007AFF] to-[#5856D6] text-white flex items-center justify-center shadow-xs shrink-0 mt-0.5">
-                    <i data-lucide="{{ $isIndividualView ? 'history' : 'users' }}" class="w-5 h-5"></i>
-                </div>
-                <div>
-                    <div class="flex flex-wrap items-center gap-2.5">
-                        <h1 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-                            @if($scope === 'employee' && $targetEmployee)
-                                {{ $targetEmployee->user->name ?? $targetEmployee->first_name }}'s Usage Records
-                            @elseif($scope === 'all')
-                                All Employee Usage Records
-                            @elseif($scope === 'team')
-                                My Team Usage Records
-                            @else
-                                My Usage Records
-                            @endif
-                        </h1>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 tracking-wide uppercase tabular-nums">
-                            {{ $year }} Leave Cycle
-                        </span>
-                    </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
-                        Review your annual entitlement quotas and itemized usage history
-                    </p>
-                </div>
+            <!-- Left: Segmented Scope Switcher -->
+            <div class="flex items-center gap-1 bg-slate-100/90 dark:bg-white/[0.06] p-1 rounded-xl border border-slate-200/80 dark:border-white/[0.06]">
+                <!-- My Usage Button -->
+                <a href="{{ route('my-usage-records.index', array_filter(['scope' => 'my', 'year' => $year, 'month' => $month, 'status' => $status])) }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 {{ $scope === 'my' ? 'bg-white dark:bg-white/[0.14] text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white' }}">
+                    <i data-lucide="user" class="w-3.5 h-3.5 {{ $scope === 'my' ? 'text-blue-500' : 'text-slate-400' }}"></i>
+                    <span>My Usage</span>
+                    @if($isHrLead)
+                        <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1 py-0.2 rounded border border-emerald-500/20">Her Usage</span>
+                    @endif
+                </a>
+
+                <!-- Team Usage Button -->
+                @php
+                    $teamScope = ($isSuperAdmin || $isHrLead) ? 'all' : 'team';
+                    $isTeamActive = $scope === 'team' || ($scope === 'all' && ($isSuperAdmin || $isHrLead));
+                @endphp
+                <a href="{{ route('my-usage-records.index', array_filter(['scope' => $teamScope, 'year' => $year, 'month' => $month, 'status' => $status, 'department_id' => $departmentId])) }}"
+                   title="{{ $isManager ? 'My Team Usage' : 'All Employees Usage' }}"
+                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 {{ $isTeamActive ? 'bg-white dark:bg-white/[0.14] text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white' }}">
+                    <i data-lucide="users" class="w-3.5 h-3.5 {{ $isTeamActive ? 'text-blue-500' : 'text-slate-400' }}"></i>
+                    <span>{{ $isManager ? 'My Team Usage' : 'All Employees Usage' }}</span>
+                    <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-300 bg-black/[0.05] dark:bg-white/[0.1] px-1.5 py-0.2 rounded tabular-nums">{{ $selectableEmployees->count() }}</span>
+                </a>
             </div>
 
-            <!-- Right: Role Scope Switcher, Department Picker, and Primary + Apply Leave Action -->
-            <div class="flex flex-wrap items-center gap-2.5 sm:self-auto self-start">
-                @if(!$isEmployee)
-                    <!-- Segmented Switcher: My Usage vs Team Usage -->
-                    <div class="flex items-center gap-1 bg-slate-100/90 dark:bg-white/[0.06] p-1 rounded-xl border border-slate-200/80 dark:border-white/[0.06]">
-                        <!-- My Usage Button -->
-                        <a href="{{ route('my-usage-records.index', array_filter(['scope' => 'my', 'year' => $year, 'month' => $month, 'status' => $status])) }}"
-                           class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 {{ $scope === 'my' ? 'bg-white dark:bg-white/[0.14] text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="user" class="w-3.5 h-3.5 {{ $scope === 'my' ? 'text-blue-500' : 'text-slate-400' }}"></i>
-                            <span>My Usage</span>
-                            @if($isHrLead)
-                                <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1 py-0.2 rounded border border-emerald-500/20">Her Usage</span>
-                            @endif
-                        </a>
-
-                        <!-- Team Usage Button -->
-                        @php
-                            $teamScope = ($isSuperAdmin || $isHrLead) ? 'all' : 'team';
-                            $isTeamActive = $scope === 'team' || ($scope === 'all' && ($isSuperAdmin || $isHrLead));
-                        @endphp
-                        <a href="{{ route('my-usage-records.index', array_filter(['scope' => $teamScope, 'year' => $year, 'month' => $month, 'status' => $status, 'department_id' => $departmentId])) }}"
-                           title="{{ $isManager ? 'My Team Usage' : 'All Employees Usage' }}"
-                           class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 {{ $isTeamActive ? 'bg-white dark:bg-white/[0.14] text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white' }}">
-                            <i data-lucide="users" class="w-3.5 h-3.5 {{ $isTeamActive ? 'text-blue-500' : 'text-slate-400' }}"></i>
-                            <span>{{ $isManager ? 'My Team Usage' : 'All Employees Usage' }}</span>
-                            <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-300 bg-black/[0.05] dark:bg-white/[0.1] px-1.5 py-0.2 rounded tabular-nums">{{ $selectableEmployees->count() }}</span>
-                        </a>
+            <!-- Right: Searchable Combobox & Department Filter -->
+            <div class="flex flex-wrap items-center gap-2.5">
+                <!-- Inspect Employee Searchable Combobox -->
+                <div x-data="{
+                        open: false,
+                        query: '',
+                        employees: {{ json_encode($selectableEmployees->map(fn($e) => [
+                            'id' => $e->id,
+                            'name' => $e->user->name ?? ($e->first_name . ' ' . $e->last_name),
+                            'emp_id' => $e->employee_id_number ?? ('EMP-' . $e->id),
+                            'department' => $e->department->name ?? 'Staff',
+                            'initial' => strtoupper(substr($e->user->name ?? $e->first_name ?? 'E', 0, 1)),
+                            'url' => route('my-usage-records.index', array_filter([
+                                'scope' => $scope === 'my' ? ($isManager ? 'team' : 'all') : $scope,
+                                'employee_id' => $e->id,
+                                'year' => $year,
+                                'month' => $month,
+                                'department_id' => $departmentId,
+                                'status' => $status
+                            ]))
+                        ])) }},
+                        get filtered() {
+                            if (!this.query.trim()) return this.employees;
+                            const q = this.query.toLowerCase().trim();
+                            return this.employees.filter(e => 
+                                e.name.toLowerCase().includes(q) || 
+                                e.emp_id.toLowerCase().includes(q) ||
+                                e.department.toLowerCase().includes(q)
+                            );
+                        }
+                    }" 
+                    @click.away="open = false" 
+                    class="relative">
+                    
+                    <div class="relative flex items-center">
+                        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none"></i>
+                        <input type="text" 
+                               x-model="query" 
+                               @focus="open = true" 
+                               @click="open = true"
+                               @keydown.escape="open = false"
+                               placeholder="Inspect Employee..." 
+                               value="{{ $targetEmployee && $scope !== 'my' ? ($targetEmployee->user->name ?? $targetEmployee->first_name) . ' (' . ($targetEmployee->employee_id_number ?? 'EMP-' . $targetEmployee->id) . ')' : '' }}"
+                               class="appearance-none bg-slate-100/90 dark:bg-white/[0.06] border {{ $targetEmployee && $scope !== 'my' ? 'border-[#007AFF] dark:border-[#0A84FF] ring-2 ring-[#007AFF]/20 font-bold' : 'border-slate-200/80 dark:border-white/[0.08]' }} rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 py-1.5 pl-7 pr-6 w-44 sm:w-52 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-2xs transition-all">
+                        <button type="button" @click="open = !open" class="absolute right-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                        </button>
                     </div>
 
-                    <!-- Inspect Employee Searchable Combobox -->
-                    <div x-data="{
-                            open: false,
-                            query: '',
-                            employees: {{ json_encode($selectableEmployees->map(fn($e) => [
-                                'id' => $e->id,
-                                'name' => $e->user->name ?? ($e->first_name . ' ' . $e->last_name),
-                                'emp_id' => $e->employee_id_number ?? ('EMP-' . $e->id),
-                                'department' => $e->department->name ?? 'Staff',
-                                'initial' => strtoupper(substr($e->user->name ?? $e->first_name ?? 'E', 0, 1)),
-                                'url' => route('my-usage-records.index', array_filter([
-                                    'scope' => $scope === 'my' ? ($isManager ? 'team' : 'all') : $scope,
-                                    'employee_id' => $e->id,
-                                    'year' => $year,
-                                    'month' => $month,
-                                    'department_id' => $departmentId,
-                                    'status' => $status
-                                ]))
-                            ])) }},
-                            get filtered() {
-                                if (!this.query.trim()) return this.employees;
-                                const q = this.query.toLowerCase().trim();
-                                return this.employees.filter(e => 
-                                    e.name.toLowerCase().includes(q) || 
-                                    e.emp_id.toLowerCase().includes(q) ||
-                                    e.department.toLowerCase().includes(q)
-                                );
-                            }
-                        }" 
-                        @click.away="open = false" 
-                        class="relative">
+                    <!-- Dropdown Panel -->
+                    <div x-show="open" 
+                         x-cloak 
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         class="absolute right-0 top-full mt-1.5 w-80 max-h-72 bg-white dark:bg-[#161F32] border border-slate-200/90 dark:border-white/[0.1] rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col">
                         
-                        <div class="relative flex items-center">
-                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none"></i>
-                            <input type="text" 
-                                   x-model="query" 
-                                   @focus="open = true" 
-                                   @click="open = true"
-                                   @keydown.escape="open = false"
-                                   placeholder="Inspect Employee..." 
-                                   value="{{ $targetEmployee && $scope !== 'my' ? ($targetEmployee->user->name ?? $targetEmployee->first_name) . ' (' . ($targetEmployee->employee_id_number ?? 'EMP-' . $targetEmployee->id) . ')' : '' }}"
-                                   class="appearance-none bg-slate-100/90 dark:bg-white/[0.06] border {{ $targetEmployee && $scope !== 'my' ? 'border-[#007AFF] dark:border-[#0A84FF] ring-2 ring-[#007AFF]/20 font-bold' : 'border-slate-200/80 dark:border-white/[0.08]' }} rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 py-1.5 pl-7 pr-6 w-44 sm:w-52 focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-2xs transition-all">
-                            <button type="button" @click="open = !open" class="absolute right-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
-                                <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform" :class="open ? 'rotate-180' : ''"></i>
-                            </button>
-                        </div>
+                        @if($isSuperAdmin || $isHrLead)
+                        <a href="{{ route('my-usage-records.index', array_filter(['scope' => 'all', 'year' => $year, 'month' => $month, 'department_id' => $departmentId, 'status' => $status])) }}"
+                           class="px-3.5 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between transition-colors {{ $scope === 'all' ? 'bg-blue-500/10' : '' }}">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                                <span>All Employees Usage (Overview)</span>
+                            </div>
+                            <span class="text-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-300 px-1.5 py-0.2 rounded font-bold tabular-nums">{{ $selectableEmployees->count() }}</span>
+                        </a>
+                        @endif
 
-                        <!-- Dropdown Panel -->
-                        <div x-show="open" 
-                             x-cloak 
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="opacity-0 scale-95"
-                             x-transition:enter-end="opacity-100 scale-100"
-                             class="absolute right-0 top-full mt-1.5 w-80 max-h-72 bg-white dark:bg-[#161F32] border border-slate-200/90 dark:border-white/[0.1] rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col">
-                            
-                            @if($isSuperAdmin || $isHrLead)
-                            <a href="{{ route('my-usage-records.index', array_filter(['scope' => 'all', 'year' => $year, 'month' => $month, 'department_id' => $departmentId, 'status' => $status])) }}"
-                               class="px-3.5 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between transition-colors {{ $scope === 'all' ? 'bg-blue-500/10' : '' }}">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="users" class="w-3.5 h-3.5"></i>
-                                    <span>All Employees Usage (Overview)</span>
-                                </div>
-                                <span class="text-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-300 px-1.5 py-0.2 rounded font-bold tabular-nums">{{ $selectableEmployees->count() }}</span>
-                            </a>
-                            @endif
+                        @if($isManager)
+                        <a href="{{ route('my-usage-records.index', array_filter(['scope' => 'team', 'year' => $year, 'month' => $month, 'status' => $status])) }}"
+                           class="px-3.5 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between transition-colors {{ $scope === 'team' ? 'bg-blue-500/10' : '' }}">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                                <span>My Team Usage (Overview)</span>
+                            </div>
+                            <span class="text-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-300 px-1.5 py-0.2 rounded font-bold tabular-nums">{{ $selectableEmployees->count() }}</span>
+                        </a>
+                        @endif
 
-                            @if($isManager)
-                            <a href="{{ route('my-usage-records.index', array_filter(['scope' => 'team', 'year' => $year, 'month' => $month, 'status' => $status])) }}"
-                               class="px-3.5 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between transition-colors {{ $scope === 'team' ? 'bg-blue-500/10' : '' }}">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="users" class="w-3.5 h-3.5"></i>
-                                    <span>My Team Usage (Overview)</span>
-                                </div>
-                                <span class="text-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-300 px-1.5 py-0.2 rounded font-bold tabular-nums">{{ $selectableEmployees->count() }}</span>
-                            </a>
-                            @endif
-
-                            <!-- Filtered Employee Items -->
-                            <div class="overflow-y-auto divide-y divide-black/[0.04] dark:divide-white/[0.05] max-h-56">
-                                <template x-for="emp in filtered" :key="emp.id">
-                                    <a :href="emp.url" 
-                                       class="px-3.5 py-2 flex items-center justify-between gap-2.5 hover:bg-black/[0.03] dark:hover:bg-white/[0.06] transition-colors text-left group">
-                                        <div class="flex items-center gap-2.5 min-w-0">
-                                            <div class="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0" x-text="emp.initial"></div>
-                                            <div class="min-w-0">
-                                                <div class="text-xs font-semibold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate" x-text="emp.name"></div>
-                                                <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate" x-text="emp.department"></div>
-                                            </div>
+                        <!-- Filtered Employee Items -->
+                        <div class="overflow-y-auto divide-y divide-black/[0.04] dark:divide-white/[0.05] max-h-56">
+                            <template x-for="emp in filtered" :key="emp.id">
+                                <a :href="emp.url" 
+                                   class="px-3.5 py-2 flex items-center justify-between gap-2.5 hover:bg-black/[0.03] dark:hover:bg-white/[0.06] transition-colors text-left group">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <div class="w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0" x-text="emp.initial"></div>
+                                        <div class="min-w-0">
+                                            <div class="text-xs font-semibold text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate" x-text="emp.name"></div>
+                                            <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate" x-text="emp.department"></div>
                                         </div>
-                                        <span class="text-[10px] font-mono font-semibold text-slate-600 dark:text-slate-300 bg-black/[0.04] dark:bg-white/[0.08] px-1.5 py-0.5 rounded border border-black/[0.04] dark:border-white/[0.06] shrink-0" x-text="emp.emp_id"></span>
-                                    </a>
-                                </template>
-                                <div x-show="filtered.length === 0" class="p-4 text-center text-xs text-slate-400 dark:text-slate-500">
-                                    No employee found matching "<span x-text="query" class="font-bold"></span>"
-                                </div>
+                                    </div>
+                                    <span class="text-[10px] font-mono font-semibold text-slate-600 dark:text-slate-300 bg-black/[0.04] dark:bg-white/[0.08] px-1.5 py-0.5 rounded border border-black/[0.04] dark:border-white/[0.06] shrink-0" x-text="emp.emp_id"></span>
+                                </a>
+                            </template>
+                            <div x-show="filtered.length === 0" class="p-4 text-center text-xs text-slate-400 dark:text-slate-500">
+                                No employee found matching "<span x-text="query" class="font-bold"></span>"
                             </div>
-
                         </div>
+
                     </div>
+                </div>
 
-                    @if($isSuperAdmin || $isHrLead)
-                        <!-- Department Dropdown Filter -->
-                        <form action="{{ route('my-usage-records.index') }}" method="GET" class="inline m-0">
-                            <input type="hidden" name="scope" value="{{ $scope === 'my' ? 'all' : $scope }}">
-                            <input type="hidden" name="year" value="{{ $year }}">
-                            <input type="hidden" name="month" value="{{ $month }}">
-                            <input type="hidden" name="status" value="{{ $status }}">
-                            <div class="relative">
-                                <select name="department_id" onchange="this.form.submit()"
-                                        class="appearance-none [background-image:none]! bg-slate-100/90 dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 py-1.5 pl-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-2xs">
-                                    <option value="">All Depts</option>
-                                    @foreach($departments as $dept)
-                                        <option value="{{ $dept->id }}" {{ (string)$departmentId === (string)$dept->id ? 'selected' : '' }}>
-                                            {{ $dept->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                            </div>
-                        </form>
-                    @endif
+                @if($isSuperAdmin || $isHrLead)
+                    <!-- Department Dropdown Filter -->
+                    <form action="{{ route('my-usage-records.index') }}" method="GET" class="inline m-0">
+                        <input type="hidden" name="scope" value="{{ $scope === 'my' ? 'all' : $scope }}">
+                        <input type="hidden" name="year" value="{{ $year }}">
+                        <input type="hidden" name="month" value="{{ $month }}">
+                        <input type="hidden" name="status" value="{{ $status }}">
+                        <div class="relative">
+                            <select name="department_id" onchange="this.form.submit()"
+                                    class="appearance-none [background-image:none]! bg-slate-100/90 dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 py-1.5 pl-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-2xs">
+                                <option value="">All Depts</option>
+                                @foreach($departments as $dept)
+                                    <option value="{{ $dept->id }}" {{ (string)$departmentId === (string)$dept->id ? 'selected' : '' }}>
+                                        {{ $dept->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                        </div>
+                    </form>
                 @endif
-
-                <!-- Primary Action: + Apply Leave (Apple HIG Primary Pill) -->
-                <button type="button" 
-                        @click="openApplyModal()" 
-                        class="bg-[#007AFF] hover:bg-[#0071E3] dark:bg-[#0A84FF] active:scale-[0.98] text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    <span>Apply Leave</span>
-                </button>
             </div>
 
         </div>
-
-    </div>
+    @endif
 
     <!-- ============================================================== -->
     <!-- 2. LEAVE BALANCE & QUOTA SECTION                               -->
