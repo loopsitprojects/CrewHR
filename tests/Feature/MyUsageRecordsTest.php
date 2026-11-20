@@ -47,23 +47,22 @@ class MyUsageRecordsTest extends TestCase
 
     public function test_admin_and_hr_can_see_all_employee_usage_and_her_own_usage()
     {
-        // 1. As HR Lead: Default is all employee usage
+        // 1. As HR Lead: Default is My Usage
         if ($this->hrUser) {
             $this->actingAs($this->hrUser);
             session(['current_role' => 'HR Lead']);
 
             $response = $this->get(route('my-usage-records.index'));
             $response->assertStatus(200);
-            $response->assertSee('All Employee Usage Records');
-            $response->assertSee('All Employees Usage');
+            $response->assertSee('My Usage Records');
             $response->assertSee('My Usage');
-            $response->assertSee('Her Usage');
+            $response->assertDontSee('Her Usage');
 
-            // 2. HR can view her own usage ("Hr also has a feature to see her usage")
-            $responseOwn = $this->get(route('my-usage-records.index', ['scope' => 'my']));
-            $responseOwn->assertStatus(200);
-            $responseOwn->assertSee('My Usage Records');
-            $responseOwn->assertSee('Leave Balance');
+            // 2. HR can view All Employees Usage via scope
+            $responseAll = $this->get(route('my-usage-records.index', ['scope' => 'all']));
+            $responseAll->assertStatus(200);
+            $responseAll->assertSee('All Employee Usage Records');
+            $responseAll->assertSee('All Employees Usage');
         }
     }
 
@@ -73,18 +72,18 @@ class MyUsageRecordsTest extends TestCase
             $this->actingAs($this->managerUser);
             session(['current_role' => 'Manager (Team Approvals)']);
 
-            // 1. Manager sees team usage
-            $responseTeam = $this->get(route('my-usage-records.index'));
+            // 1. Manager defaults to their own usage
+            $responseOwn = $this->get(route('my-usage-records.index'));
+            $responseOwn->assertStatus(200);
+            $responseOwn->assertSee('My Usage Records');
+            $responseOwn->assertSee('Leave Balance');
+
+            // 2. Manager sees team usage via scope
+            $responseTeam = $this->get(route('my-usage-records.index', ['scope' => 'team']));
             $responseTeam->assertStatus(200);
             $responseTeam->assertSee('My Team Usage Records');
             $responseTeam->assertSee('My Team Usage');
             $responseTeam->assertSee('My Usage');
-
-            // 2. Manager sees their own usage
-            $responseOwn = $this->get(route('my-usage-records.index', ['scope' => 'my']));
-            $responseOwn->assertStatus(200);
-            $responseOwn->assertSee('My Usage Records');
-            $responseOwn->assertSee('Leave Balance');
         }
     }
 
