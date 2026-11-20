@@ -10,6 +10,7 @@
 @php
     $currentRole = session('current_role', Auth::user()?->employee?->system_role ?? 'Super (Admin)');
     $isHrOrAdmin = in_array($currentRole, ['HR Lead', 'Super (Admin)']);
+    $showCompensation = $showCompensation ?? is_compensation_enabled();
 @endphp
 
 @section('content')
@@ -242,7 +243,7 @@
             </div>
 
             <!-- SECTION 03: Compensation & Statutory Payroll -->
-            @if($isHrOrAdmin || Auth::id() === $employee->user_id)
+            @if($showCompensation && ($isHrOrAdmin || Auth::id() === $employee->user_id))
             <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-5 transition-colors">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
                     <div class="flex items-center gap-2.5">
@@ -361,7 +362,7 @@
             <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-4 transition-colors">
                 <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
                     <div class="flex items-center gap-2.5">
-                        <span class="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 font-black text-[11px] flex items-center justify-center">04</span>
+                        <span class="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 font-black text-[11px] flex items-center justify-center">{{ $showCompensation ? '04' : '03' }}</span>
                         <h3 class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Financial & Bank Account Details</h3>
                     </div>
                     <span class="text-[10px] text-slate-400 font-bold">Salary Remittance</span>

@@ -103,11 +103,13 @@
         $ecName = $ecRaw;
     }
     $currentRole = old('role', $employee->user?->roles?->first()?->name ?? ($employee->system_role ?? 'Employee'));
+    $showCompensation = $showCompensation ?? is_compensation_enabled();
 @endphp
 
 @section('content')
 <div class="max-w-5xl mx-auto mt-6 pb-12 w-full" x-data="{
-    activeTab: 'personal',
+    activeTab: '{{ ($showCompensation || request('tab') !== 'compensation') ? request('tab', 'personal') : 'personal' }}',
+    showCompensation: {{ $showCompensation ? 'true' : 'false' }},
     avatarPreview: '{{ $employee->profile_picture ? asset($employee->profile_picture) : ('https://ui-avatars.com/api/?name=' . urlencode($employee->user->name ?? 'Employee') . '&background=0D8ABC&color=fff') }}',
     showUrlInput: false,
     handleFileSelect(e) {
@@ -240,17 +242,19 @@
                     <span>Role & Employment</span>
                 </button>
 
+                @if($showCompensation)
                 <button type="button" @click="activeTab = 'compensation'"
                         :class="activeTab === 'compensation' ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400 font-bold' : 'border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 font-medium'"
                         class="pb-3.5 px-1 text-xs sm:text-sm whitespace-nowrap transition-all cursor-pointer flex items-center gap-2">
                     <span class="text-[11px] font-black opacity-60">03</span>
                     <span>Compensation & Payroll</span>
                 </button>
+                @endif
 
                 <button type="button" @click="activeTab = 'bank_qualifications'"
                         :class="activeTab === 'bank_qualifications' ? 'border-b-2 border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400 font-bold' : 'border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 font-medium'"
                         class="pb-3.5 px-1 text-xs sm:text-sm whitespace-nowrap transition-all cursor-pointer flex items-center gap-2">
-                    <span class="text-[11px] font-black opacity-60">04</span>
+                    <span class="text-[11px] font-black opacity-60">{{ $showCompensation ? '04' : '03' }}</span>
                     <span>Bank & Qualifications</span>
                 </button>
             </nav>
@@ -648,13 +652,21 @@
                             <i class="ph ph-arrow-left"></i>
                             <span>Back to Personal</span>
                         </button>
+                        @if($showCompensation)
                         <button type="button" @click="activeTab = 'compensation'; window.scrollTo({top: 0, behavior: 'smooth'})" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95">
                             <span>Continue to Compensation & Payroll</span>
                             <i class="ph ph-arrow-right"></i>
                         </button>
+                        @else
+                        <button type="button" @click="activeTab = 'bank_qualifications'; window.scrollTo({top: 0, behavior: 'smooth'})" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95">
+                            <span>Continue to Bank & Qualifications</span>
+                            <i class="ph ph-arrow-right"></i>
+                        </button>
+                        @endif
                     </div>
                 </div>
 
+                @if($showCompensation)
                 <!-- TAB 03: COMPENSATION & PAYROLL -->
                 <div x-show="activeTab === 'compensation'" x-cloak x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="space-y-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-white/[0.06] pb-4">
@@ -878,6 +890,7 @@
                         </button>
                     </div>
                 </div>
+                @endif
 
                 <!-- TAB 04: BANK & QUALIFICATIONS (Sections 04 + 05 Combined) -->
                 <div x-show="activeTab === 'bank_qualifications'" x-cloak x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="space-y-8">
@@ -885,7 +898,7 @@
                     <div class="space-y-4">
                         <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
                             <div class="flex items-center gap-3">
-                                <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 font-black text-xs flex items-center justify-center">04A</span>
+                                <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 font-black text-xs flex items-center justify-center">{{ $showCompensation ? '04A' : '03A' }}</span>
                                 <div>
                                     <h2 class="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">FINANCIAL & BANK ACCOUNT DETAILS</h2>
                                     <p class="text-[11px] font-semibold text-slate-400 dark:text-slate-500">Official bank disbursement credentials for automated salary remittance</p>
@@ -925,7 +938,7 @@
                     <div class="space-y-4 pt-4 border-t border-slate-100 dark:border-white/[0.06]">
                         <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
                             <div class="flex items-center gap-3">
-                                <span class="w-7 h-7 rounded-lg bg-violet-50 text-violet-600 border border-violet-200/60 dark:bg-violet-500/15 dark:text-violet-400 dark:border-violet-500/30 font-black text-xs flex items-center justify-center">04B</span>
+                                <span class="w-7 h-7 rounded-lg bg-violet-50 text-violet-600 border border-violet-200/60 dark:bg-violet-500/15 dark:text-violet-400 dark:border-violet-500/30 font-black text-xs flex items-center justify-center">{{ $showCompensation ? '04B' : '03B' }}</span>
                                 <div>
                                     <h2 class="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">HIGHER EDUCATION & WORKING EXPERIENCE</h2>
                                     <p class="text-[11px] font-semibold text-slate-400 dark:text-slate-500">Academic credentials, university degrees, and past professional career history</p>
@@ -1020,9 +1033,9 @@
 
                     <!-- Tab Navigation Footer -->
                     <div class="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-white/[0.06]">
-                        <button type="button" @click="activeTab = 'compensation'; window.scrollTo({top: 0, behavior: 'smooth'})" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl border border-slate-200/70 dark:border-white/10 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95">
+                        <button type="button" @click="activeTab = '{{ $showCompensation ? 'compensation' : 'employment' }}'; window.scrollTo({top: 0, behavior: 'smooth'})" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl border border-slate-200/70 dark:border-white/10 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95">
                             <i class="ph ph-arrow-left"></i>
-                            <span>Back to Compensation</span>
+                            <span>Back to {{ $showCompensation ? 'Compensation' : 'Role' }}</span>
                         </button>
                         <button type="submit" class="px-6 py-2.5 bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white text-xs font-bold rounded-xl shadow-sm shadow-blue-500/25 transition-all flex items-center gap-2 cursor-pointer">
                             <i class="ph ph-floppy-disk text-base"></i>

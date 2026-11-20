@@ -3,6 +3,54 @@
         @csrf
         <input type="hidden" name="active_module" value="payroll">
 
+        <!-- 0. Employee Profile Compensation Architecture Visibility -->
+        <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900/60">
+                        <i class="ph ph-user-gear text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-black text-slate-900 dark:text-white">Employee Profile Compensation Architecture</h2>
+                        <p class="text-[11px] font-semibold text-slate-400">Control whether salary, fixed allowance, and statutory breakdown tabs are shown on employee forms</p>
+                    </div>
+                </div>
+                @if(is_compensation_enabled())
+                    <span class="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-900/60">
+                        Section Enabled
+                    </span>
+                @else
+                    <span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                        Section Hidden
+                    </span>
+                @endif
+            </div>
+
+            <div class="p-4 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-[#1e2d4d]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/70 dark:border-amber-900/60 mt-0.5">
+                        <i class="ph ph-coins text-lg"></i>
+                    </div>
+                    <div>
+                        <label for="show_employee_compensation_payroll" class="text-xs font-bold text-slate-900 dark:text-white block cursor-pointer">
+                            Show Compensation & Payroll Section in Employee Profiles
+                        </label>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-0.5">
+                            When toggled off, Tab 03 (Compensation & Payroll) is completely hidden from employee create, edit, and view screens.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 shrink-0">
+                    <input type="hidden" name="submitted_show_employee_compensation" value="1">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="show_employee_compensation_payroll" name="show_employee_compensation" value="1" {{ is_compensation_enabled() ? 'checked' : '' }} class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
         <!-- 1. Sri Lanka Statutory Payroll Deductions (EPF & ETF) -->
         <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm space-y-5">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">

@@ -23,6 +23,7 @@
             $initialAllowances[] = ['allowance_type_id' => $first->id, 'amount' => (float)$first->default_amount];
         }
     }
+    $showCompensation = $showCompensation ?? is_compensation_enabled();
 @endphp
 
 @section('content')
@@ -365,6 +366,7 @@
             </div>
         </div>
 
+        @if($showCompensation)
         <!-- SECTION 3 -->
         <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-6 transition-colors">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-4">
@@ -525,12 +527,13 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- SECTION 4 -->
         <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-6 transition-colors">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-4">
                 <div class="flex items-center gap-3">
-                    <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 font-black text-xs flex items-center justify-center">04</span>
+                    <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 font-black text-xs flex items-center justify-center">{{ $showCompensation ? '04' : '03' }}</span>
                     <h2 class="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">FINANCIAL & BANK ACCOUNT DETAILS</h2>
                 </div>
             </div>
