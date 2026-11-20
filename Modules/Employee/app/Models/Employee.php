@@ -12,6 +12,11 @@ class Employee extends Model
 
     protected $guarded = [];
 
+    public function getDobAttribute()
+    {
+        return $this->date_of_birth;
+    }
+
     public function getHigherEducationListAttribute(): array
     {
         $val = $this->higher_education;

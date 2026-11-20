@@ -12,20 +12,21 @@
     $isHrOrAdmin = in_array($currentRole, ['HR Lead', 'Super (Admin)']);
     $showCompensation = $showCompensation ?? is_compensation_enabled();
 
-    // Calculate profile completion count for personal info (out of 9 fields)
+    // Calculate profile completion count for personal info (out of 10 fields)
     $infoFields = [
+        $employee->employee_id_number ?? null,
         $employee->user->name ?? null,
         $employee->user->username ?? null,
         $employee->company_email ?: ($employee->user->email ?? null),
-        $employee->date_of_birth ?? null,
-        $employee->gender ?? null,
         $employee->personal_email ?? null,
         $employee->phone_number ?? null,
+        $employee->date_of_birth ?? null,
+        $employee->gender ?? null,
         $employee->nic_passport ?? null,
         $employee->emergency_contact ?? null,
     ];
     $filledCount = collect($infoFields)->filter(fn($f) => !empty($f) && $f !== 'N/A')->count();
-    $totalFields = 9;
+    $totalFields = 10;
     $completionPct = round(($filledCount / $totalFields) * 100);
 
     // Calculate joined duration
@@ -92,7 +93,16 @@
 
                 <!-- 3-Column Info Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-6 pt-1 text-xs font-semibold">
-                    <!-- Row 1: Full Name, Username, Company Email -->
+                    <!-- Row 1: Employee ID, Full Name, Username -->
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Employee ID</span>
+                        @if(!empty($employee->employee_id_number))
+                            <span class="font-bold text-slate-900 dark:text-white text-xs block font-mono">{{ $employee->employee_id_number }}</span>
+                        @else
+                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not assigned</span>
+                        @endif
+                    </div>
+
                     <div>
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Full Name</span>
                         @if(!empty($employee->user->name))
@@ -111,6 +121,7 @@
                         @endif
                     </div>
 
+                    <!-- Row 2: Company Email, Personal Email, Phone Number -->
                     <div x-data="{ copied: false }">
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Company Email</span>
                         @if(!empty($compEmail))
@@ -125,7 +136,25 @@
                         @endif
                     </div>
 
-                    <!-- Row 2: Date of Birth, Gender, NIC / Passport -->
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Personal Email</span>
+                        @if(!empty($employee->personal_email) && $employee->personal_email !== 'N/A')
+                            <span class="font-bold text-slate-900 dark:text-white text-xs truncate block" title="{{ $employee->personal_email }}">{{ $employee->personal_email }}</span>
+                        @else
+                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
+                        @endif
+                    </div>
+
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Phone Number</span>
+                        @if(!empty($employee->phone_number) && $employee->phone_number !== 'N/A')
+                            <span class="font-bold text-slate-900 dark:text-white text-xs">{{ $employee->phone_number }}</span>
+                        @else
+                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
+                        @endif
+                    </div>
+
+                    <!-- Row 3: Date of Birth, Gender, NIC / Passport -->
                     <div>
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Date of Birth</span>
                         @if(!empty($employee->date_of_birth))
@@ -154,44 +183,29 @@
                     <div>
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">NIC / Passport</span>
                         @if(!empty($employee->nic_passport) && $employee->nic_passport !== 'N/A')
-                            <span class="font-bold text-slate-900 dark:text-white text-xs">{{ $employee->nic_passport }}</span>
+                            <span class="font-bold text-slate-900 dark:text-white text-xs font-mono">{{ $employee->nic_passport }}</span>
                         @else
                             <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
                         @endif
                     </div>
 
-                    <!-- Row 3: Personal Email, Phone Number, Emergency Contact -->
-                    <div>
-                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Personal Email</span>
-                        @if(!empty($employee->personal_email) && $employee->personal_email !== 'N/A')
-                            <span class="font-bold text-slate-900 dark:text-white text-xs truncate block" title="{{ $employee->personal_email }}">{{ $employee->personal_email }}</span>
-                        @else
-                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
-                        @endif
-                    </div>
-
-                    <div>
-                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Phone Number</span>
-                        @if(!empty($employee->phone_number) && $employee->phone_number !== 'N/A')
-                            <span class="font-bold text-slate-900 dark:text-white text-xs">{{ $employee->phone_number }}</span>
-                        @else
-                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
-                        @endif
-                    </div>
-
-                    <div>
+                    <!-- Row 4: Emergency Contact & Address -->
+                    <div class="sm:col-span-2">
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Emergency Contact</span>
                         @if(!empty($employee->emergency_contact) && $employee->emergency_contact !== 'N/A')
-                            <span class="font-bold text-slate-900 dark:text-white text-xs">{{ $employee->emergency_contact }}</span>
+                            <span class="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">
+                                <i data-lucide="phone-call" class="w-3.5 h-3.5 text-rose-500 shrink-0"></i>
+                                <span>{{ $employee->emergency_contact }}</span>
+                            </span>
                         @else
                             <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
                         @endif
                     </div>
 
                     @if(!empty($employee->residential_address) || !empty($employee->permanent_address))
-                    <div class="sm:col-span-3 pt-2 border-t border-slate-100 dark:border-white/[0.04]">
+                    <div>
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Address</span>
-                        <span class="font-bold text-slate-900 dark:text-white text-xs block" title="{{ $employee->residential_address ?: $employee->permanent_address }}">
+                        <span class="font-bold text-slate-900 dark:text-white text-xs truncate block" title="{{ $employee->residential_address ?: $employee->permanent_address }}">
                             {{ $employee->residential_address ?: $employee->permanent_address }}
                         </span>
                     </div>
@@ -255,43 +269,80 @@
                         </div>
                     </div>
 
-                    <!-- Past Designations row -->
-                    <div>
-                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Past Designations</span>
-                        @php
-                            $pastRoles = collect($employee->working_experience_list ?? [])->filter(fn($r) => !empty($r['designation']));
-                        @endphp
-                        @if($pastRoles->isNotEmpty())
-                            <div class="relative inline-block w-full max-w-sm" x-data="{ open: false }" @click.away="open = false">
-                                <button type="button" @click="open = !open" 
-                                        class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group text-left">
-                                    <span class="truncate">{{ $pastRoles->first()['designation'] }}</span>
-                                    @if($pastRoles->count() > 1)
-                                        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">+{{ $pastRoles->count() - 1 }}</span>
-                                    @endif
-                                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-transform duration-200 shrink-0 ml-1" :class="open ? 'rotate-180' : ''"></i>
-                                </button>
-                                <div x-show="open" x-cloak class="absolute left-0 top-full mt-1.5 w-64 bg-white dark:bg-[#152038] border border-slate-200/90 dark:border-slate-700 rounded-xl shadow-xl z-30 p-2 space-y-1 text-xs">
-                                    <div class="text-[10px] font-black uppercase text-slate-400 px-2 py-1 border-b border-slate-100 dark:border-slate-800">Past Designations ({{ $pastRoles->count() }})</div>
-                                    <div class="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
-                                        @foreach($pastRoles as $role)
-                                            <div class="p-2 space-y-0.5">
-                                                <div class="font-bold text-slate-900 dark:text-white text-xs">{{ $role['designation'] }}</div>
-                                                <div class="flex items-center justify-between text-[10px] text-slate-400">
-                                                    <span>{{ $role['company'] ?? 'Previous Employer' }}</span>
-                                                    @if(!empty($role['duration']))
-                                                        <span class="font-semibold text-slate-500">{{ $role['duration'] }}</span>
-                                                    @endif
+                    <!-- Additional Row: HOD, Past Designations, Promotion Track -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-6">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Head of Department (HOD)</span>
+                            <span class="font-bold text-indigo-600 dark:text-indigo-400 block truncate">
+                                {{ $employee->hod->user->name ?? ($employee->department->hod_name ?? 'Not assigned') }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Past Designations</span>
+                            @php
+                                $pastRoles = collect($employee->working_experience_list ?? [])->filter(fn($r) => !empty($r['designation']));
+                            @endphp
+                            @if($pastRoles->isNotEmpty())
+                                <div class="relative inline-block w-full" x-data="{ open: false }" @click.away="open = false">
+                                    <button type="button" @click="open = !open" 
+                                            class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group text-left">
+                                        <span class="truncate">{{ $pastRoles->first()['designation'] }}</span>
+                                        @if($pastRoles->count() > 1)
+                                            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">+{{ $pastRoles->count() - 1 }}</span>
+                                        @endif
+                                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-transform duration-200 shrink-0 ml-1" :class="open ? 'rotate-180' : ''"></i>
+                                    </button>
+                                    <div x-show="open" x-cloak class="absolute left-0 top-full mt-1.5 w-64 bg-white dark:bg-[#152038] border border-slate-200/90 dark:border-slate-700 rounded-xl shadow-xl z-30 p-2 space-y-1 text-xs">
+                                        <div class="text-[10px] font-black uppercase text-slate-400 px-2 py-1 border-b border-slate-100 dark:border-slate-800">Past Designations ({{ $pastRoles->count() }})</div>
+                                        <div class="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+                                            @foreach($pastRoles as $role)
+                                                <div class="p-2 space-y-0.5">
+                                                    <div class="font-bold text-slate-900 dark:text-white text-xs">{{ $role['designation'] }}</div>
+                                                    <div class="flex items-center justify-between text-[10px] text-slate-400">
+                                                        <span>{{ $role['company'] ?? 'Previous Employer' }}</span>
+                                                        @if(!empty($role['duration']))
+                                                            <span class="font-semibold text-slate-500">{{ $role['duration'] }}</span>
+                                                        @endif
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        @endforeach
+                                            @endforeach
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        @else
-                            <span class="font-medium text-slate-400 dark:text-slate-500 italic">None Recorded</span>
-                        @endif
+                            @else
+                                <span class="font-medium text-slate-400 dark:text-slate-500 italic">None Recorded</span>
+                            @endif
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Promotion Track</span>
+                            @if(!empty($employee->promotion_designation))
+                                <span class="font-bold text-emerald-600 dark:text-emerald-400 block truncate" title="Promoted to {{ $employee->promotion_designation }}">
+                                    {{ $employee->promotion_designation }}
+                                </span>
+                            @else
+                                <span class="font-medium text-slate-400 dark:text-slate-500 italic">Active Role Only</span>
+                            @endif
+                        </div>
                     </div>
+
+                    @if(!empty($employee->promotion_designation))
+                        <div class="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/70 dark:border-emerald-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
+                                    Promotion Tracked: <span class="font-black">{{ $employee->promotion_designation }}</span>
+                                    @if($employee->promotion_date)
+                                        <span class="font-normal text-slate-500 dark:text-slate-400">effective {{ \Carbon\Carbon::parse($employee->promotion_date)->format('d M Y') }}</span>
+                                    @endif
+                                </span>
+                            </div>
+                            @if((float)($employee->increment_amount ?? 0) > 0)
+                                <span class="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700">
+                                    +Rs. {{ number_format((float)$employee->increment_amount, 2) }} Increment
+                                </span>
+                            @endif
+                        </div>
+                    @endif
 
                     <!-- Statutory & Payment Terms (4 cols across) -->
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-y-3 gap-x-4 pt-3 border-t border-slate-100 dark:border-white/[0.06]">
@@ -384,30 +435,42 @@
                     </div>
                     <div class="flex items-center justify-between py-2">
                         <span class="text-slate-400 dark:text-slate-500 font-medium text-[11px]">Bank</span>
-                        <span class="font-bold text-slate-800 dark:text-slate-200">
-                            {{ $employee->bank_name ?: 'Commercial Bank of Ceylon' }}
-                        </span>
+                        @if(!empty($employee->bank_name))
+                            <span class="font-bold text-slate-800 dark:text-slate-200">
+                                {{ $employee->bank_name }}
+                            </span>
+                        @else
+                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
+                        @endif
                     </div>
                     <div class="flex items-center justify-between py-2">
                         <span class="text-slate-400 dark:text-slate-500 font-medium text-[11px]">Account Number</span>
                         <div class="flex items-center gap-1.5">
-                            <span class="font-mono font-bold text-slate-900 dark:text-white tabular-nums tracking-wide">
-                                {{ $employee->account_number ?: 'Not provided' }}
-                            </span>
                             @if(!empty($employee->account_number))
+                                <span class="font-mono font-bold text-slate-900 dark:text-white tabular-nums tracking-wide">
+                                    {{ $employee->account_number }}
+                                </span>
                                 <button type="button" @click="navigator.clipboard.writeText('{{ $employee->account_number }}'); copied = true; setTimeout(() => copied = false, 2000)" class="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer" title="Copy account number">
                                     <i data-lucide="copy" class="w-3.5 h-3.5" x-show="!copied"></i>
                                     <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-500" x-show="copied" x-cloak></i>
                                 </button>
+                            @else
+                                <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
                             @endif
                         </div>
                     </div>
                     <div class="flex items-center justify-between py-2">
                         <span class="text-slate-400 dark:text-slate-500 font-medium text-[11px]">Branch & Code</span>
-                        <span class="font-bold text-slate-800 dark:text-slate-200">
-                            {{ $employee->bank_branch ?: 'Kollupitiya' }} 
-                            <span class="text-slate-400 font-normal">(Code: {{ $employee->branch_code ?: 'N/A' }})</span>
-                        </span>
+                        @if(!empty($employee->bank_branch))
+                            <span class="font-bold text-slate-800 dark:text-slate-200">
+                                {{ $employee->bank_branch }} 
+                                @if(!empty($employee->branch_code))
+                                    <span class="text-slate-400 font-normal">(Code: {{ $employee->branch_code }})</span>
+                                @endif
+                            </span>
+                        @else
+                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -424,54 +487,88 @@
                             <p class="text-[11px] text-slate-400">Academic & career credentials</p>
                         </div>
                     </div>
+                    @if($isHrOrAdmin || Auth::id() === $employee->user_id)
+                        <a href="{{ route('employee.edit', $employee->id) }}" class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shrink-0 transition-colors flex items-center gap-1">
+                            <i data-lucide="plus" class="w-3 h-3"></i> Add / Edit
+                        </a>
+                    @endif
                 </div>
 
-                <div class="space-y-3">
-                    <!-- Higher Education Qualifications Item -->
-                    <div class="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-white/[0.06] flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/50 dark:border-blue-500/20">
-                                <i data-lucide="graduation-cap" class="w-4 h-4"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate">Higher Education Qualifications</h4>
-                                @if(!empty($employee->higher_education_list))
-                                    <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                                        {{ count($employee->higher_education_list) }} qualification(s) recorded
-                                    </div>
-                                @else
-                                    <p class="text-[11px] text-slate-400 dark:text-slate-500">No education records provided.</p>
-                                @endif
-                            </div>
+                <div class="space-y-4">
+                    <!-- Higher Education Section -->
+                    <div>
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <i data-lucide="award" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
+                            <h4 class="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Higher Education</h4>
                         </div>
-                        @if($isHrOrAdmin || Auth::id() === $employee->user_id)
-                            <a href="{{ route('employee.edit', $employee->id) }}" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 shrink-0 transition-colors">
-                                + Add
-                            </a>
+                        @php
+                            $validEdu = collect($employee->higher_education_list ?? [])->filter(fn($e) => !empty($e['qualification']) || !empty($e['institute']));
+                        @endphp
+                        @if($validEdu->isNotEmpty())
+                            <div class="space-y-2">
+                                @foreach($validEdu as $edu)
+                                    <div class="p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-white/[0.06] text-xs space-y-1">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <span class="font-bold text-slate-900 dark:text-white">{{ $edu['qualification'] ?: 'Qualification' }}</span>
+                                            @if(!empty($edu['duration']))
+                                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40 shrink-0">
+                                                    {{ $edu['duration'] }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 flex-wrap">
+                                            @if(!empty($edu['institute']))
+                                                <span>{{ $edu['institute'] }}</span>
+                                            @endif
+                                            @if(!empty($edu['country']))
+                                                <span class="inline-flex items-center gap-1 text-slate-400">
+                                                    &bull; {{ $edu['country'] }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="p-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-[11px] text-slate-400 dark:text-slate-500 italic">
+                                No higher education records provided.
+                            </div>
                         @endif
                     </div>
 
-                    <!-- Past Working Experience Item -->
-                    <div class="p-3.5 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-white/[0.06] flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/50 dark:border-purple-500/20">
-                                <i data-lucide="briefcase" class="w-4 h-4"></i>
-                            </div>
-                            <div class="min-w-0">
-                                <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate">Past Working Experience</h4>
-                                @if(!empty($employee->working_experience_list))
-                                    <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                                        {{ count($employee->working_experience_list) }} experience record(s)
-                                    </div>
-                                @else
-                                    <p class="text-[11px] text-slate-400 dark:text-slate-500">No working experience records provided.</p>
-                                @endif
-                            </div>
+                    <!-- Past Working Experience Section -->
+                    <div>
+                        <div class="flex items-center gap-1.5 mb-2">
+                            <i data-lucide="briefcase" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
+                            <h4 class="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Past Working Experience</h4>
                         </div>
-                        @if($isHrOrAdmin || Auth::id() === $employee->user_id)
-                            <a href="{{ route('employee.edit', $employee->id) }}" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 shrink-0 transition-colors">
-                                + Add
-                            </a>
+                        @php
+                            $validExp = collect($employee->working_experience_list ?? [])->filter(fn($x) => !empty($x['designation']) || !empty($x['company']));
+                        @endphp
+                        @if($validExp->isNotEmpty())
+                            <div class="space-y-2">
+                                @foreach($validExp as $exp)
+                                    <div class="p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-xl border border-slate-200/80 dark:border-white/[0.06] text-xs space-y-1">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <span class="font-bold text-slate-900 dark:text-white">{{ $exp['designation'] ?: 'Role' }}</span>
+                                            @if(!empty($exp['duration']))
+                                                <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/40 shrink-0">
+                                                    {{ $exp['duration'] }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        @if(!empty($exp['company']))
+                                            <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                                                {{ $exp['company'] }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="p-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-[11px] text-slate-400 dark:text-slate-500 italic">
+                                No working experience records provided.
+                            </div>
                         @endif
                     </div>
                 </div>
