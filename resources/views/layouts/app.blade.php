@@ -45,6 +45,23 @@
         [x-cloak] { display: none !important; }
         .tabular-nums { font-variant-numeric: tabular-nums; }
     </style>
+    <!-- Speculation Rules API: Instantly prefetch/prerender internal links for zero-latency page transitions -->
+    <script type="speculationrules">
+    {
+      "prefetch": [
+        {
+          "source": "document",
+          "where": {
+            "and": [
+              { "href_matches": "/*" },
+              { "not": { "href_matches": ["*/logout*", "*/delete*", "*/destroy*", "*/action*", "*/export*", "*/download*"] } }
+            ]
+          },
+          "eagerness": "moderate"
+        }
+      ]
+    }
+    </script>
 </head>
 <body class="h-screen overflow-hidden antialiased text-slate-800 bg-[#EEF2F6] dark:bg-[#070B14] dark:text-slate-100 transition-colors duration-200"
       x-data="{ 
@@ -81,9 +98,6 @@
           }
       }"
       x-init="if (theme === 'dark') document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark');">
-
-<!-- Top Navigation & Page Loading Progress Indicator -->
-<div id="top-progress-bar" aria-hidden="true"></div>
 
 <div class="h-screen flex overflow-hidden">
 
@@ -921,8 +935,8 @@
             </div>
         @endif
 
-        <!-- Main Content Body with Smooth Page Entrance -->
-        <main class="flex-1 overflow-y-auto p-3.5 md:p-5 min-h-0 flex flex-col page-enter">
+        <!-- Main Content Body (Instant Zero-Lag Entrance) -->
+        <main class="flex-1 overflow-y-auto p-3.5 md:p-5 min-h-0 flex flex-col">
             {{ $slot ?? '' }}
             @yield('content')
         </main>
@@ -930,7 +944,7 @@
 
 </div>
 
-<!-- Auto-initialize Lucide Icons & Top Progress Bar -->
+<!-- Auto-initialize Lucide Icons & Instant Page Navigation Engine -->
 <script>
     // Universal back button handler within module
     window.handleModuleBack = function(event, fallbackUrl) {
@@ -969,70 +983,67 @@
         if (window.lucide) { lucide.createIcons(); }
     });
 
-    // Smooth Top Navigation Progress Bar Driver
+    // Instant Page Navigation Engine (Zero-Delay Prefetching on Hover / Touch / Idle)
     (function () {
-        const bar = document.getElementById('top-progress-bar');
-        if (!bar) return;
+        const prefetchedUrls = new Set();
 
-        let timer = null;
-
-        function startProgress() {
-            if (timer) clearInterval(timer);
-            bar.style.opacity = '1';
-            bar.style.width = '20%';
-
-            let current = 20;
-            timer = setInterval(() => {
-                if (current < 85) {
-                    current += Math.random() * 12;
-                    bar.style.width = Math.min(current, 85) + '%';
-                }
-            }, 180);
-        }
-
-        function completeProgress() {
-            if (timer) clearInterval(timer);
-            bar.style.width = '100%';
-            setTimeout(() => {
-                bar.style.opacity = '0';
-                setTimeout(() => {
-                    bar.style.width = '0%';
-                }, 250);
-            }, 150);
-        }
-
-        // Complete when current page finishes loading or restores from cache
-        window.addEventListener('pageshow', () => {
-            completeProgress();
-        });
-
-        // Trigger on internal navigation link clicks
-        document.addEventListener('click', (e) => {
-            const anchor = e.target.closest('a');
-            if (!anchor) return;
-
-            const href = anchor.getAttribute('href');
-            const target = anchor.getAttribute('target');
-
-            if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:') || target === '_blank' || e.ctrlKey || e.metaKey || e.shiftKey || anchor.hasAttribute('download')) {
-                return;
-            }
-
+        function isPrefetchable(href) {
+            if (!href) return false;
             try {
                 const url = new URL(href, window.location.origin);
-                if (url.origin === window.location.origin && url.pathname !== window.location.pathname) {
-                    startProgress();
+                if (url.origin !== window.location.origin) return false;
+                if (url.pathname === window.location.pathname && url.search === window.location.search) return false;
+                const path = url.pathname.toLowerCase();
+                // Exclude mutation actions, logout, and file downloads
+                if (path.includes('logout') || path.includes('delete') || path.includes('destroy') || path.includes('action') || path.includes('export') || path.includes('download')) {
+                    return false;
                 }
-            } catch (err) {}
-        });
-
-        // Trigger on non-ajax form submissions
-        document.addEventListener('submit', (e) => {
-            const form = e.target;
-            if (form && !form.hasAttribute('data-ajax') && !form.target) {
-                startProgress();
+                return true;
+            } catch (err) {
+                return false;
             }
-        });
+        }
+
+        function prefetch(url) {
+            if (!isPrefetchable(url) || prefetchedUrls.has(url)) return;
+            prefetchedUrls.add(url);
+
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.href = url;
+            link.as = 'document';
+            document.head.appendChild(link);
+        }
+
+        // 1. Prefetch immediately on mouse hover or pointer down
+        document.addEventListener('pointerover', (e) => {
+            const anchor = e.target.closest('a');
+            if (anchor && anchor.href) {
+                prefetch(anchor.href);
+            }
+        }, { passive: true });
+
+        // 2. Prefetch on mobile touchstart
+        document.addEventListener('touchstart', (e) => {
+            const anchor = e.target.closest('a');
+            if (anchor && anchor.href) {
+                prefetch(anchor.href);
+            }
+        }, { passive: true });
+
+        // 3. Background idle prefetch for primary navigation links (Sidebar & Header)
+        function prefetchCoreNavigation() {
+            const coreLinks = document.querySelectorAll('aside a[href], header a[href]');
+            coreLinks.forEach((a) => {
+                if (a.href) prefetch(a.href);
+            });
+        }
+
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(prefetchCoreNavigation, { timeout: 1200 });
+        } else {
+            setTimeout(prefetchCoreNavigation, 800);
+        }
     })();
 </script>
 
