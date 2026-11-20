@@ -124,7 +124,7 @@ class AppraisalModuleTest extends TestCase
             ->get(route('appraisal.index'));
 
         $response->assertStatus(200);
-        $response->assertSee('Enterprise Performance Appraisals');
+        $response->assertSee('Performance Appraisals');
     }
 
     public function test_self_evaluation_submission_locks_form(): void

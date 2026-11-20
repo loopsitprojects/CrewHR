@@ -911,7 +911,7 @@
 
                             <div>
                                 <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Account Number</label>
-                                <input type="text" name="bank_account_number" value="{{ old('bank_account_number', $employee->bank_account_number) }}" placeholder="e.g. 1000293847" class="w-full h-10 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white px-3 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all">
+                                <input type="text" name="account_number" value="{{ old('account_number', $employee->account_number ?? $employee->bank_account_number) }}" placeholder="e.g. 1000293847" class="w-full h-10 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white px-3 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all">
                             </div>
 
                             <div>

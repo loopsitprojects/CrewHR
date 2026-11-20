@@ -923,14 +923,22 @@
                 </div>
 
                 <!-- Live Balance Preview Box -->
-                <div class="bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 rounded-2xl p-3.5 flex items-center justify-between text-xs">
-                    <div>
-                        <div class="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">Estimated Duration</div>
-                        <div class="text-sm font-bold text-slate-900 dark:text-white tabular-nums" x-text="calculateEstimatedDuration() + ' Days'"></div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Remaining After Request</div>
-                        <div class="text-sm font-bold text-emerald-700 dark:text-emerald-300 tabular-nums" x-text="getProjectedBalance() + ' Days'"></div>
+                <div class="bg-blue-500/10 dark:bg-blue-500/15 border border-blue-500/20 rounded-2xl p-3.5 space-y-2 text-xs">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="text-[10px] font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">Estimated Duration</div>
+                            <div class="text-sm font-bold text-slate-900 dark:text-white tabular-nums" x-text="calculateEstimatedDuration() + ' Days'"></div>
+                        </div>
+                        <template x-if="isHalfDay || isShortLeave || selectedLeaveTypeCode === 'SHORT'">
+                            <div class="text-center">
+                                <div class="text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400" x-text="isHalfDay ? 'Half Day Time' : 'Short Leave Time'"></div>
+                                <div class="text-xs font-bold text-slate-800 dark:text-slate-200" x-text="isHalfDay ? (halfDaySlot === 'Morning' ? '9:00 AM – 1:00 PM' : '1:00 PM – 5:00 PM') : shortLeaveSlot"></div>
+                            </div>
+                        </template>
+                        <div class="text-right">
+                            <div class="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Remaining After Request</div>
+                            <div class="text-sm font-bold text-emerald-700 dark:text-emerald-300 tabular-nums" x-text="getProjectedBalance() + ' Days'"></div>
+                        </div>
                     </div>
                 </div>
 

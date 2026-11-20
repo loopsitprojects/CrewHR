@@ -24,6 +24,9 @@ class EmployeeController extends Controller
             return redirect()->route('dashboard')->with('error', 'Access Denied: The Employees Module is restricted to Managers, HR Leads, and Admins.');
         }
 
+        $isHrOrAdmin = in_array($userRole, ['HR Lead', 'Super (Admin)']);
+        $currentUserId = auth()->id();
+
         $search = $request->query('search');
         $deptId = $request->query('department_id');
 
@@ -66,14 +69,15 @@ class EmployeeController extends Controller
 
         $totalWorkforce = Employee::count();
 
-        // Fetch all active employees for real-time typeahead search dropdown
+        // Fetch all active employees for real-time in-page search and sorting
         $allEmployees = Employee::with(['user', 'department', 'designation'])
             ->get()
-            ->map(function ($emp) {
+            ->map(function ($emp) use ($isHrOrAdmin, $currentUserId) {
                 return [
                     'id' => $emp->id,
                     'name' => $emp->user->name ?? 'Employee',
                     'raw_name' => $emp->user->name ?? '',
+                    'username' => $emp->user->username ?? '',
                     'emp_no' => $emp->employee_id_number ?? '',
                     'epf_no' => $emp->epf_registration_no ?? '',
                     'designation' => $emp->designation->name ?? 'Staff',
@@ -82,6 +86,10 @@ class EmployeeController extends Controller
                     'avatar' => $emp->profile_picture,
                     'initials' => strtoupper(substr($emp->user->name ?? 'EM', 0, 2)),
                     'url' => route('employee.show', $emp->id),
+                    'edit_url' => route('employee.edit', $emp->id),
+                    'delete_url' => route('employee.destroy', $emp->id),
+                    'can_delete' => $isHrOrAdmin,
+                    'can_edit' => $isHrOrAdmin || ($currentUserId === $emp->user_id),
                 ];
             })
             ->values();
@@ -219,7 +227,7 @@ class EmployeeController extends Controller
                 'bank_name' => $request->bank_name,
                 'bank_branch' => $request->bank_branch,
                 'branch_code' => $request->branch_code,
-                'account_number' => $request->account_number,
+                'account_number' => $request->account_number ?? $request->bank_account_number,
                 'account_holder_name' => $request->account_holder_name,
 
                 'higher_education' => $this->formatEducationInput($request->higher_education),
@@ -377,7 +385,7 @@ class EmployeeController extends Controller
                 'bank_name' => $request->bank_name,
                 'bank_branch' => $request->bank_branch,
                 'branch_code' => $request->branch_code,
-                'account_number' => $request->account_number,
+                'account_number' => $request->account_number ?? $request->bank_account_number,
                 'account_holder_name' => $request->account_holder_name,
 
                 'higher_education' => $this->formatEducationInput($request->higher_education),

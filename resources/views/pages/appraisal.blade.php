@@ -30,17 +30,11 @@
         </div>
     @endif
 
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <span>Enterprise Performance Appraisals</span>
-                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                    Role: {{ $role }}
-                </span>
+            <h1 class="text-xl font-black text-slate-900 dark:text-white">
+                Performance Appraisals
             </h1>
-            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-                Two-tier & three-tier evaluation workflows, automated scoring, increment management, and e-signed letters.
-            </p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
@@ -56,31 +50,6 @@
             </form>
 
             @if(in_array($role, ['Super Admin', 'HR Lead']))
-                <a href="{{ route('appraisal.change-requests.index') }}" class="relative bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all">
-                    <i class="ph ph-lock-key-open text-amber-500 text-sm"></i>
-                    <span>Change Requests</span>
-                    @if($pendingChangeRequestsCount > 0)
-                        <span class="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center animate-pulse">
-                            {{ $pendingChangeRequestsCount }}
-                        </span>
-                    @endif
-                </a>
-
-                <a href="{{ route('appraisal.templates.index') }}" class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all">
-                    <i class="ph ph-sliders-horizontal text-blue-500 text-sm"></i>
-                    <span>KPI Templates</span>
-                </a>
-
-                <a href="{{ route('appraisal.analytics') }}" class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all">
-                    <i class="ph ph-chart-line-up text-emerald-500 text-sm"></i>
-                    <span>Analytics</span>
-                </a>
-
-                <button @click="showReminderModal = true" class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all">
-                    <i class="ph ph-bell-ringing text-indigo-500 text-sm"></i>
-                    <span>Send Reminders</span>
-                </button>
-
                 <button @click="showCycleModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all shrink-0 cursor-pointer">
                     <i class="ph ph-plus-circle text-base"></i>
                     <span>New Appraisal Cycle</span>
@@ -91,11 +60,11 @@
 
     <!-- Active Cycle Banner -->
     @if($activeCycle)
-    <div class="relative overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-3xl p-6 sm:p-7 text-white shadow-xl">
+    <div class="relative overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl">
         <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-            <div class="flex items-center gap-3">
-                <span class="bg-white/20 backdrop-blur-md px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-white/20">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+            <div class="flex items-center gap-2.5">
+                <span class="bg-white/20 backdrop-blur-md px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-white/20">
                     {{ $activeCycle->review_period }} Cycle &bull; {{ $activeCycle->status }}
                 </span>
                 @if($activeCycle->self_eval_deadline)
@@ -110,14 +79,11 @@
             </div>
         </div>
 
-        <div class="space-y-2">
-            <h2 class="text-2xl sm:text-3xl font-black tracking-tight">{{ $activeCycle->name }}</h2>
-            <p class="text-xs text-blue-100 max-w-2xl leading-relaxed">
-                {{ $activeCycle->description ?? 'Annual employee evaluation cycle covering competencies, KPI achievements, career progression, and salary increment terms.' }}
-            </p>
+        <div>
+            <h2 class="text-xl sm:text-2xl font-black tracking-tight">{{ $activeCycle->name }}</h2>
         </div>
 
-        <div class="mt-6">
+        <div class="mt-4">
             <div class="w-full bg-black/30 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10">
                 <div class="bg-gradient-to-r from-blue-300 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: {{ $completionRate }}%;"></div>
             </div>
@@ -133,7 +99,6 @@
                 <i class="ph ph-users text-lg text-blue-500"></i>
             </div>
             <div class="text-2xl font-black text-slate-900 dark:text-white">{{ $totalAppraisals }}</div>
-            <span class="text-[10px] text-slate-400 font-semibold">In current cycle</span>
         </div>
 
         <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
@@ -142,7 +107,6 @@
                 <i class="ph ph-hourglass-high text-lg text-amber-500"></i>
             </div>
             <div class="text-2xl font-black text-amber-600 dark:text-amber-400">{{ $pendingSelfCount }}</div>
-            <span class="text-[10px] text-amber-500/80 font-semibold">Pending employee</span>
         </div>
 
         <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
@@ -151,7 +115,6 @@
                 <i class="ph ph-git-pull-request text-lg text-indigo-500"></i>
             </div>
             <div class="text-2xl font-black text-indigo-600 dark:text-indigo-400">{{ $pendingReviewCount }}</div>
-            <span class="text-[10px] text-indigo-500/80 font-semibold">Pending Manager / HOD</span>
         </div>
 
         <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
@@ -160,7 +123,6 @@
                 <i class="ph ph-check-circle text-lg text-emerald-500"></i>
             </div>
             <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400">{{ $completedCount }}</div>
-            <span class="text-[10px] text-emerald-500/80 font-semibold">Fully finalized</span>
         </div>
 
         <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm col-span-2 sm:col-span-1">
@@ -288,7 +250,6 @@
                                                 <div class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
                                                     <span class="text-slate-400 font-normal">Direct HOD:</span> {{ $app->hod->user->name ?? 'HOD' }}
                                                 </div>
-                                                <span class="text-[10px] text-slate-400 font-semibold italic">2-Tier Review</span>
                                             @endif
                                         </div>
                                     </td>
@@ -311,12 +272,6 @@
                                                 <span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span> Pending HOD
                                             </span>
                                         @endif
-
-                                        @if($app->is_locked)
-                                            <span class="block text-[10px] text-slate-400 mt-1 flex items-center gap-1">
-                                                <i class="ph ph-lock text-xs"></i> Locked
-                                            </span>
-                                        @endif
                                     </td>
 
                                     <td class="p-3.5">
@@ -337,7 +292,7 @@
                                                 </span>
                                             </div>
                                         @else
-                                            <span class="text-slate-400 italic text-[11px]">Not rated yet</span>
+                                            <span class="text-slate-400 text-xs font-semibold">—</span>
                                         @endif
                                     </td>
 
@@ -370,7 +325,7 @@
                                     <td class="p-3.5 pr-5 text-right">
                                         <div class="flex items-center justify-end gap-2">
                                             <a href="{{ route('appraisal.show', $app->id) }}" class="bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-xl font-bold transition-all text-xs flex items-center gap-1.5">
-                                                <span>Review Form</span>
+                                                <span>Review</span>
                                                 <i class="ph ph-arrow-right text-xs"></i>
                                             </a>
                                         </div>

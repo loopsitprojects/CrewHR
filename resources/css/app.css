@@ -96,6 +96,13 @@ table,
     border: 1px solid var(--apple-glass-border);
 }
 
+/* Universal fix: Full-screen fixed modal backdrops, overlays & drawers must never inherit space-y / space-x margins */
+.fixed.inset-0,
+[class*="fixed"][class*="inset-0"],
+[class*="fixed"][class*="inset-y-0"] {
+    margin: 0 !important;
+}
+
 .apple-card,
 .card-surface {
     background: #FFFFFF;

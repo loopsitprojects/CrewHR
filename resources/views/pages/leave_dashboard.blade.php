@@ -35,7 +35,7 @@
     })->toArray();
 
     // Standard ordering preference
-    $preferredOrder = ['CASUAL', 'MEDICAL', 'ANNUAL', 'LIEU', 'SHORT', 'DUTY', 'NIGHT_SHIFT_RECOVERY'];
+    $preferredOrder = ['ANNUAL', 'CASUAL', 'MEDICAL', 'LIEU', 'SHORT', 'DUTY', 'NIGHT_SHIFT_RECOVERY'];
 
     $sortedLeaveTypes = $activeDbLeaveTypes->sortBy(function($lt) use ($preferredOrder) {
         $code = strtoupper($lt->code ?? '');
@@ -122,6 +122,7 @@
          addCompanyLeaveModal: false, 
          dayModalOpen: false, 
          quotaModalOpen: false,
+          showAllLeaveTypes: false,
          showBirthdayCardInline: true,
          selectedQuota: null,
          allMyHistory: {{ json_encode($myLeaveHistory) }},
@@ -440,6 +441,60 @@
              }
          },
 
+         formatFinalResultDuration() {
+             if (this.selectedLeaveTypeCode === 'SHORT') return '0.2 Days (Short Leave)';
+             if (this.isHalfDay) return '0.5 Days (Half Day)';
+             if (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY') {
+                 return this.nightShiftConcession ? `${this.nightShiftConcession.days} Days (${this.nightShiftConcession.label})` : 'Concession';
+             }
+             const days = this.calculateNetWorkingDays();
+             return `${days} ${days === 1 ? 'Working Day' : 'Working Days'}`;
+         },
+
+         formatFinalResultTimeSlot() {
+             if (this.isHalfDay) {
+                 return this.halfDaySlot === 'Morning' ? 'Morning: 9:00 AM – 1:00 PM' : 'Afternoon: 1:00 PM – 5:00 PM';
+             }
+             if (this.selectedLeaveTypeCode === 'SHORT') {
+                 if (this.shortLeaveSlot === '9:30 AM–10:00 AM') return 'Morning: 9:30 AM – 10:00 AM';
+                 if (this.shortLeaveSlot === '3:30 PM–5:00 PM') return 'Evening: 3:30 PM – 5:00 PM';
+                 return this.shortLeaveSlot ? this.shortLeaveSlot : '1.5 Hours Slot';
+             }
+             if (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY') {
+                 if (this.nightShiftConcession?.reportTime) {
+                     return `Report at ${this.nightShiftConcession.reportTime}`;
+                 }
+                 return this.nightShiftConcession ? this.nightShiftConcession.label : 'Standard Shift';
+             }
+             return 'Full Day (8.5 hrs shift)';
+         },
+
+         formatFinalResultDate() {
+             if (!this.targetStartDate) return 'Select date';
+             const sParts = this.targetStartDate.split('-').map(Number);
+             const startDate = new Date(sParts[0], sParts[1] - 1, sParts[2]);
+             const sMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
+             const sDay = startDate.getDate();
+             const sWeekday = startDate.toLocaleDateString('en-US', { weekday: 'short' });
+             const sYear = startDate.getFullYear();
+
+             if (this.isHalfDay || this.selectedLeaveTypeCode === 'SHORT' || this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' || !this.targetEndDate || this.targetStartDate === this.targetEndDate) {
+                 return `${sWeekday}, ${sDay} ${sMonth} ${sYear}`;
+             }
+
+             const eParts = this.targetEndDate.split('-').map(Number);
+             const endDate = new Date(eParts[0], eParts[1] - 1, eParts[2]);
+             const eMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
+             const eDay = endDate.getDate();
+             const eWeekday = endDate.toLocaleDateString('en-US', { weekday: 'short' });
+             const eYear = endDate.getFullYear();
+
+             if (sYear === eYear) {
+                 return `${sWeekday}, ${sDay} ${sMonth} – ${eWeekday}, ${eDay} ${eMonth} ${sYear}`;
+             }
+             return `${sDay} ${sMonth} ${sYear} – ${eDay} ${eMonth} ${eYear}`;
+         },
+
          checkClash() {
              if (!this.targetStartDate || !this.targetEndDate) {
                  return { pass: true, message: 'Clash check — choose dates to verify schedule.' };
@@ -616,6 +671,7 @@
              } else {
                  this.selectLeaveType(targetCode, this.leaveTypesMap[targetCode] || '');
              }
+             this.showAllLeaveTypes = false;
              this.applyLeaveModal = true;
              this.$nextTick(() => { 
                  if (window.lucide) lucide.createIcons(); 
@@ -1433,9 +1489,10 @@
 
 
     <!-- INTERACTIVE DAY DETAIL MODAL -->
+        <template x-teleport="body">
     <div x-show="dayModalOpen" 
          x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
+         class="fixed inset-0 !m-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -1544,11 +1601,14 @@
             </template>
         </div>
     </div>
+    </template>
+
 
     <!-- APPLY FOR LEAVE MODAL (COMPACT ADAPTIVE - NO SCROLLBAR) -->
+        <template x-teleport="body">
     <div x-show="applyLeaveModal" 
          x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
+         class="fixed inset-0 !m-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -1606,12 +1666,42 @@
                             <p class="text-[11px] text-slate-500 dark:text-slate-400">Every rule is checked as you fill this in.</p>
                         </div>
 
-                        <!-- Leave Type Selection Cards -->
+                        <!-- Leave Type Selection (Default: shows ONLY Annual leave or the clicked leave type; hides other leaves) -->
                         <div class="space-y-1">
-                            <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type</label>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type</label>
+                                <button type="button" 
+                                        @click="showAllLeaveTypes = !showAllLeaveTypes; $nextTick(() => window.lucide && lucide.createIcons());" 
+                                        class="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer flex items-center gap-1">
+                                    <span x-text="showAllLeaveTypes ? 'Done' : 'Change type'"></span>
+                                    <i data-lucide="chevron-down" class="w-3 h-3 transition-transform duration-200" :class="showAllLeaveTypes ? 'rotate-180' : ''"></i>
+                                </button>
+                            </div>
+
+                            <!-- Single Selected Leave Card (Default: shows ONLY Annual leave or the applied leave type, hiding other leaves) -->
+                            <div x-show="!showAllLeaveTypes" 
+                                 class="px-3 py-2 rounded-xl bg-blue-50/80 dark:bg-[#192742] border border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20 shadow-xs flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" 
+                                          :class="(leaveCatalog.find(l => l.code === selectedLeaveTypeCode) || leaveCatalog[0])?.dotColor"></span>
+                                    <div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-xs font-black text-blue-950 dark:text-white" 
+                                                  x-text="(leaveCatalog.find(l => l.code === selectedLeaveTypeCode) || leaveCatalog[0])?.name"></span>
+                                            <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400" 
+                                                  x-text="'• ' + ((leaveCatalog.find(l => l.code === selectedLeaveTypeCode) || leaveCatalog[0])?.subtext || '')"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px] font-black shadow-xs">✓</span>
+                                </div>
+                            </div>
+
+                            <!-- Full Grid of other leaves (Hidden by default; only revealed if user clicks 'Change type') -->
+                            <div x-show="showAllLeaveTypes" x-cloak class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-0.5">
                                 <template x-for="item in leaveCatalog" :key="item.code">
-                                    <div @click="selectLeaveType(item.code, item.id)"
+                                    <div @click="selectLeaveType(item.code, item.id); showAllLeaveTypes = false;"
                                          :class="selectedLeaveTypeCode === item.code 
                                             ? 'bg-blue-50/80 dark:bg-[#192742] border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/25 dark:ring-blue-400/25 shadow-sm text-blue-950 dark:text-white' 
                                             : 'bg-white hover:bg-slate-50/80 dark:bg-[#131c2d] dark:hover:bg-[#19243a] border-slate-200/90 hover:border-blue-300 dark:border-slate-800 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs'"
@@ -1911,6 +2001,54 @@
                                 </div>
 
                             </div>
+
+                            <!-- Final Applied Leave Result Section -->
+                            <div class="p-3 bg-slate-50 dark:bg-[#182030] border border-slate-200/90 dark:border-slate-800 rounded-xl space-y-2">
+                                <div class="flex items-center justify-between pb-1.5 border-b border-slate-200/80 dark:border-slate-800/80">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        <h4 class="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Leave Application Result</h4>
+                                    </div>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                                          x-text="(leaveCatalog || []).find(l => l.code === selectedLeaveTypeCode)?.name || 'Leave'"></span>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2">
+                                    <!-- Number of Days -->
+                                    <div class="p-2 rounded-lg bg-white dark:bg-[#141b29] border border-slate-200/70 dark:border-slate-800/70">
+                                        <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-0.5">Number of Days</span>
+                                        <div class="text-xs font-black text-slate-900 dark:text-white"
+                                             :class="isHalfDay || selectedLeaveTypeCode === 'SHORT' ? 'text-amber-600 dark:text-amber-400' : ''"
+                                             x-text="formatFinalResultDuration()"></div>
+                                        <span class="text-[9px] font-medium text-slate-400 dark:text-slate-500 block truncate"
+                                              x-text="isHalfDay ? 'Half Day Application' : (selectedLeaveTypeCode === 'SHORT' ? 'Short Leave Application' : (selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' ? 'Night Work Concession' : 'Standard Working Days'))"></span>
+                                    </div>
+
+                                    <!-- Short Leave / Half Day / Shift Time -->
+                                    <div class="p-2 rounded-lg bg-white dark:bg-[#141b29] border border-slate-200/70 dark:border-slate-800/70">
+                                        <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-0.5"
+                                              x-text="isHalfDay ? 'Half Day Time' : (selectedLeaveTypeCode === 'SHORT' ? 'Short Leave Time' : (selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' ? 'Concession Time' : 'Working Time'))"></span>
+                                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1"
+                                             :class="isHalfDay || selectedLeaveTypeCode === 'SHORT' ? 'text-amber-600 dark:text-amber-400' : ''">
+                                            <i data-lucide="clock" class="w-3 h-3 shrink-0 opacity-70"></i>
+                                            <span class="truncate" x-text="formatFinalResultTimeSlot()"></span>
+                                        </div>
+                                        <span class="text-[9px] font-medium text-slate-400 dark:text-slate-500 block truncate"
+                                              x-text="isHalfDay ? (halfDaySlot + ' Window') : (selectedLeaveTypeCode === 'SHORT' ? (shortLeaveSlot.includes('9:30') ? 'Morning Window' : 'Evening Window') : (selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' ? 'Sign out: ' + (nightSignOutTime || 'Late') : 'Standard Working Hours'))"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Schedule / Dates Row -->
+                                <div class="flex items-center justify-between text-[10px] pt-0.5 text-slate-500 dark:text-slate-400">
+                                    <span class="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
+                                        <i data-lucide="calendar" class="w-3 h-3 text-blue-500 shrink-0"></i>
+                                        <span x-text="formatFinalResultDate()"></span>
+                                    </span>
+                                    <span class="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1" x-show="allChecksPass()">
+                                        <i data-lucide="check" class="w-3 h-3"></i> Valid Schedule
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Action Submit Section -->
@@ -1943,12 +2081,15 @@
             </form>
         </div>
     </div>
+    </template>
+
 
     <!-- Add Company Holiday Modal -->
     @if($canAddHoliday)
+        <template x-teleport="body">
     <div x-show="addCompanyLeaveModal" 
          x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
+         class="fixed inset-0 !m-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -2004,12 +2145,15 @@
             </form>
         </div>
     </div>
+    </template>
+
     @endif
 
     <!-- QUOTA BREAKDOWN & USAGE HISTORY MODAL -->
+        <template x-teleport="body">
     <div x-show="quotaModalOpen" 
          x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
+         class="fixed inset-0 !m-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -2120,11 +2264,14 @@
 
         </div>
     </div>
+    </template>
+
 
     <!-- REQUEST LIEU LEAVE MODAL -->
+        <template x-teleport="body">
     <div x-show="lieuClaimModalOpen" 
          x-cloak 
-         class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
+         class="fixed inset-0 !m-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md overflow-hidden"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -2357,6 +2504,8 @@
             </form>
         </div>
     </div>
+    </template>
+
 
 
 </div>

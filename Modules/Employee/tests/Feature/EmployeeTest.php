@@ -135,6 +135,8 @@ class EmployeeTest extends TestCase
             'budget_allowance' => 10000,
         ]);
 
+        \App\Models\Setting::set('show_employee_compensation', '1');
+
         $response = $this->get(route('employee.show', $employee->id));
 
         $response->assertStatus(200);
@@ -144,8 +146,8 @@ class EmployeeTest extends TestCase
         $response->assertSee('Executive');
         $response->assertSee('Direct');
         $response->assertSee('Compensation');
-        $response->assertSee('Bank Account Details');
-        $response->assertSee('Branch Code');
+        $response->assertSee('Bank Details');
+        $response->assertSee('Branch & Code', false);
         $response->assertSee('035');
         $response->assertSee('Higher Education');
     }
