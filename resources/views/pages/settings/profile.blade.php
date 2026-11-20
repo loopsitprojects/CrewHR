@@ -81,7 +81,7 @@
             <!-- Bank Details -->
             <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
                 <h3 class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <i class="ph ph-bank text-rose-600"></i> Bank Account Information (for Direct Salary Transfer)
+                    <i class="ph ph-bank text-rose-600"></i> Bank Account Information
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
