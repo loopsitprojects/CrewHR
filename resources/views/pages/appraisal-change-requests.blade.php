@@ -41,7 +41,7 @@
             </p>
         </div>
 
-        <a href="{{ route('appraisal.index') }}" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto">
+        <a href="{{ route('appraisal.index') }}" onclick="handleModuleBack(event, '{{ route('appraisal.index') }}')" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto cursor-pointer">
             <i class="ph ph-arrow-left"></i>
             <span>Back to Appraisal Hub</span>
         </a>
