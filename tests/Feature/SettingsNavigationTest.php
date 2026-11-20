@@ -32,7 +32,7 @@ class SettingsNavigationTest extends TestCase
         session(['current_role' => 'Super (Admin)']);
 
         // 1. Visit general settings
-        $response = $this->get(route('settings.index', ['module' => 'general']));
+        $response = $this->followingRedirects()->get(route('settings.index', ['module' => 'general']));
         $response->assertStatus(200);
         $response->assertSee('General Organization');
         $response->assertSee('Leave Management');

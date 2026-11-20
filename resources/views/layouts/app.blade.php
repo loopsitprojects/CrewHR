@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-[#EEF2F6] dark:bg-[#070B14] overflow-hidden">
+<html lang="en" class="h-full bg-[var(--bg-canvas)] dark:bg-[var(--bg-canvas)] overflow-hidden">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -39,14 +39,19 @@
 
     <style>
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Plus Jakarta Sans", system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
             letter-spacing: -0.012em;
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+        }
+        h1, h2, h3, h4, h5, h6, .apple-heading {
+            letter-spacing: -0.02em;
         }
         [x-cloak] { display: none !important; }
         .tabular-nums { font-variant-numeric: tabular-nums; }
     </style>
 </head>
-<body class="h-screen overflow-hidden antialiased text-slate-800 bg-[#EEF2F6] dark:bg-[#070B14] dark:text-slate-100 transition-colors duration-200"
+<body class="h-screen overflow-hidden antialiased text-[var(--text-primary)] bg-[var(--bg-canvas)] dark:bg-[var(--bg-canvas)] dark:text-[var(--text-primary)] transition-colors duration-200"
       x-data="{ 
           role: '{{ session('current_role', 'Super (Admin)') }}', 
           theme: localStorage.getItem('theme') || 'light',
@@ -88,7 +93,7 @@
 <div class="h-screen flex overflow-hidden">
 
     <!-- Collapsible Sidebar with Lucide Icons (Dual Theme: Light & Dark Mode Support) -->
-    <aside :class="sidebarCollapsed ? 'w-16' : 'w-64'" class="bg-[#0b132b] dark:bg-[#070e1b] border-r border-slate-800/80 flex flex-col justify-between h-screen shrink-0 z-20 shadow-2xl transition-all duration-300 ease-in-out">
+    <aside :class="sidebarCollapsed ? 'w-16' : 'w-64'" class="bg-[#0b132b] dark:bg-[#1C1C1E] border-r border-slate-800/80 dark:border-[var(--border-hairline)] flex flex-col justify-between h-screen shrink-0 z-20 shadow-2xl dark:shadow-none transition-all duration-300 ease-in-out">
         <div class="flex-1 flex flex-col min-h-0 overflow-y-auto">
             <!-- Sidebar Brand Header (Logo Click Navigates to Home Dashboard) -->
             <div class="h-16 flex items-center justify-center px-4 border-b border-slate-800/80 transition-all duration-300">
@@ -539,8 +544,8 @@
     <!-- Main Content Canvas -->
     <div class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         
-        <!-- Header Bar (Apple Liquid Glass Header) -->
-        <header class="h-16 bg-white/95 dark:bg-[#0B101D]/85 backdrop-blur-xl border-b border-slate-200/90 dark:border-white/[0.08] px-5 flex items-center justify-between shrink-0 z-10 transition-colors duration-200 shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] dark:shadow-none">
+        <!-- Header Bar (Apple Frosted Glass Header) -->
+        <header class="h-16 apple-glass border-b border-[var(--border-hairline)] px-5 flex items-center justify-between shrink-0 z-10 transition-colors duration-200">
             <!-- Left Controls: Sidebar Toggle Button & Page Title -->
             <div class="flex items-center gap-3.5 min-w-0">
                 <button @click="toggleSidebar()" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/10 rounded-xl transition-all active:scale-95 cursor-pointer shrink-0" title="Toggle Sidebar">
@@ -647,10 +652,10 @@
                                  x-transition:leave-start="translate-x-0"
                                  x-transition:leave-end="translate-x-full"
                                  x-cloak 
-                                 class="fixed inset-y-0 right-0 w-80 sm:w-[420px] bg-white dark:bg-[#111827] shadow-2xl z-[1000] flex flex-col border-l border-slate-200/90 dark:border-white/[0.08] overflow-hidden">
+                                 class="fixed inset-y-0 right-0 w-80 sm:w-[420px] bg-[var(--bg-surface)] dark:bg-[#1C1C1E] z-[1000] flex flex-col border-l border-[var(--border-hairline)] overflow-hidden shadow-2xl dark:shadow-none">
                                 
                                 <!-- Drawer Top Header -->
-                                <div class="px-5 py-4 bg-slate-50 dark:bg-[#0B101D] text-slate-900 dark:text-white flex items-center justify-between shrink-0 border-b border-slate-200/80 dark:border-white/[0.08]">
+                                <div class="px-5 py-4 bg-[var(--bg-elevated)] dark:bg-[#2C2C2E] text-[var(--text-primary)] flex items-center justify-between shrink-0 border-b border-[var(--border-hairline)]">
                                     <div class="flex items-center gap-3">
                                         <div class="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 text-[#007AFF] dark:text-[#0A84FF] flex items-center justify-center font-bold">
                                             <i data-lucide="bell" class="w-5 h-5"></i>
