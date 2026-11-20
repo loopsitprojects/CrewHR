@@ -77,20 +77,13 @@ class MyUsageRecordsController extends Controller
 
         // Scope Resolution:
         // Employee: strictly 'my'
-        // Admin / HR: default 'all', can switch to 'my' or choose specific 'employee'
-        // Manager: default 'team', can switch to 'my' or choose specific 'employee'
+        // Admin / HR / Manager: default 'my', can switch to 'all'/'team' or choose specific 'employee'
         if ($isEmployee) {
             $scope = 'my';
         } else {
             $scope = $request->query('scope');
             if (!$scope) {
-                if ($isSuperAdmin || $isHrLead) {
-                    $scope = 'all';
-                } elseif ($isManager) {
-                    $scope = 'team';
-                } else {
-                    $scope = 'my';
-                }
+                $scope = 'my';
             } elseif ($scope === 'employee') {
                 $scope = $isManager ? 'team' : 'all';
             }
