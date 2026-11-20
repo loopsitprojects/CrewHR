@@ -39,93 +39,106 @@
 @endsection
 
 @section('content')
-<div class="w-full space-y-6 pb-12">
+<div class="w-full space-y-6 pb-12 max-w-7xl mx-auto">
 
-    <!-- Main Profile Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-        <!-- Left Column: Personal Card (Section 01) -->
-        <div class="lg:col-span-4 xl:col-span-3 space-y-6 lg:sticky lg:top-20">
-            <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-5 transition-colors">
-                <div class="flex flex-col items-center text-center pb-4 border-b border-slate-100 dark:border-white/[0.06]">
-                    <img src="{{ $employee->profile_picture ? asset($employee->profile_picture) : ('https://ui-avatars.com/api/?name=' . urlencode($employee->user->name ?? 'Employee') . '&background=0D8ABC&color=fff') }}" class="w-24 h-24 rounded-full object-cover ring-4 ring-blue-500/30 shadow-md mb-3 bg-white dark:bg-slate-800" alt="Avatar">
-                    <h2 class="text-lg font-black text-slate-900 dark:text-white">{{ $employee->user->name ?? 'Employee' }}</h2>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400 text-xs font-bold px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/30">{{ $employee->employee_id_number }}</span>
-                        <span class="bg-purple-50 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 text-xs font-extrabold px-3 py-1 rounded-full border border-purple-200 dark:border-purple-500/30">{{ $employee->system_role ?? 'Employee' }}</span>
-                    </div>
-                    @if($isHrOrAdmin || Auth::id() === $employee->user_id)
-                        <div class="w-full pt-3 mt-1">
-                            <a href="{{ route('employee.edit', $employee->id) }}" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-500/25 transition-all">
-                                <i class="ph ph-pencil-simple text-sm"></i>
-                                <span>Edit Profile</span>
-                            </a>
-                        </div>
-                    @endif
-                </div>
-
-                <div class="space-y-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 dark:text-slate-500">Designation</span>
-                        <span class="font-bold text-blue-600 dark:text-blue-400">{{ $employee->designation->name ?? 'Staff' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 dark:text-slate-500">Department</span>
-                        <span class="font-bold text-slate-900 dark:text-white">{{ $employee->department->name ?? 'General' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 dark:text-slate-500">Gender</span>
-                        <span class="font-bold text-slate-900 dark:text-white">{{ $employee->gender ?? 'N/A' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 dark:text-slate-500">Date of Birth</span>
-                        <span class="font-bold text-slate-900 dark:text-white">{{ $employee->date_of_birth ?? 'N/A' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 dark:text-slate-500">NIC / Passport</span>
-                        <span class="font-bold text-slate-900 dark:text-white">{{ $employee->nic_passport ?? 'N/A' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 dark:text-slate-500">Username</span>
-                        <span class="font-bold text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-900/50">@<span>{{ $employee->user->username ?? 'N/A' }}</span></span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 dark:text-slate-500">Personal Email</span>
-                        <span class="font-bold text-slate-900 dark:text-white">{{ $employee->personal_email ?? 'N/A' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 dark:text-slate-500">Company Email</span>
-                        <span class="font-bold text-blue-600 dark:text-blue-400 truncate max-w-[160px]">{{ $employee->company_email ?? $employee->user->email ?? 'N/A' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400 dark:text-slate-500">Phone</span>
-                        <span class="font-bold text-slate-900 dark:text-white">{{ $employee->phone_number ?? 'N/A' }}</span>
-                    </div>
-                    <div class="pt-2 border-t border-slate-100 dark:border-white/[0.06]">
-                        <span class="text-slate-400 dark:text-slate-500 block text-[10px] uppercase font-bold mb-1">Emergency Contact</span>
-                        <p class="font-bold text-slate-800 dark:text-slate-200 text-[11px]">{{ $employee->emergency_contact ?? 'N/A' }}</p>
-                    </div>
-                </div>
-
-                <!-- Direct Subordinates -->
-                @if($employee->subordinates && $employee->subordinates->count() > 0)
-                    <div class="pt-3 border-t border-slate-100 dark:border-white/[0.06] space-y-2">
-                        <span class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider block">Direct Team ({{ $employee->subordinates->count() }})</span>
-                        <div class="space-y-1.5">
-                            @foreach($employee->subordinates as $sub)
-                                <a href="{{ route('employee.show', $sub->id) }}" class="flex items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition-all">
-                                    <img src="{{ $sub->profile_picture ? asset($sub->profile_picture) : ('https://ui-avatars.com/api/?name=' . urlencode($sub->user->name ?? 'Employee') . '&background=0D8ABC&color=fff') }}" class="w-6 h-6 rounded-full object-cover" alt="Avatar">
-                                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400">{{ $sub->user->name ?? 'Subordinate' }}</span>
-                                </a>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
+    <!-- SECTION 01: Personal & Contact Details -->
+    <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-5 transition-colors">
+        <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
+            <div class="flex items-center gap-2.5">
+                <span class="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 border border-blue-200/60 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/30 font-black text-[11px] flex items-center justify-center">01</span>
+                <h3 class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Personal & Contact Details</h3>
             </div>
+            <span class="text-[10px] text-slate-400 font-bold">Identity, Demographic & Contact</span>
         </div>
 
-        <!-- Middle & Right Columns -->
-        <div class="lg:col-span-8 xl:col-span-9 space-y-6">
+        <!-- Identity Banner -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/[0.06]">
+            <div class="flex items-center gap-4 min-w-0">
+                <img src="{{ $employee->profile_picture ? asset($employee->profile_picture) : ('https://ui-avatars.com/api/?name=' . urlencode($employee->user->name ?? 'Employee') . '&background=0D8ABC&color=fff') }}" 
+                     class="w-16 h-16 rounded-full object-cover ring-4 ring-blue-500/30 shadow-md bg-white dark:bg-slate-800 shrink-0" alt="Avatar">
+                <div class="space-y-1 min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="text-base sm:text-lg font-black text-slate-900 dark:text-white truncate">{{ $employee->user->name ?? 'Employee' }}</h2>
+                        <span class="bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400 text-xs font-bold px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/30 shrink-0">{{ $employee->employee_id_number }}</span>
+                        <span class="bg-purple-50 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-500/30 shrink-0">{{ $employee->system_role ?? 'Employee' }}</span>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
+                        {{ $employee->designation->name ?? 'Staff' }} &bull; <span class="text-blue-600 dark:text-blue-400">{{ $employee->department->name ?? 'General' }}</span>
+                    </p>
+                </div>
+            </div>
+            @if($isHrOrAdmin || Auth::id() === $employee->user_id)
+                <a href="{{ route('employee.edit', $employee->id) }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-500/25 transition-all shrink-0">
+                    <i class="ph ph-pencil-simple text-sm"></i>
+                    <span>Edit Profile</span>
+                </a>
+            @endif
+        </div>
+
+        <!-- Personal & Contact Information Fields Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 text-xs font-semibold">
+            <div>
+                <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Username</span>
+                <span class="font-bold text-blue-600 dark:text-blue-400 font-mono">@<span>{{ $employee->user->username ?? 'N/A' }}</span></span>
+            </div>
+            <div>
+                <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Gender</span>
+                <span class="font-bold text-slate-900 dark:text-white">{{ $employee->gender ?? 'N/A' }}</span>
+            </div>
+            <div>
+                <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Date of Birth</span>
+                <span class="font-bold text-slate-900 dark:text-white">{{ $employee->date_of_birth ? \Carbon\Carbon::parse($employee->date_of_birth)->format('d M Y') : 'N/A' }}</span>
+            </div>
+            <div>
+                <span class="text-slate-400 dark:text-slate-500 block text-[10px]">NIC / Passport</span>
+                <span class="font-bold text-slate-900 dark:text-white">{{ $employee->nic_passport ?? 'N/A' }}</span>
+            </div>
+            <div>
+                <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Personal Email</span>
+                <span class="font-bold text-slate-900 dark:text-white truncate block">{{ $employee->personal_email ?? 'N/A' }}</span>
+            </div>
+            <div>
+                <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Company Email</span>
+                <span class="font-bold text-blue-600 dark:text-blue-400 truncate block">{{ $employee->company_email ?? $employee->user->email ?? 'N/A' }}</span>
+            </div>
+            <div>
+                <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Phone Number</span>
+                <span class="font-bold text-slate-900 dark:text-white">{{ $employee->phone_number ?? 'N/A' }}</span>
+            </div>
+            <div>
+                <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Emergency Contact</span>
+                <span class="font-bold text-slate-900 dark:text-white">{{ $employee->emergency_contact ?? 'N/A' }}</span>
+            </div>
+            @if($employee->residential_address || $employee->permanent_address)
+            <div class="col-span-2">
+                <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Residential / Permanent Address</span>
+                <span class="font-bold text-slate-900 dark:text-white">{{ $employee->residential_address ?: $employee->permanent_address }}</span>
+            </div>
+            @endif
+        </div>
+
+        <!-- Direct Subordinates -->
+        @if($employee->subordinates && $employee->subordinates->count() > 0)
+            <div class="pt-4 border-t border-slate-100 dark:border-white/[0.06] space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <i class="ph ph-users text-sm text-blue-600 dark:text-blue-400"></i> Direct Team ({{ $employee->subordinates->count() }})
+                    </span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                    @foreach($employee->subordinates as $sub)
+                        <a href="{{ route('employee.show', $sub->id) }}" class="flex items-center gap-2.5 p-2.5 bg-slate-50/80 dark:bg-slate-800/40 hover:bg-blue-50/80 dark:hover:bg-blue-950/40 rounded-xl border border-slate-200/80 dark:border-white/[0.06] transition-all group">
+                            <img src="{{ $sub->profile_picture ? asset($sub->profile_picture) : ('https://ui-avatars.com/api/?name=' . urlencode($sub->user->name ?? 'Employee') . '&background=0D8ABC&color=fff') }}" class="w-8 h-8 rounded-full object-cover shrink-0" alt="Avatar">
+                            <div class="min-w-0">
+                                <div class="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate">{{ $sub->user->name ?? 'Subordinate' }}</div>
+                                <div class="text-[10px] text-slate-400 truncate">{{ $sub->designation->name ?? $sub->department->name ?? 'Staff' }}</div>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    </div>
 
             <!-- SECTION 02: Employment & Role Details -->
             <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-6 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] space-y-5 transition-colors">
@@ -516,8 +529,6 @@
                     <p class="text-slate-400 dark:text-slate-500 italic text-xs py-2">No historical performance appraisals recorded for this employee profile yet.</p>
                 @endif
             </div>
-
-        </div>
 
     </div>
 
