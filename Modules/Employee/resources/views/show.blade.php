@@ -13,36 +13,33 @@
     $showCompensation = $showCompensation ?? is_compensation_enabled();
 @endphp
 
+@section('header_left')
+    <div class="h-5 w-px bg-slate-200 dark:bg-white/10 hidden sm:block shrink-0"></div>
+    <div class="flex items-center gap-2.5 min-w-0">
+        <a href="{{ route('employee.index') }}" class="p-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors shrink-0" title="Back to Directory">
+            <i class="ph ph-arrow-left text-base"></i>
+        </a>
+        <h1 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none shrink-0">
+            {{ $employee->user->name ?? 'Employee Profile' }}
+        </h1>
+        <span class="text-slate-300 dark:text-slate-600 hidden sm:inline">&bull;</span>
+        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium truncate hidden sm:inline">
+            {{ $employee->employee_id_number }} &bull; {{ $employee->designation->name ?? 'Staff' }} &bull; <span class="text-blue-600 dark:text-blue-400">{{ $employee->department->name ?? 'General' }}</span>
+        </span>
+    </div>
+@endsection
+
+@section('header_actions')
+    @if($isHrOrAdmin || Auth::id() === $employee->user_id)
+    <a href="{{ route('employee.edit', $employee->id) }}" class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white rounded-lg text-xs font-semibold shadow-sm shadow-blue-500/25 transition-all cursor-pointer">
+        <i class="ph ph-pencil-simple text-sm"></i>
+        <span>Edit Profile</span>
+    </a>
+    @endif
+@endsection
+
 @section('content')
 <div class="w-full space-y-6 pb-12">
-
-    <!-- Top Action Bar -->
-    <div class="sticky top-0 z-30 bg-white/85 dark:bg-[#0F172A]/85 backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-white/[0.08] p-4 shadow-sm dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] flex items-center justify-between transition-colors">
-        <div class="flex items-center gap-3">
-            <a href="{{ route('employee.index') }}" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 border border-slate-200/70 dark:border-white/10 text-slate-700 dark:text-slate-200 flex items-center justify-center shadow-2xs transition-all active:scale-95" title="Back to Directory">
-                <i class="ph ph-arrow-left text-base"></i>
-            </a>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">{{ $employee->user->name ?? 'Employee' }}</h1>
-                    <span class="bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400 text-xs font-black px-2.5 py-0.5 rounded-full border border-blue-200/80 dark:border-blue-500/30">{{ $employee->employee_id_number }}</span>
-                    @if($employee->user->username)
-                        <span class="bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border border-slate-200/70 dark:border-white/10">@ {{ $employee->user->username }}</span>
-                    @endif
-                </div>
-                <p class="text-xs font-bold text-slate-500 dark:text-slate-400 mt-0.5">{{ $employee->designation->name ?? 'Staff' }} • <span class="text-blue-600 dark:text-blue-400">{{ $employee->department->name ?? 'General' }}</span></p>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-            @if($isHrOrAdmin || Auth::id() === $employee->user_id)
-            <a href="{{ route('employee.edit', $employee->id) }}" class="bg-[#0071E3] hover:bg-[#0077ED] text-white px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm shadow-blue-500/25 transition-all active:scale-95">
-                <i class="ph ph-pencil-simple text-base"></i>
-                <span>Edit Profile</span>
-            </a>
-            @endif
-        </div>
-    </div>
 
     <!-- Main Profile Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -57,6 +54,14 @@
                         <span class="bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400 text-xs font-bold px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-500/30">{{ $employee->employee_id_number }}</span>
                         <span class="bg-purple-50 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 text-xs font-extrabold px-3 py-1 rounded-full border border-purple-200 dark:border-purple-500/30">{{ $employee->system_role ?? 'Employee' }}</span>
                     </div>
+                    @if($isHrOrAdmin || Auth::id() === $employee->user_id)
+                        <div class="w-full pt-3 mt-1">
+                            <a href="{{ route('employee.edit', $employee->id) }}" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#0071E3] hover:bg-[#0077ED] active:scale-95 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-500/25 transition-all">
+                                <i class="ph ph-pencil-simple text-sm"></i>
+                                <span>Edit Profile</span>
+                            </a>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="space-y-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
@@ -141,6 +146,50 @@
                         <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Current Designation</span>
                         <span class="font-bold text-blue-600 dark:text-blue-400">{{ $employee->designation->name ?? 'Staff' }}</span>
                     </div>
+                    @php
+                        $pastRoles = collect($employee->working_experience_list ?? [])->filter(fn($r) => !empty($r['designation']));
+                    @endphp
+                    <div>
+                        <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Past Designations</span>
+                        @if($pastRoles->isNotEmpty())
+                            <div class="relative inline-block w-full" x-data="{ open: false }" @click.away="open = false">
+                                <button type="button" @click="open = !open" 
+                                        class="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer group text-left w-full">
+                                    <span class="truncate">{{ $pastRoles->first()['designation'] }}</span>
+                                    @if($pastRoles->count() > 1)
+                                        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">+{{ $pastRoles->count() - 1 }}</span>
+                                    @endif
+                                    <i class="ph ph-caret-down text-xs text-slate-400 group-hover:text-blue-600 transition-transform duration-200 shrink-0 ml-auto" :class="open ? 'rotate-180' : ''"></i>
+                                </button>
+
+                                <!-- Dropdown Panel -->
+                                <div x-show="open" x-cloak 
+                                     x-transition:enter="transition ease-out duration-100"
+                                     x-transition:enter-start="opacity-0 scale-95"
+                                     x-transition:enter-end="opacity-100 scale-100"
+                                     class="absolute left-0 top-full mt-1.5 w-64 bg-white dark:bg-[#152038] border border-slate-200/90 dark:border-slate-700 rounded-xl shadow-xl z-30 p-2 space-y-1 text-xs">
+                                    <div class="text-[10px] font-black uppercase text-slate-400 px-2 py-1 border-b border-slate-100 dark:border-slate-800">
+                                        Past Designations ({{ $pastRoles->count() }})
+                                    </div>
+                                    <div class="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+                                        @foreach($pastRoles as $role)
+                                            <div class="p-2 space-y-0.5">
+                                                <div class="font-bold text-slate-900 dark:text-white text-xs">{{ $role['designation'] }}</div>
+                                                <div class="flex items-center justify-between text-[10px] text-slate-400">
+                                                    <span>{{ $role['company'] ?? 'Previous Employer' }}</span>
+                                                    @if(!empty($role['duration']))
+                                                        <span class="font-semibold text-slate-500 dark:text-slate-400">{{ $role['duration'] }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <span class="font-bold text-slate-400 dark:text-slate-500">None Recorded</span>
+                        @endif
+                    </div>
                     <div>
                         <span class="text-slate-400 dark:text-slate-500 block text-[10px]">System Access Role</span>
                         <span class="font-bold text-purple-600 dark:text-purple-400">{{ $employee->system_role ?? 'Employee' }}</span>
@@ -175,71 +224,6 @@
                     <div>
                         <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Payment Method</span>
                         <span class="font-bold text-slate-900 dark:text-white">{{ $employee->payment_method ?? 'Bank Transfer' }}</span>
-                    </div>
-                </div>
-
-                <!-- Current & Past Designations -->
-                <div class="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-[#101726]/60 border border-slate-200/80 dark:border-white/[0.06] space-y-3.5">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2 font-black uppercase text-[11px] text-slate-800 dark:text-slate-200">
-                            <i class="ph ph-identification-badge text-base text-blue-600 dark:text-blue-400"></i> Current & Past Designations
-                        </div>
-                        <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/50">
-                            Designation History
-                        </span>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
-                        <!-- Current Active Designation -->
-                        <div class="p-3.5 bg-white dark:bg-slate-900/80 rounded-xl border border-blue-200/80 dark:border-blue-500/30 shadow-2xs space-y-1.5">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">Current Designation</span>
-                                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">Active</span>
-                            </div>
-                            <div class="flex items-center gap-2.5 pt-0.5">
-                                <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 text-lg">
-                                    <i class="ph ph-briefcase"></i>
-                                </div>
-                                <div class="min-w-0">
-                                    <h4 class="text-xs font-black text-slate-900 dark:text-white truncate">{{ $employee->designation->name ?? 'Staff' }}</h4>
-                                    <p class="text-[10px] text-slate-400 font-medium">Department: {{ $employee->department->name ?? 'General' }} &bull; Since {{ $employee->joined_date ? \Carbon\Carbon::parse($employee->joined_date)->format('M Y') : 'Joining' }}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Past Designations -->
-                        <div class="p-3.5 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Past Designations</span>
-                                <span class="text-[9px] font-semibold text-slate-400">Role History</span>
-                            </div>
-                            @php
-                                $pastRoles = collect($employee->working_experience_list ?? [])->filter(fn($r) => !empty($r['designation']));
-                            @endphp
-                            @if($pastRoles->isNotEmpty())
-                                <div class="space-y-1.5 max-h-28 overflow-y-auto pr-1">
-                                    @foreach($pastRoles as $role)
-                                        <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                                            <div class="min-w-0 flex items-center gap-2">
-                                                <i class="ph ph-clock-counter-clockwise text-xs text-slate-400 shrink-0"></i>
-                                                <span class="font-bold text-slate-800 dark:text-slate-200 text-xs truncate">{{ $role['designation'] }}</span>
-                                                @if(!empty($role['company']))
-                                                    <span class="text-[10px] text-slate-400 truncate">&bull; {{ $role['company'] }}</span>
-                                                @endif
-                                            </div>
-                                            @if(!empty($role['duration']))
-                                                <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">{{ $role['duration'] }}</span>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 text-[11px] italic py-1.5">
-                                    <i class="ph ph-minus-circle text-sm"></i>
-                                    <span>No past designations recorded.</span>
-                                </div>
-                            @endif
-                        </div>
                     </div>
                 </div>
             </div>
