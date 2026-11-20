@@ -113,7 +113,7 @@
                 </div>
 
                 <!-- Back button -->
-                <a href="{{ route('appraisal.index') }}" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 text-xs font-bold flex items-center gap-1">
+                <a href="{{ route('appraisal.index') }}" onclick="handleModuleBack(event, '{{ route('appraisal.index') }}')" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 text-xs font-bold flex items-center gap-1 cursor-pointer">
                     <i class="ph ph-arrow-left"></i>
                     <span>Roster</span>
                 </a>
