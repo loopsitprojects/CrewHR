@@ -300,7 +300,7 @@ class SettingsController extends Controller
         }
 
         if (in_array($activeModule, ['leave', 'general'])) {
-            foreach (['auto_sync_holidays', 'allow_half_day', 'weekend_saturday_off', 'weekend_sunday_off'] as $cbKey) {
+            foreach (['auto_sync_holidays', 'allow_half_day', 'weekend_saturday_off', 'weekend_sunday_off', 'show_employee_compensation'] as $cbKey) {
                 if ($request->has('submitted_' . $cbKey) || $request->has($cbKey)) {
                     $val = $request->has($cbKey) ? '1' : '0';
                     DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
@@ -365,9 +365,11 @@ class SettingsController extends Controller
         }
 
         if ($activeModule === 'payroll') {
-            foreach (['auto_deduct_nopay', 'generate_payslip_pdf'] as $cbKey) {
-                $val = $request->has($cbKey) ? '1' : '0';
-                DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
+            foreach (['auto_deduct_nopay', 'generate_payslip_pdf', 'show_employee_compensation'] as $cbKey) {
+                if ($request->has('submitted_' . $cbKey) || $request->has($cbKey)) {
+                    $val = $request->has($cbKey) ? '1' : '0';
+                    DB::table('settings')->updateOrInsert(['key' => $cbKey], ['value' => $val, 'updated_at' => now()]);
+                }
             }
         }
 
@@ -481,6 +483,17 @@ class SettingsController extends Controller
         };
 
         return redirect()->route('settings.index', ['module' => 'general'])->with('success', "{$label} reset to system default successfully!");
+    }
+
+    public function toggleCompensation(Request $request)
+    {
+        $this->authorizeAdminOrHr();
+        $current = \App\Models\Setting::isCompensationEnabled();
+        $new = !$current;
+        \App\Models\Setting::set('show_employee_compensation', $new ? '1' : '0');
+
+        $statusText = $new ? 'enabled and visible' : 'hidden';
+        return redirect()->back()->with('success', "Employee compensation & payroll section is now {$statusText} in employee profiles.");
     }
 
     private function authorizeAdminOrHr()

@@ -135,8 +135,9 @@ class EmployeeController extends Controller
         $reportingPersons = Employee::with(['user', 'designation', 'department'])->get();
         $allowanceTypes = \Modules\Payroll\Models\AllowanceType::where('status', 'Active')->orderBy('name')->get();
         $employee = new Employee();
+        $showCompensation = is_compensation_enabled();
 
-        return view('employee::create', compact('departments', 'designations', 'reportingPersons', 'employee', 'allowanceTypes'));
+        return view('employee::create', compact('departments', 'designations', 'reportingPersons', 'employee', 'allowanceTypes', 'showCompensation'));
     }
 
     public function store(Request $request)
@@ -205,15 +206,15 @@ class EmployeeController extends Controller
                 'promotion_designation' => $request->promotion_designation,
                 'promotion_date' => $request->promotion_date,
 
-                'basic_salary' => $request->basic_salary ?? 0,
-                'increments_basic' => $request->increments_basic ?? 0,
-                'budget_allowance' => $request->budget_allowance ?? 0,
-                'travelling_allowance' => $request->travelling_allowance ?? 0,
-                'cost_of_living_allowance' => $request->cost_of_living_allowance ?? 0,
-                'increments_allowance' => $request->increments_allowance ?? 0,
-                'fixed_allowance' => $request->fixed_allowance ?? 0,
-                'other_allowance' => $request->other_allowance ?? 0,
-                'apit_tax' => $request->apit_tax ?? 0,
+                'basic_salary' => $request->has('basic_salary') ? ($request->basic_salary ?? 0) : ($employee->basic_salary ?? 0),
+                'increments_basic' => $request->has('increments_basic') ? ($request->increments_basic ?? 0) : ($employee->increments_basic ?? 0),
+                'budget_allowance' => $request->has('budget_allowance') ? ($request->budget_allowance ?? 0) : ($employee->budget_allowance ?? 0),
+                'travelling_allowance' => $request->has('travelling_allowance') ? ($request->travelling_allowance ?? 0) : ($employee->travelling_allowance ?? 0),
+                'cost_of_living_allowance' => $request->has('cost_of_living_allowance') ? ($request->cost_of_living_allowance ?? 0) : ($employee->cost_of_living_allowance ?? 0),
+                'increments_allowance' => $request->has('increments_allowance') ? ($request->increments_allowance ?? 0) : ($employee->increments_allowance ?? 0),
+                'fixed_allowance' => $request->has('fixed_allowance') ? ($request->fixed_allowance ?? 0) : ($employee->fixed_allowance ?? 0),
+                'other_allowance' => $request->has('other_allowance') ? ($request->other_allowance ?? 0) : ($employee->other_allowance ?? 0),
+                'apit_tax' => $request->has('apit_tax') ? ($request->apit_tax ?? 0) : ($employee->apit_tax ?? 0),
 
                 'bank_name' => $request->bank_name,
                 'bank_branch' => $request->bank_branch,
@@ -266,8 +267,9 @@ class EmployeeController extends Controller
             'employeeAllowances.allowanceType',
             'appraisals.cycle'
         ])->findOrFail($id);
+        $showCompensation = is_compensation_enabled();
 
-        return view('employee::show', compact('employee'));
+        return view('employee::show', compact('employee', 'showCompensation'));
     }
 
     public function edit($id)
@@ -288,8 +290,9 @@ class EmployeeController extends Controller
         $designations = Designation::all();
         $reportingPersons = Employee::with(['user', 'designation', 'department'])->where('id', '!=', $id)->get();
         $allowanceTypes = \Modules\Payroll\Models\AllowanceType::where('status', 'Active')->orderBy('name')->get();
+        $showCompensation = is_compensation_enabled();
 
-        return view('employee::edit', compact('employee', 'departments', 'designations', 'reportingPersons', 'allowanceTypes'));
+        return view('employee::edit', compact('employee', 'departments', 'designations', 'reportingPersons', 'allowanceTypes', 'showCompensation'));
     }
 
     public function update(Request $request, $id)
@@ -361,15 +364,15 @@ class EmployeeController extends Controller
                 'promotion_designation' => $request->promotion_designation,
                 'promotion_date' => $request->promotion_date,
 
-                'basic_salary' => $request->basic_salary ?? 0,
-                'increments_basic' => $request->increments_basic ?? 0,
-                'budget_allowance' => $request->budget_allowance ?? 0,
-                'travelling_allowance' => $request->travelling_allowance ?? 0,
-                'cost_of_living_allowance' => $request->cost_of_living_allowance ?? 0,
-                'increments_allowance' => $request->increments_allowance ?? 0,
-                'fixed_allowance' => $request->fixed_allowance ?? 0,
-                'other_allowance' => $request->other_allowance ?? 0,
-                'apit_tax' => $request->apit_tax ?? 0,
+                'basic_salary' => $request->has('basic_salary') ? ($request->basic_salary ?? 0) : ($employee->basic_salary ?? 0),
+                'increments_basic' => $request->has('increments_basic') ? ($request->increments_basic ?? 0) : ($employee->increments_basic ?? 0),
+                'budget_allowance' => $request->has('budget_allowance') ? ($request->budget_allowance ?? 0) : ($employee->budget_allowance ?? 0),
+                'travelling_allowance' => $request->has('travelling_allowance') ? ($request->travelling_allowance ?? 0) : ($employee->travelling_allowance ?? 0),
+                'cost_of_living_allowance' => $request->has('cost_of_living_allowance') ? ($request->cost_of_living_allowance ?? 0) : ($employee->cost_of_living_allowance ?? 0),
+                'increments_allowance' => $request->has('increments_allowance') ? ($request->increments_allowance ?? 0) : ($employee->increments_allowance ?? 0),
+                'fixed_allowance' => $request->has('fixed_allowance') ? ($request->fixed_allowance ?? 0) : ($employee->fixed_allowance ?? 0),
+                'other_allowance' => $request->has('other_allowance') ? ($request->other_allowance ?? 0) : ($employee->other_allowance ?? 0),
+                'apit_tax' => $request->has('apit_tax') ? ($request->apit_tax ?? 0) : ($employee->apit_tax ?? 0),
 
                 'bank_name' => $request->bank_name,
                 'bank_branch' => $request->bank_branch,

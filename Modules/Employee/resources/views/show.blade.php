@@ -144,7 +144,7 @@
                     </div>
                     <div>
                         <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Job Category</span>
-                        <span class="font-bold text-slate-900 dark:text-white">{{ $employee->job_category ?? 'Full Time' }}</span>
+                        <span class="font-bold text-slate-900 dark:text-white">{{ $employee->job_category ?? 'Full Time' }} @if($employee->staff_category)<span class="text-slate-500 font-semibold text-[11px]">({{ $employee->staff_category }})</span>@endif</span>
                     </div>
                     <div>
                         <span class="text-slate-400 dark:text-slate-500 block text-[10px]">Joined Date</span>
@@ -175,57 +175,70 @@
                     </div>
                 </div>
 
-                @if($employee->increment_amount > 0 || $employee->promotion_designation || $employee->promotion_date)
-                    <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-emerald-50/70 dark:from-blue-950/20 dark:via-indigo-950/15 dark:to-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/50 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2 font-black uppercase text-[11px] text-emerald-800 dark:text-emerald-300">
-                                <i class="ph ph-trend-up text-base text-emerald-600 dark:text-emerald-400"></i> Career Growth & Promotion Trajectory
-                            </div>
-                            <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/50">
-                                Promotion Scheduled
-                            </span>
+                <!-- Current & Past Designations -->
+                <div class="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-[#101726]/60 border border-slate-200/80 dark:border-white/[0.06] space-y-3.5">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 font-black uppercase text-[11px] text-slate-800 dark:text-slate-200">
+                            <i class="ph ph-identification-badge text-base text-blue-600 dark:text-blue-400"></i> Current & Past Designations
                         </div>
-                        
-                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
-                            <!-- Current Active Role -->
-                            <div class="flex items-center gap-3 bg-white/90 dark:bg-slate-900/80 p-3 rounded-xl border border-blue-200/70 dark:border-blue-500/30 flex-1">
-                                <div class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                                    <i class="ph ph-briefcase text-lg"></i>
+                        <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/50">
+                            Designation History
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+                        <!-- Current Active Designation -->
+                        <div class="p-3.5 bg-white dark:bg-slate-900/80 rounded-xl border border-blue-200/80 dark:border-blue-500/30 shadow-2xs space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">Current Designation</span>
+                                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">Active</span>
+                            </div>
+                            <div class="flex items-center gap-2.5 pt-0.5">
+                                <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 text-lg">
+                                    <i class="ph ph-briefcase"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 block">Current Designation</span>
-                                    <span class="text-xs font-extrabold text-slate-900 dark:text-white truncate block">{{ $employee->designation->name ?? 'Staff' }}</span>
+                                    <h4 class="text-xs font-black text-slate-900 dark:text-white truncate">{{ $employee->designation->name ?? 'Staff' }}</h4>
+                                    <p class="text-[10px] text-slate-400 font-medium">Department: {{ $employee->department->name ?? 'General' }} &bull; Since {{ $employee->joined_date ? \Carbon\Carbon::parse($employee->joined_date)->format('M Y') : 'Joining' }}</p>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Connector -->
-                            <div class="flex sm:flex-col items-center justify-center gap-1 shrink-0 px-1">
-                                @if($employee->increment_amount > 0)
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/70 dark:border-emerald-700/50 shadow-2xs whitespace-nowrap">
-                                        + Rs. {{ number_format($employee->increment_amount, 2) }}
-                                    </span>
-                                @endif
-                                <div class="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-extrabold">
-                                    <i class="ph ph-arrow-right text-base"></i>
-                                </div>
+                        <!-- Past Designations -->
+                        <div class="p-3.5 bg-white dark:bg-slate-900/80 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Past Designations</span>
+                                <span class="text-[9px] font-semibold text-slate-400">Role History</span>
                             </div>
-
-                            <!-- Promoted Role -->
-                            <div class="flex items-center gap-3 bg-white/90 dark:bg-slate-900/80 p-3 rounded-xl border border-emerald-200/70 dark:border-emerald-500/30 flex-1">
-                                <div class="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                                    <i class="ph ph-trend-up text-lg"></i>
+                            @php
+                                $pastRoles = collect($employee->working_experience_list ?? [])->filter(fn($r) => !empty($r['designation']));
+                            @endphp
+                            @if($pastRoles->isNotEmpty())
+                                <div class="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                                    @foreach($pastRoles as $role)
+                                        <div class="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                                            <div class="min-w-0 flex items-center gap-2">
+                                                <i class="ph ph-clock-counter-clockwise text-xs text-slate-400 shrink-0"></i>
+                                                <span class="font-bold text-slate-800 dark:text-slate-200 text-xs truncate">{{ $role['designation'] }}</span>
+                                                @if(!empty($role['company']))
+                                                    <span class="text-[10px] text-slate-400 truncate">&bull; {{ $role['company'] }}</span>
+                                                @endif
+                                            </div>
+                                            @if(!empty($role['duration']))
+                                                <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">{{ $role['duration'] }}</span>
+                                            @endif
+                                        </div>
+                                    @endforeach
                                 </div>
-                                <div class="min-w-0">
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">Promoted Role</span>
-                                    <span class="text-xs font-extrabold text-slate-900 dark:text-white truncate block">{{ $employee->promotion_designation ?? 'Promoted Role' }}</span>
-                                    @if($employee->promotion_date)
-                                        <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium block">Effective: {{ \Carbon\Carbon::parse($employee->promotion_date)->format('d M Y') }}</span>
-                                    @endif
+                            @else
+                                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 text-[11px] italic py-1.5">
+                                    <i class="ph ph-minus-circle text-sm"></i>
+                                    <span>No past designations recorded.</span>
                                 </div>
-                            </div>
+                            @endif
                         </div>
                     </div>
-                @endif
+                </div>
             </div>
 
             <!-- SECTION 03: Compensation & Statutory Payroll -->

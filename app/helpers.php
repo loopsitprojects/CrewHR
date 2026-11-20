@@ -40,3 +40,15 @@ if (!function_exists('app_setting')) {
         return Setting::get($key, $default);
     }
 }
+
+if (!function_exists('is_compensation_enabled')) {
+    /**
+     * Check if the employee compensation & payroll section is enabled.
+     *
+     * @return bool
+     */
+    function is_compensation_enabled(): bool
+    {
+        return Setting::isCompensationEnabled();
+    }
+}

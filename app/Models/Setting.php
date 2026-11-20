@@ -121,4 +121,18 @@ class Setting extends Model
 
         return '';
     }
+
+    /**
+     * Check if Employee Compensation & Payroll section is enabled.
+     */
+    public static function isCompensationEnabled(): bool
+    {
+        $setting = static::get('show_employee_compensation');
+        if ($setting !== null) {
+            return filter_var($setting, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        // Initially disabled by default unless explicitly enabled
+        return false;
+    }
 }
