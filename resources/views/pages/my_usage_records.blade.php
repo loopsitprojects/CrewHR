@@ -90,29 +90,26 @@
         <!-- ============================================================== -->
         <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/90 dark:border-white/[0.08] p-3 shadow-xs flex flex-wrap items-center justify-between gap-3 transition-all">
             
-            <!-- Left: Segmented Scope Switcher -->
-            <div class="flex items-center gap-1 bg-slate-100/90 dark:bg-white/[0.06] p-1 rounded-xl border border-slate-200/80 dark:border-white/[0.06]">
+            <!-- Left: Segmented Scope Switcher (Apple HIG Segmented Control) -->
+            <div class="inline-flex items-center gap-1 bg-slate-100/90 dark:bg-white/[0.06] p-1 rounded-xl border border-slate-200/80 dark:border-white/[0.08] shadow-2xs">
                 <!-- My Usage Button -->
                 <a href="{{ route('my-usage-records.index', array_filter(['scope' => 'my', 'year' => $year, 'month' => $month, 'status' => $status])) }}"
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 {{ $scope === 'my' ? 'bg-white dark:bg-white/[0.14] text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white' }}">
-                    <i data-lucide="user" class="w-3.5 h-3.5 {{ $scope === 'my' ? 'text-blue-500' : 'text-slate-400' }}"></i>
+                   class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 ease-out cursor-pointer active:scale-[0.98] {{ $scope === 'my' ? 'bg-white dark:bg-white/[0.16] text-slate-900 dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] border border-slate-200/60 dark:border-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium hover:bg-black/[0.03] dark:hover:bg-white/[0.04]' }}">
+                    <i data-lucide="user" class="w-3.5 h-3.5 {{ $scope === 'my' ? 'text-[#007AFF] dark:text-[#0A84FF]' : 'text-slate-400 dark:text-slate-500' }}"></i>
                     <span>My Usage</span>
-                    @if($isHrLead)
-                        <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1 py-0.2 rounded border border-emerald-500/20">Her Usage</span>
-                    @endif
                 </a>
 
-                <!-- Team Usage Button -->
+                <!-- Team / All Employees Usage Button -->
                 @php
                     $teamScope = ($isSuperAdmin || $isHrLead) ? 'all' : 'team';
                     $isTeamActive = $scope === 'team' || ($scope === 'all' && ($isSuperAdmin || $isHrLead));
                 @endphp
                 <a href="{{ route('my-usage-records.index', array_filter(['scope' => $teamScope, 'year' => $year, 'month' => $month, 'status' => $status, 'department_id' => $departmentId])) }}"
                    title="{{ $isManager ? 'My Team Usage' : 'All Employees Usage' }}"
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 {{ $isTeamActive ? 'bg-white dark:bg-white/[0.14] text-blue-600 dark:text-blue-400 shadow-xs font-bold' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white' }}">
-                    <i data-lucide="users" class="w-3.5 h-3.5 {{ $isTeamActive ? 'text-blue-500' : 'text-slate-400' }}"></i>
+                   class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 ease-out cursor-pointer active:scale-[0.98] {{ $isTeamActive ? 'bg-white dark:bg-white/[0.16] text-slate-900 dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] border border-slate-200/60 dark:border-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium hover:bg-black/[0.03] dark:hover:bg-white/[0.04]' }}">
+                    <i data-lucide="users" class="w-3.5 h-3.5 {{ $isTeamActive ? 'text-[#007AFF] dark:text-[#0A84FF]' : 'text-slate-400 dark:text-slate-500' }}"></i>
                     <span>{{ $isManager ? 'My Team Usage' : 'All Employees Usage' }}</span>
-                    <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-300 bg-black/[0.05] dark:bg-white/[0.1] px-1.5 py-0.2 rounded tabular-nums">{{ $selectableEmployees->count() }}</span>
+                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums {{ $isTeamActive ? 'bg-slate-100 dark:bg-white/15 text-slate-700 dark:text-slate-200' : 'bg-slate-200/60 dark:bg-white/10 text-slate-500 dark:text-slate-400' }}">{{ $selectableEmployees->count() }}</span>
                 </a>
             </div>
 
