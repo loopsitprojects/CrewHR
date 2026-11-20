@@ -41,8 +41,8 @@
                         <!-- Column 1: LEAVE TYPE -->
                         <td class="py-3.5 px-4 sticky left-0 bg-white group-hover:bg-slate-50 dark:bg-[#111827] dark:group-hover:bg-[#161F32] transition-colors z-10">
                             <div class="flex items-center gap-3">
-                                <div class="w-7 h-7 rounded-lg {{ $card['theme']['icon_bg'] ?? 'bg-blue-50 dark:bg-blue-900/30' }} flex items-center justify-center shrink-0">
-                                    <i data-lucide="{{ $card['icon'] ?? 'calendar' }}" class="w-3.5 h-3.5 {{ $card['theme']['icon_text'] ?? 'text-blue-600' }}"></i>
+                                <div class="w-8 h-8 rounded-xl {{ $card['theme']['icon_bg'] ?? 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-500/40' }} flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-105 duration-200">
+                                    <i data-lucide="{{ $card['icon'] ?? 'calendar' }}" class="w-4 h-4 {{ $card['theme']['icon_text'] ?? 'text-blue-600 dark:text-blue-300' }} stroke-[2.2]"></i>
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-2 min-w-0">

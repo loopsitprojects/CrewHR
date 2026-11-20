@@ -594,7 +594,8 @@ class MyUsageRecordsController extends Controller
                 'badge' => 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
                 'bar' => 'bg-emerald-500',
                 'bar_bg' => 'bg-emerald-100 dark:bg-emerald-950',
-                'icon_bg' => 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
+                'icon_bg' => 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/40 shadow-xs shadow-emerald-500/10 dark:shadow-[0_0_12px_rgba(16,185,129,0.25)]',
+                'icon_text' => 'text-emerald-600 dark:text-emerald-300'
             ],
             'CASUAL' => [
                 'accent' => 'purple',
@@ -603,7 +604,8 @@ class MyUsageRecordsController extends Controller
                 'badge' => 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
                 'bar' => 'bg-purple-500',
                 'bar_bg' => 'bg-purple-100 dark:bg-purple-950',
-                'icon_bg' => 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-500/20'
+                'icon_bg' => 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-500/40 shadow-xs shadow-purple-500/10 dark:shadow-[0_0_12px_rgba(168,85,247,0.25)]',
+                'icon_text' => 'text-purple-600 dark:text-purple-300'
             ],
             'MEDICAL' => [
                 'accent' => 'rose',
@@ -612,7 +614,8 @@ class MyUsageRecordsController extends Controller
                 'badge' => 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800',
                 'bar' => 'bg-rose-500',
                 'bar_bg' => 'bg-rose-100 dark:bg-rose-950',
-                'icon_bg' => 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20'
+                'icon_bg' => 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-500/40 shadow-xs shadow-rose-500/10 dark:shadow-[0_0_12px_rgba(244,63,94,0.25)]',
+                'icon_text' => 'text-rose-600 dark:text-rose-300'
             ],
             'SHORT' => [
                 'accent' => 'amber',
@@ -621,7 +624,8 @@ class MyUsageRecordsController extends Controller
                 'badge' => 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
                 'bar' => 'bg-amber-500',
                 'bar_bg' => 'bg-amber-100 dark:bg-amber-950',
-                'icon_bg' => 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'
+                'icon_bg' => 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-200 dark:border-amber-500/40 shadow-xs shadow-amber-500/10 dark:shadow-[0_0_12px_rgba(245,158,11,0.25)]',
+                'icon_text' => 'text-amber-600 dark:text-amber-300'
             ],
             'DUTY' => [
                 'accent' => 'indigo',
@@ -630,7 +634,8 @@ class MyUsageRecordsController extends Controller
                 'badge' => 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800',
                 'bar' => 'bg-indigo-500',
                 'bar_bg' => 'bg-indigo-100 dark:bg-indigo-950',
-                'icon_bg' => 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20'
+                'icon_bg' => 'bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/40 shadow-xs shadow-indigo-500/10 dark:shadow-[0_0_12px_rgba(99,102,241,0.25)]',
+                'icon_text' => 'text-indigo-600 dark:text-indigo-300'
             ],
             'LIEU' => [
                 'accent' => 'teal',
@@ -639,7 +644,58 @@ class MyUsageRecordsController extends Controller
                 'badge' => 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
                 'bar' => 'bg-teal-500',
                 'bar_bg' => 'bg-teal-100 dark:bg-teal-950',
-                'icon_bg' => 'bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-100 dark:border-teal-500/20'
+                'icon_bg' => 'bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-300 border border-teal-200 dark:border-teal-500/40 shadow-xs shadow-teal-500/10 dark:shadow-[0_0_12px_rgba(20,184,166,0.25)]',
+                'icon_text' => 'text-teal-600 dark:text-teal-300'
+            ],
+            'NIGHT_SHIFT_RECOVERY' => [
+                'accent' => 'sky',
+                'border' => 'border-sky-200 dark:border-sky-800/80',
+                'hover' => 'hover:border-sky-400 dark:hover:border-sky-600',
+                'badge' => 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800',
+                'bar' => 'bg-sky-500',
+                'bar_bg' => 'bg-sky-100 dark:bg-sky-950',
+                'icon_bg' => 'bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300 border border-sky-200 dark:border-sky-500/40 shadow-xs shadow-sky-500/10 dark:shadow-[0_0_12px_rgba(14,165,233,0.25)]',
+                'icon_text' => 'text-sky-600 dark:text-sky-300'
+            ],
+            'NO_PAY' => [
+                'accent' => 'slate',
+                'border' => 'border-slate-200 dark:border-slate-800/80',
+                'hover' => 'hover:border-slate-400 dark:hover:border-slate-600',
+                'badge' => 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
+                'bar' => 'bg-slate-500',
+                'bar_bg' => 'bg-slate-200 dark:bg-slate-800',
+                'icon_bg' => 'bg-slate-500/10 dark:bg-slate-500/20 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-500/40 shadow-xs shadow-slate-500/10 dark:shadow-[0_0_12px_rgba(148,163,184,0.2)]',
+                'icon_text' => 'text-slate-600 dark:text-slate-300'
+            ],
+            'MATERNITY' => [
+                'accent' => 'pink',
+                'border' => 'border-pink-200 dark:border-pink-800/80',
+                'hover' => 'hover:border-pink-400 dark:hover:border-pink-600',
+                'badge' => 'bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800',
+                'bar' => 'bg-pink-500',
+                'bar_bg' => 'bg-pink-100 dark:bg-pink-950',
+                'icon_bg' => 'bg-pink-500/10 dark:bg-pink-500/20 text-pink-600 dark:text-pink-300 border border-pink-200 dark:border-pink-500/40 shadow-xs shadow-pink-500/10 dark:shadow-[0_0_12px_rgba(236,72,153,0.25)]',
+                'icon_text' => 'text-pink-600 dark:text-pink-300'
+            ],
+            'PATERNITY' => [
+                'accent' => 'cyan',
+                'border' => 'border-cyan-200 dark:border-cyan-800/80',
+                'hover' => 'hover:border-cyan-400 dark:hover:border-cyan-600',
+                'badge' => 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800',
+                'bar' => 'bg-cyan-500',
+                'bar_bg' => 'bg-cyan-100 dark:bg-cyan-950',
+                'icon_bg' => 'bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/40 shadow-xs shadow-cyan-500/10 dark:shadow-[0_0_12px_rgba(6,182,212,0.25)]',
+                'icon_text' => 'text-cyan-600 dark:text-cyan-300'
+            ],
+            'HOSPITALISATION' => [
+                'accent' => 'red',
+                'border' => 'border-red-200 dark:border-red-800/80',
+                'hover' => 'hover:border-red-400 dark:hover:border-red-600',
+                'badge' => 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800',
+                'bar' => 'bg-red-500',
+                'bar_bg' => 'bg-red-100 dark:bg-red-950',
+                'icon_bg' => 'bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-500/40 shadow-xs shadow-red-500/10 dark:shadow-[0_0_12px_rgba(239,68,68,0.25)]',
+                'icon_text' => 'text-red-600 dark:text-red-300'
             ],
             default => [
                 'accent' => 'blue',
@@ -648,7 +704,8 @@ class MyUsageRecordsController extends Controller
                 'badge' => 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800',
                 'bar' => 'bg-blue-500',
                 'bar_bg' => 'bg-blue-100 dark:bg-blue-950',
-                'icon_bg' => 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20'
+                'icon_bg' => 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-500/40 shadow-xs shadow-blue-500/10 dark:shadow-[0_0_12px_rgba(59,130,246,0.25)]',
+                'icon_text' => 'text-blue-600 dark:text-blue-300'
             ]
         };
     }
@@ -663,8 +720,12 @@ class MyUsageRecordsController extends Controller
             'LIEU' => 'award',
             'DUTY' => 'briefcase',
             'NIGHT_SHIFT_RECOVERY' => 'moon',
+            'NO_PAY' => 'circle-slash',
             'MATERNITY' => 'baby',
             'PATERNITY' => 'users',
+            'HOSPITALISATION' => 'heart-pulse',
+            'ELECTION' => 'vote',
+            'RELIGIOUS' => 'sun',
             default => 'calendar'
         };
     }
