@@ -18,65 +18,57 @@
         </div>
 
         <!-- Leave Types Compact Tiles / Cards Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             @forelse($leaveTypes ?? [] as $lt)
                 @php
                     $isCore = in_array(strtoupper($lt->code), ['ANNUAL', 'CASUAL', 'SHORT', 'MEDICAL']);
                     $isActive = (bool) ($lt->is_active ?? true);
                 @endphp
-                <div class="p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-[#111827] hover:bg-white dark:hover:bg-[#161F32] hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between gap-2.5 shadow-2xs {{ !$isActive ? 'opacity-60 bg-slate-100/50 dark:bg-slate-900/40' : '' }}">
+                <div class="p-3 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/60 dark:bg-[#111827] hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-[#141d30] transition-all flex flex-col justify-between gap-2 shadow-2xs {{ !$isActive ? 'opacity-50' : '' }}">
                     
-                    <!-- Top: Avatar, Name & Toggle Switch -->
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 {{ $isActive ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300' : 'bg-slate-200 dark:bg-slate-800 text-slate-400' }}">
-                                {{ substr($lt->code, 0, 2) }}
-                            </div>
-                            <div class="min-w-0">
-                                <div class="font-extrabold text-xs text-slate-900 dark:text-white truncate flex items-center gap-1.5" title="{{ $lt->name }}">
-                                    <span class="truncate">{{ $lt->name }}</span>
-                                    @if($isCore)
-                                        <span class="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 shrink-0">Core Act</span>
-                                    @endif
-                                </div>
-                                <span class="text-[10px] font-mono text-slate-400 font-semibold">{{ $lt->code }}</span>
-                            </div>
+                    <!-- Top: Name, Core Badge & Toggle Switch -->
+                    <div class="flex items-center justify-between gap-2 min-w-0">
+                        <div class="min-w-0 flex items-center gap-1.5">
+                            <span class="font-extrabold text-xs text-slate-900 dark:text-white truncate" title="{{ $lt->name }}">
+                                {{ $lt->name }}
+                            </span>
+                            @if($isCore)
+                                <span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/60 shrink-0">Core</span>
+                            @endif
                         </div>
 
                         <!-- Status ON/OFF Toggle -->
                         <form action="{{ route('settings.leave_type.toggle', $lt->id) }}" method="POST" class="shrink-0 inline-block">
                             @csrf
                             <button type="submit" 
-                                    class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $isActive ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700' }}"
-                                    title="{{ $isActive ? 'Active — click to turn off' : 'Inactive — click to turn on' }}">
-                                <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $isActive ? 'translate-x-4' : 'translate-x-0' }}"></span>
+                                    class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $isActive ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700' }}"
+                                    title="{{ $isActive ? 'Active — click to disable' : 'Inactive — click to enable' }}">
+                                <span class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $isActive ? 'translate-x-3' : 'translate-x-0' }}"></span>
                             </button>
                         </form>
                     </div>
 
-                    <!-- Middle: Description -->
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1 leading-snug">
-                        {{ $lt->description ?? 'Standard leave policy category' }}
-                    </p>
-
-                    <!-- Bottom: Quota, Paid Badge & Actions -->
-                    <div class="pt-2 border-t border-slate-200/70 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                            <span class="text-xs font-black text-slate-900 dark:text-white tabular-nums">
-                                {{ $lt->days }} {{ strtoupper($lt->code) === 'SHORT' ? 'Slots/Mo' : 'Days' }}
+                    <!-- Bottom: Prominent Quota Number, Paid Badge & Actions -->
+                    <div class="flex items-end justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-2xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                                {{ $lt->days }}
                             </span>
-                            @if($lt->is_paid)
-                                <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">Paid</span>
-                            @else
-                                <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">Unpaid</span>
-                            @endif
+                            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                {{ strtoupper($lt->code) === 'SHORT' ? 'Slots/Mo' : 'Days' }}
+                            </span>
                         </div>
 
-                        <!-- Actions (Edit & Delete) -->
-                        <div class="inline-flex items-center gap-1 shrink-0">
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            @if($lt->is_paid)
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">Paid</span>
+                            @else
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60">Unpaid</span>
+                            @endif
+
                             <button type="button" 
                                     @click="editLeaveType = { id: '{{ $lt->id }}', name: '{{ addslashes($lt->name) }}', code: '{{ $lt->code }}', days: {{ $lt->days }}, is_paid: {{ $lt->is_paid ? 1 : 0 }}, is_active: {{ $isActive ? 1 : 0 }}, description: '{{ addslashes($lt->description ?? '') }}' }; editLeaveTypeModal = true" 
-                                    class="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-md hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors cursor-pointer" 
+                                    class="p-1 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer" 
                                     title="Edit Leave Type">
                                 <i class="ph ph-pencil-simple text-sm"></i>
                             </button>
@@ -85,7 +77,7 @@
                                 <form action="{{ route('settings.leave_type.destroy', $lt->id) }}" method="POST" onsubmit="return confirm('Permanently delete leave type {{ addslashes($lt->name) }}?')" class="inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="p-1 text-slate-400 hover:text-rose-600 rounded-md hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Delete Leave Type">
+                                    <button type="submit" class="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Delete Leave Type">
                                         <i class="ph ph-trash text-sm"></i>
                                     </button>
                                 </form>
