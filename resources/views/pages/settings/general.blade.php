@@ -201,89 +201,11 @@
         </div>
     </div>
 
-    <!-- 3. Active Custom Company Holidays -->
-    <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-calendar-plus text-blue-600 dark:text-blue-400 text-lg"></i>
-                <h2 class="text-sm font-black text-slate-900 dark:text-white">Active Custom Company Holidays ({{ count($customHolidays) }})</h2>
-            </div>
-            <a href="{{ route('leave.index') }}" class="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1">
-                <span>Manage on Leave Calendar</span>
-                <i class="ph ph-arrow-right"></i>
-            </a>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-            @forelse($customHolidays as $ch)
-                <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50/50 dark:bg-[#1e2d4d]/50 flex items-center justify-between">
-                    <div>
-                        <div class="font-extrabold text-slate-900 dark:text-white">{{ $ch->title }}</div>
-                        <div class="text-[11px] text-slate-400 font-semibold">{{ $ch->date }} • {{ $ch->category ?? 'Company Holiday' }}</div>
-                    </div>
-                    <span class="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                        {{ $ch->category ?? 'Paid' }}
-                    </span>
-                </div>
-            @empty
-                <div class="col-span-3 text-center py-6 text-slate-400 text-xs italic bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                    No custom company holidays registered yet. Add them from the Leave Calendar dashboard.
-                </div>
-            @endforelse
-        </div>
-    </div>
-
-    <!-- 4. Workforce & Employee Profile Configuration -->
-    <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-user-gear text-blue-600 dark:text-blue-400 text-lg"></i>
-                <div>
-                    <h2 class="text-sm font-black text-slate-900 dark:text-white">Workforce Profile Feature Visibility</h2>
-                    <p class="text-[11px] font-semibold text-slate-400">Configure which modular architecture sections appear on Employee profiles</p>
-                </div>
-            </div>
-            @if(is_compensation_enabled())
-                <span class="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-900/60">
-                    Compensation Active
-                </span>
-            @else
-                <span class="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
-                    Compensation Hidden
-                </span>
-            @endif
-        </div>
-
-        <div class="p-4 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-[#1e2d4d]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-start gap-3">
-                <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/70 dark:border-amber-900/60 mt-0.5">
-                    <i class="ph ph-coins text-lg"></i>
-                </div>
-                <div>
-                    <label for="show_employee_compensation" class="text-xs font-bold text-slate-900 dark:text-white block cursor-pointer">
-                        Employee Compensation & Statutory Payroll Section
-                    </label>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed mt-0.5">
-                        Displays the Base Salary, Fixed Allowances, EPF/ETF statutory contributions, and Net Take-Home summary tab in employee create/edit forms. Disable this if your organization does not initially require payroll architecture.
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3 shrink-0">
-                <input type="hidden" name="submitted_show_employee_compensation" value="1">
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="show_employee_compensation" name="show_employee_compensation" value="1" {{ is_compensation_enabled() ? 'checked' : '' }} class="sr-only peer">
-                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
-                </label>
-            </div>
-        </div>
-    </div>
-
-    <!-- Save Actions -->
-    <div class="flex justify-end pt-2">
+    <!-- Save Actions for Organization & Branding Profile -->
+    <div class="flex justify-end pt-1">
         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all cursor-pointer">
             <i class="ph ph-floppy-disk text-base"></i>
-            <span>Save General & Branding Settings</span>
+            <span>Save Company & Branding Settings</span>
         </button>
     </div>
 </form>
@@ -303,3 +225,8 @@
     @csrf
     <input type="hidden" name="type" value="icon">
 </form>
+
+<!-- 3. Organization Departments & Structure -->
+<div id="organization-departments" class="pt-2">
+    @include('pages.settings.partials.departments_content')
+</div>
