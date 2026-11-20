@@ -66,4 +66,42 @@ class SettingsNavigationTest extends TestCase
         $response->assertSee('My Account & Security');
         $response->assertDontSee('System Engine');
     }
+
+    public function test_settings_module_toggles_instantly_without_save_button()
+    {
+        $this->actingAs($this->adminUser);
+        session(['current_role' => 'Super (Admin)']);
+
+        // System view no longer has "Save System Settings" button
+        $systemView = $this->followingRedirects()->get(route('settings.index', ['module' => 'organization', 'tab' => 'system']));
+        $systemView->assertStatus(200);
+        $systemView->assertDontSee('Save System Settings');
+        $systemView->assertSee('toggleSetting(');
+
+        // Toggle leave module OFF instantly via AJAX
+        $postOff = $this->postJson(route('settings.module.toggle'), [
+            'module' => 'leave',
+            'enabled' => false,
+        ]);
+        $postOff->assertStatus(200);
+        $postOff->assertJson([
+            'success' => true,
+            'module' => 'leave',
+            'enabled' => false,
+        ]);
+        $this->assertEquals('0', \App\Models\Setting::get('settings_module_leave'));
+
+        // Toggle leave module ON instantly via AJAX
+        $postOn = $this->postJson(route('settings.module.toggle'), [
+            'module' => 'leave',
+            'enabled' => true,
+        ]);
+        $postOn->assertStatus(200);
+        $postOn->assertJson([
+            'success' => true,
+            'module' => 'leave',
+            'enabled' => true,
+        ]);
+        $this->assertEquals('1', \App\Models\Setting::get('settings_module_leave'));
+    }
 }

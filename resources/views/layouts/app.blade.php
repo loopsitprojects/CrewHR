@@ -456,9 +456,10 @@
                     </button>
                     <div x-show="openModules.settings" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
                         @if($isSettingsAdminOrHr)
-                        @if(is_settings_module_enabled('organization'))
                         <a href="{{ route('settings.index', ['module' => 'organization']) }}" 
                             title="Organization & System"
+                            data-settings-nav="organization"
+                            style="{{ is_settings_module_enabled('organization') ? '' : 'display: none;' }}"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
                             class="flex items-center font-semibold transition-all duration-200 {{ $isOrgSystemActive ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="building-2" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
@@ -467,11 +468,11 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
-                        @endif
 
-                        @if(is_settings_module_enabled('leave'))
                         <a href="{{ route('settings.index', ['module' => 'leave']) }}" 
                             title="Leave Management"
+                            data-settings-nav="leave"
+                            style="{{ is_settings_module_enabled('leave') ? '' : 'display: none;' }}"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
                             class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'leave' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="calendar-check" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
@@ -480,11 +481,11 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
-                        @endif
 
-                        @if(is_settings_module_enabled('roles'))
                         <a href="{{ route('settings.index', ['module' => 'roles']) }}" 
                             title="Roles & Access Control"
+                            data-settings-nav="roles"
+                            style="{{ is_settings_module_enabled('roles') ? '' : 'display: none;' }}"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
                             class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'roles' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="shield-check" class="w-3.5 h-3.5 shrink-0 text-purple-400"></i>
@@ -493,11 +494,11 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
-                        @endif
 
-                        @if(is_settings_module_enabled('attendance'))
                         <a href="{{ route('settings.index', ['module' => 'attendance']) }}" 
                             title="Attendance & Shifts"
+                            data-settings-nav="attendance"
+                            style="{{ is_settings_module_enabled('attendance') ? '' : 'display: none;' }}"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
                             class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'attendance' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-cyan-400"></i>
@@ -506,11 +507,11 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
-                        @endif
 
-                        @if(is_settings_module_enabled('payroll'))
                         <a href="{{ route('settings.index', ['module' => 'payroll']) }}" 
                             title="Payroll & Tax"
+                            data-settings-nav="payroll"
+                            style="{{ is_settings_module_enabled('payroll') ? '' : 'display: none;' }}"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
                             class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'payroll' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="banknote" class="w-3.5 h-3.5 shrink-0 text-amber-400"></i>
@@ -519,11 +520,11 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
-                        @endif
 
-                        @if(is_settings_module_enabled('recruitment'))
                         <a href="{{ route('settings.index', ['module' => 'recruitment']) }}" 
                             title="Recruitment & ATS"
+                            data-settings-nav="recruitment"
+                            style="{{ is_settings_module_enabled('recruitment') ? '' : 'display: none;' }}"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
                             class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'recruitment' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="briefcase" class="w-3.5 h-3.5 shrink-0 text-pink-400"></i>
@@ -532,11 +533,11 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
-                        @endif
 
-                        @if(is_settings_module_enabled('performance'))
                         <a href="{{ route('settings.index', ['module' => 'performance']) }}" 
                             title="Performance & Appraisal"
+                            data-settings-nav="performance"
+                            style="{{ is_settings_module_enabled('performance') ? '' : 'display: none;' }}"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
                             class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'performance' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-orange-400"></i>
@@ -546,11 +547,11 @@
                             @endif
                         </a>
                         @endif
-                        @endif
 
-                        @if(is_settings_module_enabled('profile'))
                         <a href="{{ route('settings.index', ['module' => 'profile']) }}" 
                             title="My Account & Security"
+                            data-settings-nav="profile"
+                            style="{{ is_settings_module_enabled('profile') ? '' : 'display: none;' }}"
                             :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
                             class="flex items-center font-semibold transition-all duration-200 {{ $isSettingsActive && $currSettingsModule === 'profile' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                             <i data-lucide="user-cog" class="w-3.5 h-3.5 shrink-0 text-rose-400"></i>
@@ -559,7 +560,6 @@
                                 <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
                             @endif
                         </a>
-                        @endif
                     </div>
                 </div>
             </nav>

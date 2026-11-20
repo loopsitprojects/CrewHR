@@ -514,7 +514,7 @@ class SettingsController extends Controller
     {
         $this->authorizeAdminOrHr();
         $module = $request->input('module');
-        $valid = ['leave', 'roles', 'attendance', 'payroll', 'recruitment', 'performance', 'profile'];
+        $valid = ['leave', 'roles', 'attendance', 'payroll', 'recruitment', 'performance', 'profile', 'developer_mode', 'debug_logging_enabled'];
 
         if (!in_array($module, $valid)) {
             if ($request->wantsJson() || $request->ajax()) {
@@ -524,18 +524,25 @@ class SettingsController extends Controller
         }
 
         $enabled = $request->boolean('enabled');
-        \App\Models\Setting::set('settings_module_' . $module, $enabled ? '1' : '0');
+        
+        if (in_array($module, ['developer_mode', 'debug_logging_enabled'])) {
+            \App\Models\Setting::set($module, $enabled ? '1' : '0');
+            $label = $module === 'developer_mode' ? 'Developer Mode' : 'Verbose Audit & Debug Logging';
+        } else {
+            \App\Models\Setting::set('settings_module_' . $module, $enabled ? '1' : '0');
+            $label = 'Settings module ' . ucfirst($module);
+        }
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
                 'module' => $module,
                 'enabled' => $enabled,
-                'message' => 'Settings module ' . ($enabled ? 'switched ON' : 'switched OFF') . ' successfully.'
+                'message' => $label . ' ' . ($enabled ? 'switched ON' : 'switched OFF') . ' successfully.'
             ]);
         }
 
-        return redirect()->back()->with('success', 'Settings module ' . ($enabled ? 'switched ON' : 'switched OFF') . ' successfully.');
+        return redirect()->back()->with('success', $label . ' ' . ($enabled ? 'switched ON' : 'switched OFF') . ' successfully.');
     }
 
     private function authorizeAdminOrHr()
