@@ -135,10 +135,171 @@
             @endif
         </div>
 
-        <!-- Progress Bar -->
-        <div class="pt-1">
-            <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-500" style="width: {{ $completionRate }}%;"></div>
+        @php
+            $selfSubmittedCount = $totalAppraisals - $pendingSelfCount;
+            $managerDoneCount = $appraisals->whereNotIn('status', ['pending_self_eval', 'submitted_self_eval', 'pending_manager_eval'])->count();
+            $stage2Pending = $appraisals->whereIn('status', ['submitted_self_eval', 'pending_manager_eval'])->count();
+            $stage3Pending = $appraisals->whereIn('status', ['submitted_manager_eval', 'pending_hod_eval'])->count();
+
+            // Stage 1 status
+            $stage1Status = ($totalAppraisals > 0 && $pendingSelfCount === 0) ? 'completed' : 'current';
+
+            // Stage 2 status
+            if ($totalAppraisals > 0 && $pendingSelfCount === 0 && $stage2Pending === 0 && $managerDoneCount > 0) {
+                $stage2Status = 'completed';
+            } elseif ($selfSubmittedCount > 0) {
+                $stage2Status = 'current';
+            } else {
+                $stage2Status = 'upcoming';
+            }
+
+            // Stage 3 status
+            if ($totalAppraisals > 0 && $completedCount === $totalAppraisals) {
+                $stage3Status = 'completed';
+            } elseif ($managerDoneCount > 0 || $stage3Pending > 0) {
+                $stage3Status = 'current';
+            } else {
+                $stage3Status = 'upcoming';
+            }
+
+            // Stage 4 status
+            if ($totalAppraisals > 0 && $completedCount === $totalAppraisals) {
+                $stage4Status = 'completed';
+            } elseif ($completedCount > 0) {
+                $stage4Status = 'current';
+            } else {
+                $stage4Status = 'upcoming';
+            }
+        @endphp
+
+        <!-- Progressive Stages Tracker -->
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Progressive Review Stages</span>
+                </div>
+                <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    Current Stage: 
+                    <strong class="text-blue-600 dark:text-blue-400">
+                        @if($stage4Status === 'completed')
+                            4. Finalized & Closed
+                        @elseif($stage3Status === 'current' && $stage2Pending === 0 && $pendingSelfCount === 0)
+                            3. HOD Moderation & Calibration
+                        @elseif($stage2Status === 'current' && $pendingSelfCount === 0)
+                            2. Manager Review & Ratings
+                        @else
+                            1. Self-Evaluation Window
+                        @endif
+                    </strong>
+                </div>
+            </div>
+
+            <!-- Stage Steps Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 relative">
+                <!-- Step 1: Self-Evaluation -->
+                <div class="relative p-3.5 rounded-2xl border transition-all {{ $stage1Status === 'completed' ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60' : ($stage1Status === 'current' ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700/80 shadow-xs ring-1 ring-blue-500/20' : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800/80 opacity-75') }}">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-xl flex items-center justify-center text-xs font-black shrink-0 {{ $stage1Status === 'completed' ? 'bg-emerald-500 text-white shadow-xs shadow-emerald-500/30' : ($stage1Status === 'current' ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/30' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
+                                @if($stage1Status === 'completed')
+                                    <i class="ph ph-check font-bold"></i>
+                                @else
+                                    1
+                                @endif
+                            </span>
+                            <span class="text-xs font-black text-slate-900 dark:text-white">Self-Evaluation</span>
+                        </div>
+                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full {{ $stage1Status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' : ($stage1Status === 'current' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400') }}">
+                            {{ $stage1Status === 'completed' ? 'Completed' : ($stage1Status === 'current' ? 'In Progress' : 'Pending') }}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-semibold mb-2">
+                        <span>{{ $selfSubmittedCount }}/{{ $totalAppraisals }} Submitted</span>
+                        <span class="text-[10px] text-slate-400">Due: {{ $activeCycle->self_eval_deadline ? $activeCycle->self_eval_deadline->format('d M') : '20 Oct' }}</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-200/80 dark:bg-slate-700/60 rounded-full overflow-hidden">
+                        <div class="h-full {{ $stage1Status === 'completed' ? 'bg-emerald-500' : 'bg-blue-600' }} rounded-full transition-all duration-500" style="width: {{ $totalAppraisals > 0 ? round(($selfSubmittedCount / $totalAppraisals) * 100) : 0 }}%"></div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Manager Review -->
+                <div class="relative p-3.5 rounded-2xl border transition-all {{ $stage2Status === 'completed' ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60' : ($stage2Status === 'current' ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700/80 shadow-xs ring-1 ring-blue-500/20' : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800/80 opacity-75') }}">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-xl flex items-center justify-center text-xs font-black shrink-0 {{ $stage2Status === 'completed' ? 'bg-emerald-500 text-white shadow-xs shadow-emerald-500/30' : ($stage2Status === 'current' ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/30' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
+                                @if($stage2Status === 'completed')
+                                    <i class="ph ph-check font-bold"></i>
+                                @else
+                                    2
+                                @endif
+                            </span>
+                            <span class="text-xs font-black text-slate-900 dark:text-white">Manager Review</span>
+                        </div>
+                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full {{ $stage2Status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' : ($stage2Status === 'current' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400') }}">
+                            {{ $stage2Status === 'completed' ? 'Completed' : ($stage2Status === 'current' ? 'In Progress' : 'Upcoming') }}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-semibold mb-2">
+                        <span>{{ $managerDoneCount }}/{{ $totalAppraisals }} Reviewed</span>
+                        <span class="text-[10px] text-slate-400">Ratings & KPIs</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-200/80 dark:bg-slate-700/60 rounded-full overflow-hidden">
+                        <div class="h-full {{ $stage2Status === 'completed' ? 'bg-emerald-500' : 'bg-blue-600' }} rounded-full transition-all duration-500" style="width: {{ $totalAppraisals > 0 ? round(($managerDoneCount / $totalAppraisals) * 100) : 0 }}%"></div>
+                    </div>
+                </div>
+
+                <!-- Step 3: HOD Moderation -->
+                <div class="relative p-3.5 rounded-2xl border transition-all {{ $stage3Status === 'completed' ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60' : ($stage3Status === 'current' ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700/80 shadow-xs ring-1 ring-blue-500/20' : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800/80 opacity-75') }}">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-xl flex items-center justify-center text-xs font-black shrink-0 {{ $stage3Status === 'completed' ? 'bg-emerald-500 text-white shadow-xs shadow-emerald-500/30' : ($stage3Status === 'current' ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/30' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
+                                @if($stage3Status === 'completed')
+                                    <i class="ph ph-check font-bold"></i>
+                                @else
+                                    3
+                                @endif
+                            </span>
+                            <span class="text-xs font-black text-slate-900 dark:text-white">HOD Moderation</span>
+                        </div>
+                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full {{ $stage3Status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' : ($stage3Status === 'current' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400') }}">
+                            {{ $stage3Status === 'completed' ? 'Completed' : ($stage3Status === 'current' ? 'In Progress' : 'Upcoming') }}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-semibold mb-2">
+                        <span>{{ $completedCount }}/{{ $totalAppraisals }} Calibrated</span>
+                        <span class="text-[10px] text-slate-400">Score Alignment</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-200/80 dark:bg-slate-700/60 rounded-full overflow-hidden">
+                        <div class="h-full {{ $stage3Status === 'completed' ? 'bg-emerald-500' : 'bg-blue-600' }} rounded-full transition-all duration-500" style="width: {{ $totalAppraisals > 0 ? round(($completedCount / $totalAppraisals) * 100) : 0 }}%"></div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Final Sign-off -->
+                <div class="relative p-3.5 rounded-2xl border transition-all {{ $stage4Status === 'completed' ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60' : ($stage4Status === 'current' ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700/80 shadow-xs ring-1 ring-blue-500/20' : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-800/80 opacity-75') }}">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-xl flex items-center justify-center text-xs font-black shrink-0 {{ $stage4Status === 'completed' ? 'bg-emerald-500 text-white shadow-xs shadow-emerald-500/30' : ($stage4Status === 'current' ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/30' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
+                                @if($stage4Status === 'completed')
+                                    <i class="ph ph-check font-bold"></i>
+                                @else
+                                    4
+                                @endif
+                            </span>
+                            <span class="text-xs font-black text-slate-900 dark:text-white">Final Sign-off</span>
+                        </div>
+                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full {{ $stage4Status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' : ($stage4Status === 'current' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400') }}">
+                            {{ $stage4Status === 'completed' ? 'Completed' : ($stage4Status === 'current' ? 'In Progress' : 'Pending') }}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-semibold mb-2">
+                        <span>{{ $completedCount }}/{{ $totalAppraisals }} Finalized</span>
+                        <span class="text-[10px] text-slate-400">Ends: {{ $activeCycle->end_date ? $activeCycle->end_date->format('d M') : '31 Oct' }}</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-200/80 dark:bg-slate-700/60 rounded-full overflow-hidden">
+                        <div class="h-full {{ $stage4Status === 'completed' ? 'bg-emerald-500' : 'bg-blue-600' }} rounded-full transition-all duration-500" style="width: {{ $completionRate }}%"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
