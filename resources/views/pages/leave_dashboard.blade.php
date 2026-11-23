@@ -122,7 +122,6 @@
          addCompanyLeaveModal: false, 
          dayModalOpen: false, 
          quotaModalOpen: false,
-          showAllLeaveTypes: false,
          showBirthdayCardInline: true,
          selectedQuota: null,
          allMyHistory: {{ json_encode($myLeaveHistory) }},
@@ -671,7 +670,6 @@
              } else {
                  this.selectLeaveType(targetCode, this.leaveTypesMap[targetCode] || '');
              }
-             this.showAllLeaveTypes = false;
              this.applyLeaveModal = true;
              this.$nextTick(() => { 
                  if (window.lucide) lucide.createIcons(); 
@@ -1666,42 +1664,14 @@
                             <p class="text-[11px] text-slate-500 dark:text-slate-400">Every rule is checked as you fill this in.</p>
                         </div>
 
-                        <!-- Leave Type Selection (Default: shows ONLY Annual leave or the clicked leave type; hides other leaves) -->
-                        <div class="space-y-1">
-                            <div class="flex items-center justify-between">
-                                <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type</label>
-                                <button type="button" 
-                                        @click="showAllLeaveTypes = !showAllLeaveTypes; $nextTick(() => window.lucide && lucide.createIcons());" 
-                                        class="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer flex items-center gap-1">
-                                    <span x-text="showAllLeaveTypes ? 'Done' : 'Change type'"></span>
-                                    <i data-lucide="chevron-down" class="w-3 h-3 transition-transform duration-200" :class="showAllLeaveTypes ? 'rotate-180' : ''"></i>
-                                </button>
-                            </div>
+                        <!-- Leave Type Selection (Shows all types of leaves) -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type</label>
 
-                            <!-- Single Selected Leave Card (Default: shows ONLY Annual leave or the applied leave type, hiding other leaves) -->
-                            <div x-show="!showAllLeaveTypes" 
-                                 class="px-3 py-2 rounded-xl bg-blue-50/80 dark:bg-[#192742] border border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/20 shadow-xs flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" 
-                                          :class="(leaveCatalog.find(l => l.code === selectedLeaveTypeCode) || leaveCatalog[0])?.dotColor"></span>
-                                    <div>
-                                        <div class="flex items-center gap-1.5">
-                                            <span class="text-xs font-black text-blue-950 dark:text-white" 
-                                                  x-text="(leaveCatalog.find(l => l.code === selectedLeaveTypeCode) || leaveCatalog[0])?.name"></span>
-                                            <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400" 
-                                                  x-text="'• ' + ((leaveCatalog.find(l => l.code === selectedLeaveTypeCode) || leaveCatalog[0])?.subtext || '')"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px] font-black shadow-xs">✓</span>
-                                </div>
-                            </div>
-
-                            <!-- Full Grid of other leaves (Hidden by default; only revealed if user clicks 'Change type') -->
-                            <div x-show="showAllLeaveTypes" x-cloak class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-0.5">
+                            <!-- Full Grid of all leave types -->
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-0.5">
                                 <template x-for="item in leaveCatalog" :key="item.code">
-                                    <div @click="selectLeaveType(item.code, item.id); showAllLeaveTypes = false;"
+                                    <div @click="selectLeaveType(item.code, item.id)"
                                          :class="selectedLeaveTypeCode === item.code 
                                             ? 'bg-blue-50/80 dark:bg-[#192742] border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/25 dark:ring-blue-400/25 shadow-sm text-blue-950 dark:text-white' 
                                             : 'bg-white hover:bg-slate-50/80 dark:bg-[#131c2d] dark:hover:bg-[#19243a] border-slate-200/90 hover:border-blue-300 dark:border-slate-800 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs'"
