@@ -58,59 +58,87 @@
         </div>
     </div>
 
-    <!-- Active Cycle Banner -->
+    <!-- Active Cycle Banner Card -->
     @if($activeCycle)
     @php
         $isMid = $activeCycle->isMidYear();
     @endphp
-    <div class="relative overflow-hidden rounded-2xl p-5 sm:p-6 text-white shadow-xl {{ $isMid ? 'bg-gradient-to-r from-amber-700 via-orange-800 to-slate-900' : 'bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900' }}">
-        <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+    <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-white/[0.08] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm space-y-4 transition-colors">
+        
+        <!-- Top Row: Cycle Status, Type, and Metrics -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-3.5">
             <div class="flex flex-wrap items-center gap-2">
-                <span class="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border {{ $isMid ? 'bg-amber-400/20 text-amber-200 border-amber-300/30' : 'bg-white/20 text-white border-white/20' }}">
-                    <i class="ph {{ $isMid ? 'ph-calendar-check' : 'ph-trend-up' }} mr-1"></i>
-                    {{ $isMid ? 'Mid-Year Review' : 'Year-End Review' }} &bull; {{ $activeCycle->status }}
+                <!-- Cycle Type Badge -->
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider {{ $isMid ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800' : 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-300/80 dark:border-blue-800' }}">
+                    <i class="ph {{ $isMid ? 'ph-calendar-check' : 'ph-trend-up' }} text-sm"></i>
+                    <span>{{ $isMid ? 'Mid-Year Review' : 'Year-End Review' }}</span>
+                    <span class="w-1.5 h-1.5 rounded-full {{ $activeCycle->status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
+                    <span class="text-[10px] font-bold">{{ $activeCycle->status }}</span>
                 </span>
+
                 @if($activeCycle->financial_year)
-                    <span class="bg-white/10 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border border-white/15">
+                    <span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
                         {{ $activeCycle->financial_year }}
                     </span>
                 @endif
-                <span class="text-xs font-bold {{ $isMid ? 'text-amber-100' : 'text-blue-200' }} flex items-center gap-1.5">
-                    <i class="ph ph-calendar-blank text-sm"></i>
-                    Performance: {{ $activeCycle->performance_period ?: ($isMid ? 'April to September' : 'October to March') }}
+
+                <span class="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-200/70 dark:border-slate-700 flex items-center gap-1.5">
+                    <i class="ph ph-calendar-blank text-slate-400"></i>
+                    <span>Period: <strong class="text-slate-800 dark:text-slate-200">{{ $activeCycle->performance_period ?: ($isMid ? 'April to September' : 'October to March') }}</strong></span>
                 </span>
+
                 @if($activeCycle->self_eval_deadline)
-                    <span class="text-xs font-bold {{ $isMid ? 'text-amber-200' : 'text-blue-200' }} flex items-center gap-1.5">
+                    <span class="bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 text-xs font-bold px-2.5 py-1 rounded-lg border border-purple-200/80 dark:border-purple-800 flex items-center gap-1.5">
                         <i class="ph ph-clock text-sm"></i>
-                        Self-Eval Deadline: {{ $activeCycle->self_eval_deadline->format('d M Y') }}
+                        <span>Self-Eval Deadline: {{ $activeCycle->self_eval_deadline->format('d M Y') }}</span>
                     </span>
                 @endif
             </div>
-            <div class="text-xs font-extrabold text-blue-100 flex items-center gap-2">
-                <span>{{ $completedCount }} of {{ $totalAppraisals }} Appraisals Finalized ({{ $completionRate }}%)</span>
-            </div>
-        </div>
 
-        <div class="space-y-1">
-            <div class="flex flex-wrap items-center gap-3">
-                <h2 class="text-xl sm:text-2xl font-black tracking-tight">{{ $activeCycle->name }}</h2>
-                <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full {{ $isMid ? 'bg-amber-950/80 text-amber-200 border border-amber-500/40' : 'bg-emerald-950/80 text-emerald-200 border border-emerald-500/40' }}">
-                    Review Window: {{ $activeCycle->start_date?->format('d M') }} – {{ $activeCycle->end_date?->format('d M Y') }}
+            <!-- Progress Metric -->
+            <div class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2 shrink-0">
+                <span>{{ $completedCount }} of {{ $totalAppraisals }} Finalized</span>
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-black {{ $completionRate == 100 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' }}">
+                    {{ $completionRate }}%
                 </span>
             </div>
-            <p class="text-xs {{ $isMid ? 'text-amber-100/90' : 'text-slate-300' }} font-medium max-w-3xl leading-relaxed">
-                @if($isMid)
-                    Covers performance from <strong>April to September</strong>. Focuses on reviewing employee progress, identifying areas for improvement, and setting or adjusting KPIs for the remainder of the year. <strong>This review does not involve salary increments.</strong>
-                @else
-                    Covers performance from <strong>October to March</strong>. Focuses on the final performance evaluation, identifying employees for potential promotions and increments. Increment recommendations are considered alongside the company's financial performance and approved budget.
-                @endif
-            </p>
         </div>
 
-        <div class="mt-4">
-            <div class="w-full bg-black/30 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10">
-                <div class="bg-gradient-to-r {{ $isMid ? 'from-amber-400 to-emerald-400' : 'from-blue-300 to-emerald-400' }} h-full rounded-full transition-all duration-500" style="width: {{ $completionRate }}%;"></div>
+        <!-- Middle Row: Title, Review Window, and Policy Summary -->
+        <div class="space-y-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                    {{ $activeCycle->name }}
+                </h2>
+                <div class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    <i class="ph ph-calendar text-sm text-blue-600 dark:text-blue-400"></i>
+                    <span>Review Window:</span>
+                    <strong class="text-slate-900 dark:text-white">{{ $activeCycle->start_date?->format('d M') }} – {{ $activeCycle->end_date?->format('d M Y') }}</strong>
+                </div>
+            </div>
+
+            <!-- Policy Context Notice Bar -->
+            @if($isMid)
+                <div class="p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/60 flex items-start sm:items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200">
+                    <i class="ph ph-info text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5 sm:mt-0"></i>
+                    <div class="leading-relaxed">
+                        Covers performance from <strong>April to September</strong>. Focuses on employee progress, identifying improvement areas, and setting/adjusting KPIs. <strong class="text-amber-800 dark:text-amber-300 underline decoration-amber-400">This review does not involve salary increments.</strong>
+                    </div>
+                </div>
+            @else
+                <div class="p-3 rounded-xl bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200/90 dark:border-blue-800/60 flex items-start sm:items-center gap-2.5 text-xs text-blue-900 dark:text-blue-200">
+                    <i class="ph ph-trend-up text-blue-600 dark:text-blue-400 text-base shrink-0 mt-0.5 sm:mt-0"></i>
+                    <div class="leading-relaxed">
+                        Covers performance from <strong>October to March</strong>. Final performance evaluation for potential promotions and annual increments (aligned with approved company budget).
+                    </div>
+                </div>
+            @endif
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="pt-1">
+            <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-500" style="width: {{ $completionRate }}%;"></div>
             </div>
         </div>
     </div>
