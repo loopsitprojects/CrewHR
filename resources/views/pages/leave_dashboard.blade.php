@@ -441,22 +441,23 @@
          },
 
          formatFinalResultDuration() {
-             if (this.selectedLeaveTypeCode === 'SHORT') return '0.2 Days (Short Leave)';
-             if (this.isHalfDay) return '0.5 Days (Half Day)';
+             if (this.selectedLeaveTypeCode === 'SHORT') return '0.2 Day (Short Leave)';
+             if (this.isHalfDay) return '0.5 Day (Half Day)';
              if (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY') {
                  return this.nightShiftConcession ? `${this.nightShiftConcession.days} Days (${this.nightShiftConcession.label})` : 'Concession';
              }
+             if (!this.targetStartDate || !this.targetEndDate) return 'Select dates';
              const days = this.calculateNetWorkingDays();
              return `${days} ${days === 1 ? 'Working Day' : 'Working Days'}`;
          },
 
          formatFinalResultTimeSlot() {
              if (this.isHalfDay) {
-                 return this.halfDaySlot === 'Morning' ? 'Morning: 9:00 AM – 1:00 PM' : 'Afternoon: 1:00 PM – 5:00 PM';
+                 return this.halfDaySlot === 'Morning' ? 'Morning (9:00 AM – 1:00 PM)' : 'Afternoon (1:00 PM – 5:00 PM)';
              }
              if (this.selectedLeaveTypeCode === 'SHORT') {
-                 if (this.shortLeaveSlot === '9:30 AM–10:00 AM') return 'Morning: 9:30 AM – 10:00 AM';
-                 if (this.shortLeaveSlot === '3:30 PM–5:00 PM') return 'Evening: 3:30 PM – 5:00 PM';
+                 if (this.shortLeaveSlot === '9:30 AM–10:00 AM') return 'Morning (9:30 AM – 10:00 AM)';
+                 if (this.shortLeaveSlot === '3:30 PM–5:00 PM') return 'Evening (3:30 PM – 5:00 PM)';
                  return this.shortLeaveSlot ? this.shortLeaveSlot : '1.5 Hours Slot';
              }
              if (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY') {
@@ -465,7 +466,7 @@
                  }
                  return this.nightShiftConcession ? this.nightShiftConcession.label : 'Standard Shift';
              }
-             return 'Full Day (8.5 hrs shift)';
+             return '';
          },
 
          formatFinalResultDate() {
@@ -649,9 +650,9 @@
          checkHandoverNotes() {
              const hasNotes = Boolean(this.handoverNotes && this.handoverNotes.trim().length > 0);
              if (hasNotes) {
-                 return { pass: true, hasNotes: true, message: 'Handover brief — details provided.' };
+                 return { pass: true, hasNotes: true, message: 'Reason / Handover notes — details provided.' };
              }
-             return { pass: true, hasNotes: false, message: 'Handover brief — optional (none provided).' };
+             return { pass: true, hasNotes: false, message: 'Reason / Handover notes — optional (none provided).' };
          },
 
          allChecksPass() {
@@ -1875,14 +1876,14 @@
                             </div>
                         </div>
 
-                        <!-- Single Handover Brief / Notes Field (Optional) -->
+                        <!-- Single Reason / Handover Notes Field (Optional) -->
                         <div class="space-y-1">
                             <div class="flex items-center justify-between">
-                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Brief / Handover Notes</label>
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Reason / Handover Notes</label>
                                 <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium lowercase">(optional)</span>
                             </div>
                             <textarea name="handover_notes" x-model="handoverNotes" rows="2" 
-                                      placeholder="Brief details, live jobs, deadlines, file locations or context for your manager (optional)..."
+                                      placeholder="Reason for leave, brief details, live jobs, deadlines, file locations or context for your manager (optional)..."
                                       class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg p-2 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none transition-all"></textarea>
                         </div>
 
@@ -1956,7 +1957,7 @@
                                           x-text="checkCovering().message"></span>
                                 </div>
 
-                                <!-- 6. Handover Brief (Optional) -->
+                                <!-- 6. Reason / Handover Notes (Optional) -->
                                 <div class="flex items-start gap-2">
                                     <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5 border"
                                           :class="checkHandoverNotes().hasNotes 
@@ -1974,7 +1975,7 @@
 
                             <!-- Final Applied Leave Result Section -->
                             <div class="p-3 bg-slate-50 dark:bg-[#182030] border border-slate-200/90 dark:border-slate-800 rounded-xl space-y-2">
-                                <div class="flex items-center justify-between pb-1.5 border-b border-slate-200/80 dark:border-slate-800/80">
+                                <div class="flex items-center justify-between pb-1 border-b border-slate-200/80 dark:border-slate-800/80">
                                     <div class="flex items-center gap-1.5">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                         <h4 class="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Leave Application Result</h4>
@@ -1983,38 +1984,27 @@
                                           x-text="(leaveCatalog || []).find(l => l.code === selectedLeaveTypeCode)?.name || 'Leave'"></span>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-2">
-                                    <!-- Number of Days -->
-                                    <div class="p-2 rounded-lg bg-white dark:bg-[#141b29] border border-slate-200/70 dark:border-slate-800/70">
-                                        <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-0.5">Number of Days</span>
-                                        <div class="text-xs font-black text-slate-900 dark:text-white"
-                                             :class="isHalfDay || selectedLeaveTypeCode === 'SHORT' ? 'text-amber-600 dark:text-amber-400' : ''"
-                                             x-text="formatFinalResultDuration()"></div>
-                                        <span class="text-[9px] font-medium text-slate-400 dark:text-slate-500 block truncate"
-                                              x-text="isHalfDay ? 'Half Day Application' : (selectedLeaveTypeCode === 'SHORT' ? 'Short Leave Application' : (selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' ? 'Night Work Concession' : 'Standard Working Days'))"></span>
+                                <!-- Number of Days in coloured bold text -->
+                                <div class="py-1">
+                                    <div class="text-base sm:text-lg font-black tracking-tight"
+                                         :class="isHalfDay || selectedLeaveTypeCode === 'SHORT' ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'"
+                                         x-text="formatFinalResultDuration()">
                                     </div>
-
-                                    <!-- Short Leave / Half Day / Shift Time -->
-                                    <div class="p-2 rounded-lg bg-white dark:bg-[#141b29] border border-slate-200/70 dark:border-slate-800/70">
-                                        <span class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-0.5"
-                                              x-text="isHalfDay ? 'Half Day Time' : (selectedLeaveTypeCode === 'SHORT' ? 'Short Leave Time' : (selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' ? 'Concession Time' : 'Working Time'))"></span>
-                                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1"
-                                             :class="isHalfDay || selectedLeaveTypeCode === 'SHORT' ? 'text-amber-600 dark:text-amber-400' : ''">
-                                            <i data-lucide="clock" class="w-3 h-3 shrink-0 opacity-70"></i>
-                                            <span class="truncate" x-text="formatFinalResultTimeSlot()"></span>
+                                    <template x-if="isHalfDay || selectedLeaveTypeCode === 'SHORT'">
+                                        <div class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5">
+                                            <i data-lucide="clock" class="w-3 h-3 shrink-0"></i>
+                                            <span x-text="formatFinalResultTimeSlot()"></span>
                                         </div>
-                                        <span class="text-[9px] font-medium text-slate-400 dark:text-slate-500 block truncate"
-                                              x-text="isHalfDay ? (halfDaySlot + ' Window') : (selectedLeaveTypeCode === 'SHORT' ? (shortLeaveSlot.includes('9:30') ? 'Morning Window' : 'Evening Window') : (selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' ? 'Sign out: ' + (nightSignOutTime || 'Late') : 'Standard Working Hours'))"></span>
-                                    </div>
+                                    </template>
                                 </div>
 
-                                <!-- Schedule / Dates Row -->
-                                <div class="flex items-center justify-between text-[10px] pt-0.5 text-slate-500 dark:text-slate-400">
-                                    <span class="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
-                                        <i data-lucide="calendar" class="w-3 h-3 text-blue-500 shrink-0"></i>
+                                <!-- Date range in bottom -->
+                                <div class="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/80 dark:border-slate-800/80 text-slate-600 dark:text-slate-300">
+                                    <span class="flex items-center gap-1.5 font-semibold">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-500 shrink-0"></i>
                                         <span x-text="formatFinalResultDate()"></span>
                                     </span>
-                                    <span class="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1" x-show="allChecksPass()">
+                                    <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1" x-show="allChecksPass()">
                                         <i data-lucide="check" class="w-3 h-3"></i> Valid Schedule
                                     </span>
                                 </div>
