@@ -19,21 +19,21 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Departments
-        $itDept = Department::create(['name' => 'IT', 'code' => 'IT', 'hod_name' => 'Arosh', 'description' => 'Information Technology']);
-        $hrDept = Department::create(['name' => 'HR/Admin', 'code' => 'HR', 'hod_name' => 'Supuni Ratnayake', 'description' => 'Human Resources & Administration']);
-        $mgmtDept = Department::create(['name' => 'Management', 'code' => 'MGMT', 'hod_name' => 'Super Admin', 'description' => 'Executive Management']);
-        $creativeDept = Department::create(['name' => 'Creative', 'code' => 'CR', 'hod_name' => 'Creative Lead', 'description' => 'Design & Creative']);
-        $financeDept = Department::create(['name' => 'Finance', 'code' => 'FIN', 'hod_name' => 'Finance Head', 'description' => 'Accounting & Finance']);
-        $bizDept = Department::create(['name' => 'Business Development', 'code' => 'BD', 'hod_name' => 'BD Lead', 'description' => 'Sales & Business Growth']);
-        $opsDept = Department::create(['name' => 'Operations', 'code' => 'OPS', 'hod_name' => 'Ops Manager', 'description' => 'Daily Operations']);
+        $itDept = Department::firstOrCreate(['name' => 'IT'], ['code' => 'IT', 'hod_name' => 'Arosh', 'description' => 'Information Technology']);
+        $hrDept = Department::firstOrCreate(['name' => 'HR/Admin'], ['code' => 'HR', 'hod_name' => 'Supuni Ratnayake', 'description' => 'Human Resources & Administration']);
+        $mgmtDept = Department::firstOrCreate(['name' => 'Management'], ['code' => 'MGMT', 'hod_name' => 'Super Admin', 'description' => 'Executive Management']);
+        $creativeDept = Department::firstOrCreate(['name' => 'Creative'], ['code' => 'CR', 'hod_name' => 'Creative Lead', 'description' => 'Design & Creative']);
+        $financeDept = Department::firstOrCreate(['name' => 'Finance'], ['code' => 'FIN', 'hod_name' => 'Finance Head', 'description' => 'Accounting & Finance']);
+        $bizDept = Department::firstOrCreate(['name' => 'Business Development'], ['code' => 'BD', 'hod_name' => 'BD Lead', 'description' => 'Sales & Business Growth']);
+        $opsDept = Department::firstOrCreate(['name' => 'Operations'], ['code' => 'OPS', 'hod_name' => 'Ops Manager', 'description' => 'Daily Operations']);
 
         // 2. Designations
-        $desigHR = Designation::create(['name' => 'HR Manager']);
-        $desigHeadIT = Designation::create(['name' => 'Head of IT']);
-        $desigDevOps = Designation::create(['name' => 'DevOps Engineer']);
-        $desigProdMgr = Designation::create(['name' => 'Product Manager']);
-        $desigDev = Designation::create(['name' => 'Developer']);
-        $desigAdmin = Designation::create(['name' => 'Managing Director']);
+        $desigHR = Designation::firstOrCreate(['name' => 'HR Manager'], ['department_id' => $hrDept->id]);
+        $desigHeadIT = Designation::firstOrCreate(['name' => 'Head of IT'], ['department_id' => $itDept->id]);
+        $desigDevOps = Designation::firstOrCreate(['name' => 'DevOps Engineer'], ['department_id' => $itDept->id]);
+        $desigProdMgr = Designation::firstOrCreate(['name' => 'Product Manager'], ['department_id' => $itDept->id]);
+        $desigDev = Designation::firstOrCreate(['name' => 'Developer'], ['department_id' => $itDept->id]);
+        $desigAdmin = Designation::firstOrCreate(['name' => 'Managing Director'], ['department_id' => $mgmtDept->id]);
 
         // 3. Users & Employees
 

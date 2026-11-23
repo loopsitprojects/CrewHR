@@ -1,6 +1,6 @@
-<div class="space-y-6">
+<div class="space-y-4">
     <!-- 1. Organization Departments Overview -->
-    <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm space-y-4">
+    <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-3.5">
         <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div class="flex items-center gap-2.5">
                 <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/60 shrink-0">
@@ -18,41 +18,41 @@
         </div>
 
         <!-- Department Cards Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
             @forelse($departments as $dept)
-                <div class="group border border-slate-200 dark:border-slate-800 rounded-2xl p-5 bg-white dark:bg-[#1a2642] hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md transition-all flex flex-col justify-between space-y-4">
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 text-[11px] font-black px-2.5 py-1 rounded-lg border border-indigo-200/80 dark:border-indigo-800/80 shadow-2xs">
-                                {{ $dept->code }}
-                            </span>
-                            <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                                <button type="button" @click="editDept = { id: '{{ $dept->id }}', name: '{{ addslashes($dept->name) }}', code: '{{ $dept->code }}', hod_name: '{{ addslashes($dept->hod_name ?? '') }}' }; editDeptModal = true" class="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Edit Department">
+                <div class="group border border-slate-200/90 dark:border-slate-800 rounded-xl p-3 sm:p-3.5 bg-white dark:bg-[#1a2642] hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-sm transition-all flex flex-col justify-between space-y-2.5">
+                    <div class="space-y-1.5">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <a href="{{ route('settings.department.edit', $dept->id) }}" class="text-xs font-black text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-snug truncate block hover:underline">
+                                    {{ $dept->name }}
+                                </a>
+                                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate leading-tight">{{ $dept->description ?? 'Functional department unit within Loops HR.' }}</p>
+                            </div>
+                            <div class="flex items-center gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity shrink-0">
+                                <a href="{{ route('settings.department.edit', $dept->id) }}" class="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Edit Department & Designations">
                                     <i class="ph ph-pencil-simple text-sm"></i>
-                                </button>
+                                </a>
                                 <form action="{{ route('settings.department.destroy', $dept->id) }}" method="POST" onsubmit="return confirm('Delete department {{ addslashes($dept->name) }}?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Delete Department">
+                                    <button type="submit" class="p-1 text-slate-400 hover:text-rose-600 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Delete Department">
                                         <i class="ph ph-trash text-sm"></i>
                                     </button>
                                 </form>
                             </div>
                         </div>
-                        <div>
-                            <h3 class="text-sm font-black text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{{ $dept->name }}</h3>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">{{ $dept->description ?? 'Functional department unit within Loops HR.' }}</p>
-                        </div>
                     </div>
 
-                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold">
-                        <span class="text-slate-400 flex items-center gap-1"><i class="ph ph-user text-xs"></i> Head of Dept:</span>
-                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ $dept->hod_name ?? 'Super Admin' }}</span>
+                    <!-- Footer: Head of Dept & Roles Count -->
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] font-semibold">
+                        <span class="text-slate-400 flex items-center gap-1"><i class="ph ph-user text-[11px]"></i> Head of Dept:</span>
+                        <span class="font-bold text-slate-700 dark:text-slate-200 truncate max-w-[130px]">{{ $dept->hod_name ?? 'Super Admin' }}</span>
                     </div>
                 </div>
             @empty
-                <div class="col-span-full text-center py-10 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 space-y-2">
-                    <i class="ph ph-tree-structure text-3xl text-slate-400"></i>
+                <div class="col-span-full text-center py-8 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <i class="ph ph-tree-structure text-2xl text-slate-400"></i>
                     <p class="text-xs font-bold text-slate-600 dark:text-slate-300">No departments configured yet.</p>
                     <button type="button" @click="addDeptModal = true" class="text-indigo-600 text-xs font-bold hover:underline">Add the first department</button>
                 </div>

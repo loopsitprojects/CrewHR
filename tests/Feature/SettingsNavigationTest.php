@@ -104,4 +104,35 @@ class SettingsNavigationTest extends TestCase
         ]);
         $this->assertEquals('1', \App\Models\Setting::get('settings_module_leave'));
     }
+
+    public function test_admin_can_create_and_manage_designations_inside_departments()
+    {
+        $this->actingAs($this->adminUser);
+        session(['current_role' => 'Super (Admin)']);
+
+        $dept = \Modules\Employee\Models\Department::firstOrCreate(['name' => 'Design & Creative', 'code' => 'CR']);
+
+        // 1. Create a designation inside department
+        $response = $this->post(route('settings.designation.store'), [
+            'department_id' => $dept->id,
+            'name' => 'Senior Brand Designer',
+        ]);
+        $response->assertSessionHas('success');
+
+        $desig = \Modules\Employee\Models\Designation::where('name', 'Senior Brand Designer')->where('department_id', $dept->id)->first();
+        $this->assertNotNull($desig);
+
+        // 2. Update designation
+        $updateResp = $this->put(route('settings.designation.update', $desig->id), [
+            'name' => 'Lead Brand Designer',
+        ]);
+        $updateResp->assertSessionHas('success');
+        $desig->refresh();
+        $this->assertEquals('Lead Brand Designer', $desig->name);
+
+        // 3. Delete designation
+        $delResp = $this->delete(route('settings.designation.destroy', $desig->id));
+        $delResp->assertSessionHas('success');
+        $this->assertNull(\Modules\Employee\Models\Designation::find($desig->id));
+    }
 }

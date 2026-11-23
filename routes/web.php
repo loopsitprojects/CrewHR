@@ -136,9 +136,14 @@ Route::put('/settings/allowance-type/{id}', [SettingsController::class, 'updateA
 Route::post('/settings/allowance-type/{id}/toggle', [SettingsController::class, 'toggleAllowanceType'])->name('settings.allowance_type.toggle');
 Route::delete('/settings/allowance-type/{id}', [SettingsController::class, 'destroyAllowanceType'])->name('settings.allowance_type.destroy');
 
+Route::get('/settings/department/{id}', [SettingsController::class, 'editDepartment'])->name('settings.department.edit');
 Route::post('/settings/department', [SettingsController::class, 'storeDepartment'])->name('settings.department.store');
 Route::put('/settings/department/{id}', [SettingsController::class, 'updateDepartment'])->name('settings.department.update');
 Route::delete('/settings/department/{id}', [SettingsController::class, 'destroyDepartment'])->name('settings.department.destroy');
+
+Route::post('/settings/designation', [SettingsController::class, 'storeDesignation'])->name('settings.designation.store');
+Route::put('/settings/designation/{id}', [SettingsController::class, 'updateDesignation'])->name('settings.designation.update');
+Route::delete('/settings/designation/{id}', [SettingsController::class, 'destroyDesignation'])->name('settings.designation.destroy');
 Route::post('/settings/module', [SettingsController::class, 'storeModule'])->name('settings.module.store');
 Route::put('/settings/module/{key}', [SettingsController::class, 'updateModule'])->name('settings.module.update');
 Route::delete('/settings/module/{key}', [SettingsController::class, 'destroyModule'])->name('settings.module.destroy');

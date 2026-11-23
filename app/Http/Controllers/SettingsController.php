@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Modules\Employee\Models\Department;
+use Modules\Employee\Models\Designation;
 use Modules\Leave\Models\Holiday;
 use Modules\Leave\Models\LeaveType;
 use Modules\Leave\Models\DayType;
@@ -45,7 +46,9 @@ class SettingsController extends Controller
 
         $settingsRaw = DB::table('settings')->get()->pluck('value', 'key')->toArray();
 
-        $departments = Department::all();
+        $departments = Department::with(['designations' => function($q) {
+            $q->orderBy('name');
+        }])->get();
         $customHolidays = Holiday::where('type', 'Company')->get();
         $leaveTypes = LeaveType::orderBy('id')->get();
         $allowanceTypes = \Modules\Payroll\Models\AllowanceType::orderBy('id')->get();
@@ -585,6 +588,17 @@ class SettingsController extends Controller
         return redirect()->back()->with('success', 'Department added successfully!');
     }
 
+    public function editDepartment($id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $department = Department::with(['designations' => function($q) {
+            $q->withCount('employees')->orderBy('name');
+        }, 'employees.user', 'employees.designation'])->findOrFail($id);
+
+        return view('pages.settings.department-edit', compact('department'));
+    }
+
     public function updateDepartment(Request $request, $id)
     {
         $this->authorizeAdminOrHr();
@@ -599,15 +613,78 @@ class SettingsController extends Controller
             'description' => $request->description,
         ]);
 
-        return redirect()->back()->with('success', 'Department updated successfully!');
+        return redirect()->back()->with('success', "Department '{$dept->name}' updated successfully!");
     }
 
     public function destroyDepartment($id)
     {
         $this->authorizeAdminOrHr();
 
-        Department::findOrFail($id)->delete();
-        return redirect()->back()->with('success', 'Department removed.');
+        $dept = Department::withCount('employees')->findOrFail($id);
+        if ($dept->employees_count > 0) {
+            return redirect()->back()->with('error', "Cannot delete department '{$dept->name}' because {$dept->employees_count} staff member(s) are assigned to it.");
+        }
+
+        $dept->delete();
+        return redirect()->route('settings.index', ['module' => 'organization', 'tab' => 'general'])->with('success', "Department '{$dept->name}' removed.");
+    }
+
+    public function storeDesignation(Request $request)
+    {
+        $this->authorizeAdminOrHr();
+
+        $request->validate([
+            'department_id' => 'required|exists:departments,id',
+            'name' => 'required|string|max:150',
+        ]);
+
+        $dept = Department::findOrFail($request->department_id);
+        $name = trim($request->name);
+
+        $existing = Designation::where('name', $name)->first();
+        if ($existing) {
+            $existing->department_id = $dept->id;
+            $existing->save();
+        } else {
+            Designation::create([
+                'department_id' => $dept->id,
+                'name' => $name,
+            ]);
+        }
+
+        return redirect()->back()->with('success', "Designation '{$name}' added to {$dept->name} department!");
+    }
+
+    public function updateDesignation(Request $request, $id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $request->validate([
+            'name' => 'required|string|max:150',
+            'department_id' => 'nullable|exists:departments,id',
+        ]);
+
+        $desig = Designation::findOrFail($id);
+        $payload = ['name' => trim($request->name)];
+        if ($request->filled('department_id')) {
+            $payload['department_id'] = $request->department_id;
+        }
+        $desig->update($payload);
+
+        return redirect()->back()->with('success', "Designation updated successfully!");
+    }
+
+    public function destroyDesignation($id)
+    {
+        $this->authorizeAdminOrHr();
+
+        $desig = Designation::withCount('employees')->findOrFail($id);
+        if ($desig->employees_count > 0) {
+            return redirect()->back()->with('error', "Cannot delete designation '{$desig->name}' because {$desig->employees_count} employee(s) are currently assigned to it.");
+        }
+
+        $desig->delete();
+        return redirect()->back()->with('success', "Designation '{$desig->name}' removed successfully.");
     }
 
     public function storeModule(Request $request)

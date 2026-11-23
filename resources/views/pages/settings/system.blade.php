@@ -50,70 +50,7 @@
         <button type="button" @click="toastMsg = ''" class="hover:opacity-75 cursor-pointer"><i class="ph ph-x text-sm"></i></button>
     </div>
 
-    <!-- 1. System & Developer Controls -->
-    <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm space-y-5">
-        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center border border-slate-200 dark:border-slate-700">
-                    <i class="ph ph-cpu text-lg"></i>
-                </div>
-                <div>
-                    <h2 class="text-sm font-black text-slate-900 dark:text-white">Core Engine & Developer Environment</h2>
-                    <p class="text-[11px] font-semibold text-slate-400">Manage low-level application state, diagnostics, and debugging switches</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <span x-show="saving" x-cloak class="text-[11px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                    <i class="ph ph-circle-notch animate-spin text-sm"></i> Saving...
-                </span>
-                <span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">Diagnostics</span>
-            </div>
-        </div>
 
-        <div class="space-y-3">
-            <!-- Developer Mode Toggle -->
-            <div class="p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-[#101726]/60 flex items-center justify-between gap-3">
-                <div>
-                    <span class="text-xs font-black text-slate-900 dark:text-white block">Developer Mode (Dev Banners & Quick Role Switcher)</span>
-                    <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Displays fast role simulation tools in header and testing debugging panels</span>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer shrink-0"
-                       x-data="{ isChecked: {{ ($settingsRaw['developer_mode'] ?? '0') == '1' ? 'true' : 'false' }} }">
-                    <input type="checkbox" 
-                           value="1" 
-                           {{ ($settingsRaw['developer_mode'] ?? '0') == '1' ? 'checked' : '' }}
-                           @change="isChecked = $el.checked; toggleSetting('developer_mode', $el.checked)"
-                           class="sr-only">
-                    <div class="w-11 h-6 rounded-full transition-colors duration-200 relative p-0.5 shadow-inner cursor-pointer"
-                         :class="isChecked ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'">
-                        <div class="w-5 h-5 bg-white rounded-full transition-transform duration-200 shadow-xs"
-                             :class="isChecked ? 'translate-x-5' : 'translate-x-0'"></div>
-                    </div>
-                </label>
-            </div>
-
-            <!-- Verbose Debug Logging Toggle -->
-            <div class="p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-[#101726]/60 flex items-center justify-between gap-3">
-                <div>
-                    <span class="text-xs font-black text-slate-900 dark:text-white block">Verbose Audit & Policy Evaluation Logs</span>
-                    <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Record detailed pro-rata evaluation decisions and validation traces to log files</span>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer shrink-0"
-                       x-data="{ isChecked: {{ ($settingsRaw['debug_logging_enabled'] ?? '1') == '1' ? 'true' : 'false' }} }">
-                    <input type="checkbox" 
-                           value="1" 
-                           {{ ($settingsRaw['debug_logging_enabled'] ?? '1') == '1' ? 'checked' : '' }}
-                           @change="isChecked = $el.checked; toggleSetting('debug_logging_enabled', $el.checked)"
-                           class="sr-only">
-                    <div class="w-11 h-6 rounded-full transition-colors duration-200 relative p-0.5 shadow-inner cursor-pointer"
-                         :class="isChecked ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'">
-                        <div class="w-5 h-5 bg-white rounded-full transition-transform duration-200 shadow-xs"
-                             :class="isChecked ? 'translate-x-5' : 'translate-x-0'"></div>
-                    </div>
-                </label>
-            </div>
-        </div>
-    </div>
 
     <!-- 2. Settings Modules & Navigation Switcher -->
     <div class="bg-white dark:bg-[#152038] rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm space-y-5">

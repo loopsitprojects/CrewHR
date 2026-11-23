@@ -263,7 +263,7 @@ class AppraisalController extends Controller
             || ($isHod && $appraisal->is_locked);
         $canUnlock = $isAdminOrHr;
 
-        $designations = Designation::orderBy('name')->get();
+        $designations = Designation::orderBy('name')->get()->unique('name');
 
         return view('pages.appraisal-show', compact(
             'appraisal',
@@ -753,8 +753,8 @@ class AppraisalController extends Controller
         }
 
         $templates = AppraisalTemplate::with(['criteria', 'designation', 'department'])->get();
-        $designations = Designation::orderBy('name')->get();
-        $departments = Department::orderBy('name')->get();
+        $designations = Designation::orderBy('name')->get()->unique('name');
+        $departments = Department::orderBy('name')->get()->unique('name');
 
         return view('pages.appraisal-templates', compact('templates', 'designations', 'departments', 'role', 'employee'));
     }

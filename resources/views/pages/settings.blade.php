@@ -14,6 +14,10 @@
 <div class="space-y-6" x-data="{ 
     addDeptModal: false, 
     editDeptModal: false, 
+    addDesignationModal: false,
+    manageDesignationsModal: false,
+    selectedDept: { id: '', name: '', code: '', designations: [] },
+    editDesig: { id: '', name: '' },
     addModuleModal: false, 
     editModuleModal: false,
     addLeaveTypeModal: false,
@@ -108,39 +112,7 @@
         </div>
     </div>
 
-    <!-- Edit Department Modal -->
-    <div x-show="editDeptModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div class="bg-white dark:bg-[#0f172a] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-100 dark:border-slate-800" @click.away="editDeptModal = false">
-            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <h3 class="text-base font-bold text-slate-900 dark:text-white">Edit Department</h3>
-                <button @click="editDeptModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="ph ph-x text-lg"></i></button>
-            </div>
 
-            <form :action="`{{ url('/settings/department') }}/${editDept.id}`" method="POST" class="space-y-4 text-xs font-semibold">
-                @csrf
-                @method('PUT')
-                <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Department Name *</label>
-                    <input type="text" name="name" x-model="editDept.name" class="w-full border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" required>
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Department Code *</label>
-                    <input type="text" name="code" x-model="editDept.code" class="w-full border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold uppercase p-2.5" required>
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Head of Department (HOD)</label>
-                    <input type="text" name="hod_name" x-model="editDept.hod_name" class="w-full border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5">
-                </div>
-
-                <div class="pt-2 flex justify-end gap-2">
-                    <button type="button" @click="editDeptModal = false" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700">Cancel</button>
-                    <button type="submit" class="px-5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 shadow-md">Update Department</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- Register New Module Modal -->
     <div x-show="addModuleModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
