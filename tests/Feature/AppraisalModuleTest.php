@@ -166,7 +166,7 @@ class AppraisalModuleTest extends TestCase
         $response->assertRedirect(route('appraisal.show', $appraisal->id));
 
         $appraisal->refresh();
-        $this->assertTrue($appraisal->is_locked);
+        $this->assertTrue($appraisal->isEmployeeSubmissionLocked());
         $this->assertEquals('pending_hod_eval', $appraisal->status);
         $this->assertNotNull($appraisal->self_submitted_at);
     }
@@ -494,5 +494,224 @@ class AppraisalModuleTest extends TestCase
 
         $crResponse->assertStatus(200);
         $crResponse->assertSee('My Changes Requested');
+    }
+
+    public function test_auto_initialization_when_template_enabled(): void
+    {
+        // Create an inactive template
+        $template = AppraisalTemplate::create([
+            'title' => 'Auto Init QA Template',
+            'applicable_type' => 'General',
+            'is_active' => false,
+        ]);
+        AppraisalTemplateCriterion::create([
+            'template_id' => $template->id,
+            'name' => 'Testing Rigor',
+            'weightage' => 100.00,
+            'sort_order' => 1,
+        ]);
+
+        // Toggle template to active
+        $response = $this->actingAs($this->adminUser)
+            ->withSession(['current_role' => 'Super (Admin)'])
+            ->post(route('appraisal.templates.toggle', $template->id));
+
+        $response->assertSessionHas('success');
+        $template->refresh();
+        $this->assertTrue($template->is_active);
+
+        // Appraisal should be created for staff employee
+        $appraisal = Appraisal::where('cycle_id', $this->cycle->id)
+            ->where('employee_id', $this->staffEmployee->id)
+            ->first();
+
+        $this->assertNotNull($appraisal);
+        $this->assertTrue($appraisal->criteriaScores()->count() > 0);
+    }
+
+    public function test_employee_submission_locked_when_deadline_surpassed(): void
+    {
+        // Cycle where self_eval_deadline passed yesterday
+        $overdueCycle = AppraisalCycle::create([
+            'name' => 'Overdue Cycle',
+            'review_period' => 'Annual',
+            'start_date' => now()->subMonths(2),
+            'end_date' => now()->addMonths(2),
+            'self_eval_deadline' => now()->subDay(),
+            'status' => 'Active',
+        ]);
+
+        $appraisal = Appraisal::create([
+            'cycle_id' => $overdueCycle->id,
+            'template_id' => $this->template->id,
+            'employee_id' => $this->staffEmployee->id,
+            'hod_id' => $this->hodEmployee->id,
+            'workflow_type' => 'two_tier',
+            'status' => 'pending_self_eval',
+            'is_locked' => false,
+        ]);
+
+        $cs = AppraisalCriteriaScore::create([
+            'appraisal_id' => $appraisal->id,
+            'criteria_name' => 'Quality',
+            'weightage' => 100,
+            'self_rating' => 4,
+        ]);
+
+        // Employee attempts to submit after deadline
+        $response = $this->actingAs($this->staffUser)
+            ->withSession(['current_role' => 'Employee'])
+            ->post(route('appraisal.submit-self', $appraisal->id), [
+                'scores' => [$cs->id => ['self_rating' => 4, 'self_comments' => 'Late submission']],
+            ]);
+
+        $response->assertSessionHas('error');
+        $appraisal->refresh();
+        $this->assertEquals('pending_self_eval', $appraisal->status);
+        $this->assertTrue($appraisal->isEmployeeSubmissionLocked());
+    }
+
+    public function test_manager_review_locked_when_deadline_surpassed(): void
+    {
+        // Cycle where manager_eval_deadline passed yesterday
+        $overdueCycle = AppraisalCycle::create([
+            'name' => 'Manager Overdue Cycle',
+            'review_period' => 'Annual',
+            'start_date' => now()->subMonths(2),
+            'end_date' => now()->addMonths(2),
+            'self_eval_deadline' => now()->subDays(5),
+            'manager_eval_deadline' => now()->subDay(),
+            'status' => 'Active',
+        ]);
+
+        $appraisal = Appraisal::create([
+            'cycle_id' => $overdueCycle->id,
+            'template_id' => $this->template->id,
+            'employee_id' => $this->staffEmployee->id,
+            'reporting_manager_id' => $this->hodEmployee->id,
+            'hod_id' => $this->hodEmployee->id,
+            'workflow_type' => 'three_tier',
+            'status' => 'pending_manager_eval',
+            'is_locked' => false,
+        ]);
+
+        $cs = AppraisalCriteriaScore::create([
+            'appraisal_id' => $appraisal->id,
+            'criteria_name' => 'Quality',
+            'weightage' => 100,
+            'self_rating' => 4,
+            'manager_rating' => 4,
+        ]);
+
+        // Manager attempts to submit after manager deadline
+        $response = $this->actingAs($this->hodUser)
+            ->withSession(['current_role' => 'Manager'])
+            ->post(route('appraisal.submit-manager', $appraisal->id), [
+                'scores' => [$cs->id => ['manager_rating' => 4, 'manager_comments' => 'Overdue review']],
+            ]);
+
+        $response->assertSessionHas('error');
+        $appraisal->refresh();
+        $this->assertEquals('pending_manager_eval', $appraisal->status);
+        $this->assertTrue($appraisal->isManagerReviewLocked());
+    }
+
+    public function test_hr_unlock_extends_deadline_and_allows_submission(): void
+    {
+        $overdueCycle = AppraisalCycle::create([
+            'name' => 'Extension Cycle',
+            'review_period' => 'Annual',
+            'start_date' => now()->subMonths(2),
+            'end_date' => now()->addMonths(2),
+            'self_eval_deadline' => now()->subDay(),
+            'status' => 'Active',
+        ]);
+
+        $appraisal = Appraisal::create([
+            'cycle_id' => $overdueCycle->id,
+            'template_id' => $this->template->id,
+            'employee_id' => $this->staffEmployee->id,
+            'hod_id' => $this->hodEmployee->id,
+            'workflow_type' => 'two_tier',
+            'status' => 'pending_self_eval',
+            'is_locked' => false,
+        ]);
+
+        $cs = AppraisalCriteriaScore::create([
+            'appraisal_id' => $appraisal->id,
+            'criteria_name' => 'Quality',
+            'weightage' => 100,
+            'self_rating' => 4,
+        ]);
+
+        // HR grants 7-day unlock extension
+        $this->actingAs($this->adminUser)
+            ->withSession(['current_role' => 'Super (Admin)'])
+            ->post(route('appraisal.unlock', $appraisal->id), [
+                'target_stage' => 'pending_self_eval',
+                'extension_days' => 7,
+                'notes' => 'Medical leave extension granted.',
+            ]);
+
+        $appraisal->refresh();
+        $this->assertTrue($appraisal->is_override_unlocked);
+        $this->assertFalse($appraisal->isEmployeeSubmissionLocked());
+
+        // Employee now successfully submits within extension
+        $submitResponse = $this->actingAs($this->staffUser)
+            ->withSession(['current_role' => 'Employee'])
+            ->post(route('appraisal.submit-self', $appraisal->id), [
+                'scores' => [$cs->id => ['self_rating' => 4, 'self_comments' => 'Extension submission']],
+            ]);
+
+        $submitResponse->assertRedirect(route('appraisal.show', $appraisal->id));
+        $appraisal->refresh();
+        $this->assertEquals('pending_hod_eval', $appraisal->status);
+    }
+
+    public function test_admin_unrestricted_access_bypasses_all_duration_locks(): void
+    {
+        // Cycle overdue across all deadlines
+        $overdueCycle = AppraisalCycle::create([
+            'name' => 'Closed Deadlines Cycle',
+            'review_period' => 'Annual',
+            'start_date' => now()->subMonths(2),
+            'end_date' => now()->subDay(),
+            'self_eval_deadline' => now()->subDays(10),
+            'manager_eval_deadline' => now()->subDays(5),
+            'status' => 'Active',
+        ]);
+
+        $appraisal = Appraisal::create([
+            'cycle_id' => $overdueCycle->id,
+            'template_id' => $this->template->id,
+            'employee_id' => $this->staffEmployee->id,
+            'hod_id' => $this->hodEmployee->id,
+            'workflow_type' => 'two_tier',
+            'status' => 'pending_self_eval',
+            'is_locked' => true,
+        ]);
+
+        $cs = AppraisalCriteriaScore::create([
+            'appraisal_id' => $appraisal->id,
+            'criteria_name' => 'Leadership',
+            'weightage' => 100,
+            'self_rating' => 3,
+        ]);
+
+        // Admin saves draft despite lock and expired deadlines
+        $draftResponse = $this->actingAs($this->adminUser)
+            ->withSession(['current_role' => 'Super (Admin)'])
+            ->from(route('appraisal.show', $appraisal->id))
+            ->post(route('appraisal.draft', $appraisal->id), [
+                'scores' => [$cs->id => ['self_rating' => 5, 'manager_rating' => 5]],
+                'general_manager_comments' => 'Admin override evaluation.',
+            ]);
+
+        $draftResponse->assertRedirect(route('appraisal.show', $appraisal->id));
+        $draftResponse->assertSessionHas('success');
+        $cs->refresh();
+        $this->assertEquals(5, $cs->self_rating);
+        $this->assertEquals(5, $cs->manager_rating);
     }
 }

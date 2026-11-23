@@ -122,6 +122,7 @@
          addCompanyLeaveModal: false, 
          dayModalOpen: false, 
          quotaModalOpen: false,
+         restrictedLeaveType: null,
          showBirthdayCardInline: true,
          selectedQuota: null,
          allMyHistory: {{ json_encode($myLeaveHistory) }},
@@ -663,8 +664,9 @@
                     this.checkCovering().pass;
          },
 
-         openApplyModal(code) {
-             let targetCode = (code || 'ANNUAL').toUpperCase();
+         openApplyModal(code, isSpecific = false) {
+             let targetCode = (code || this.selectedLeaveTypeCode || 'ANNUAL').toUpperCase();
+             this.restrictedLeaveType = isSpecific ? targetCode : null;
              const targetItem = (this.leaveCatalog || []).find(l => l.code === targetCode);
              if (targetItem) {
                  this.selectLeaveType(targetCode, targetItem.id);
@@ -675,6 +677,14 @@
              this.$nextTick(() => { 
                  if (window.lucide) lucide.createIcons(); 
              });
+         },
+
+         get displayedLeaveTypes() {
+             if (this.restrictedLeaveType) {
+                 const matched = (this.leaveCatalog || []).filter(l => l.code === this.restrictedLeaveType);
+                 if (matched.length > 0) return matched;
+             }
+             return this.leaveCatalog || [];
          },
 
          getLeaveTypeColor(nameOrCode) {
@@ -842,7 +852,7 @@
     <div class="shrink-0 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         
         <!-- 1. Annual Leave -->
-        <div @click="openQuotaModal('ANNUAL', 'Annual Leave', 'plane', 'sky', {{ $annualData['total'] }}, {{ $annualData['used'] }}, {{ $annualData['available'] }}, {{ $annualData['cf'] }}, 'days')"
+        <div @click="openApplyModal('ANNUAL', true)"
              class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-sky-300 dark:hover:border-sky-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300 flex items-center justify-center shrink-0 border border-sky-100 dark:border-sky-500/30 shadow-2xs">
@@ -870,7 +880,7 @@
         </div>
 
         <!-- 2. Casual Leave -->
-        <div @click="openQuotaModal('CASUAL', 'Casual Leave', 'calendar-check', 'purple', {{ $casualData['total'] }}, {{ $casualData['used'] }}, {{ $casualData['available'] }}, {{ $casualData['cf'] }}, 'days')"
+        <div @click="openApplyModal('CASUAL', true)"
              class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-purple-300 dark:hover:border-purple-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-500/30 shadow-2xs">
@@ -898,7 +908,7 @@
         </div>
 
         <!-- 3. Medical Leave -->
-        <div @click="openQuotaModal('MEDICAL', 'Medical Leave', 'activity', 'emerald', {{ $medicalData['total'] }}, {{ $medicalData['used'] }}, {{ $medicalData['available'] }}, {{ $medicalData['cf'] }}, 'days')"
+        <div @click="openApplyModal('MEDICAL', true)"
              class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-emerald-300 dark:hover:border-emerald-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-500/30 shadow-2xs">
@@ -926,7 +936,7 @@
         </div>
 
         <!-- 4. Short Leave -->
-        <div @click="openQuotaModal('SHORT', 'Short Leave', 'clock', 'amber', {{ $shortData['total'] }}, {{ $shortData['used'] }}, {{ $shortData['available'] }}, {{ $shortData['cf'] }}, 'per month')"
+        <div @click="openApplyModal('SHORT', true)"
              class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-amber-300 dark:hover:border-amber-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-500/30 shadow-2xs">
@@ -954,7 +964,7 @@
         </div>
 
         <!-- 5. Duty Leave -->
-        <div @click="openQuotaModal('DUTY', 'Duty Leave', 'briefcase', 'indigo', {{ $dutyData['total'] }}, {{ $dutyData['used'] }}, {{ $dutyData['available'] }}, {{ $dutyData['cf'] }}, 'days')"
+        <div @click="openApplyModal('DUTY', true)"
              class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-indigo-300 dark:hover:border-indigo-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-500/30 shadow-2xs">
@@ -982,7 +992,7 @@
         </div>
 
         <!-- 6. Lieu Leave -->
-        <div @click="openQuotaModal('LIEU', 'Lieu Leave', 'refresh-cw', 'teal', {{ $lieuData['total'] }}, {{ $lieuData['used'] }}, {{ $lieuData['available'] }}, {{ $lieuData['cf'] }}, 'days')"
+        <div @click="openApplyModal('LIEU', true)"
              class="group bg-white dark:bg-[#111927] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_4px_16px_-2px_rgba(15,23,42,0.08),0_2px_4px_-1px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.12)] hover:border-teal-300 dark:hover:border-teal-700 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10 dark:hover:shadow-black/50 active:scale-[0.99]">
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-500/20 text-teal-600 dark:text-teal-300 flex items-center justify-center shrink-0 border border-teal-100 dark:border-teal-500/30 shadow-2xs">
@@ -1227,7 +1237,7 @@
                 $canAddHoliday = in_array($activeRole, ['HR Lead', 'Super (Admin)']);
             @endphp
             <div class="grid {{ $canAddHoliday ? 'grid-cols-2' : 'grid-cols-1' }} gap-2.5 shrink-0">
-                <button @click="openApplyModal('ANNUAL')" class="btn-primary py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer group">
+                <button @click="openApplyModal(null, false)" class="btn-primary py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer group">
                     <i data-lucide="plus" class="w-4 h-4 stroke-[2.5] text-white transition-transform duration-200 group-hover:rotate-90"></i>
                     <span>Apply Leave</span>
                 </button>
@@ -1665,13 +1675,23 @@
                             <p class="text-[11px] text-slate-500 dark:text-slate-400">Every rule is checked as you fill this in.</p>
                         </div>
 
-                        <!-- Leave Type Selection (Shows all types of leaves) -->
+                        <!-- Leave Type Selection (Shows respective leave or all leaves) -->
                         <div class="space-y-1.5">
-                            <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type</label>
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type</label>
+                                <template x-if="restrictedLeaveType">
+                                    <button type="button" 
+                                            @click="restrictedLeaveType = null" 
+                                            class="text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer flex items-center gap-1">
+                                        <span>Show all leave types</span>
+                                        <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                                    </button>
+                                </template>
+                            </div>
 
-                            <!-- Full Grid of all leave types -->
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-0.5">
-                                <template x-for="item in leaveCatalog" :key="item.code">
+                            <!-- Grid of leave types -->
+                            <div class="grid gap-1.5 pt-0.5" :class="restrictedLeaveType ? 'grid-cols-1 sm:grid-cols-2 max-w-sm' : 'grid-cols-2 sm:grid-cols-3'">
+                                <template x-for="item in displayedLeaveTypes" :key="item.code">
                                     <div @click="selectLeaveType(item.code, item.id)"
                                          :class="selectedLeaveTypeCode === item.code 
                                             ? 'bg-blue-50/80 dark:bg-[#192742] border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/25 dark:ring-blue-400/25 shadow-sm text-blue-950 dark:text-white' 
@@ -2205,7 +2225,7 @@
 
                             <!-- If employee already has approved available days, allow booking -->
                             <template x-if="parseFloat(selectedQuota?.available || 0) > 0">
-                                <button type="button" @click="quotaModalOpen = false; openApplyModal('LIEU')" class="btn-primary px-4 py-2 font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer">
+                                <button type="button" @click="quotaModalOpen = false; openApplyModal('LIEU', true)" class="btn-primary px-4 py-2 font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer">
                                     <i data-lucide="calendar" class="w-4 h-4"></i>
                                     <span>Book Lieu Leave</span>
                                 </button>
@@ -2214,7 +2234,7 @@
                     </template>
 
                     <template x-if="selectedQuota?.code !== 'LIEU'">
-                        <button @click="quotaModalOpen = false; openApplyModal(selectedQuota?.code)" class="btn-primary px-4 py-2 font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer">
+                        <button @click="quotaModalOpen = false; openApplyModal(selectedQuota?.code, true)" class="btn-primary px-4 py-2 font-black text-xs rounded-xl flex items-center gap-1.5 cursor-pointer">
                             <i data-lucide="plus" class="w-4 h-4"></i> Apply for <span x-text="selectedQuota?.name"></span>
                         </button>
                     </template>

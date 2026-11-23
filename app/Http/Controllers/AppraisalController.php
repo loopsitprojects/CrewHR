@@ -33,14 +33,14 @@ class AppraisalController extends Controller
         if ($sessionRole) {
             $role = match($sessionRole) {
                 'HR Lead' => 'HR Lead',
-                'Manager (Team Approvals)', 'HOD / Manager' => 'Manager',
+                'Manager (Team Approvals)', 'HOD / Manager', 'Manager' => 'Manager',
                 'Employee' => 'Employee',
                 default => 'Super Admin',
             };
         } else {
             $role = match($employee?->system_role ?? '') {
                 'HR Lead' => 'HR Lead',
-                'Manager (Team Approvals)' => 'Manager',
+                'Manager (Team Approvals)', 'HOD / Manager', 'Manager' => 'Manager',
                 'Employee' => 'Employee',
                 default => 'Super Admin',
             };
@@ -57,6 +57,9 @@ class AppraisalController extends Controller
         [$user, $employee, $role] = $this->getActorContext();
 
         $activeCycle = AppraisalCycle::where('status', 'Active')->latest()->first() ?? AppraisalCycle::latest()->first();
+        if ($activeCycle) {
+            self::initializeAppraisalsForActiveEmployees($activeCycle);
+        }
         $cycles = AppraisalCycle::orderBy('id', 'desc')->get();
         $departments = Department::orderBy('name')->get();
         $templates = AppraisalTemplate::with('criteria')->orderBy('title')->get();
@@ -237,24 +240,28 @@ class AppraisalController extends Controller
             abort(403, 'Unauthorized access to this appraisal record.');
         }
 
-        // Action permissions
-        $canEditSelf = ($isEmployeeHimself || $isAdminOrHr) && !$appraisal->is_locked && $appraisal->status === 'pending_self_eval';
-        
-        $canEditManager = ($isReportingManager || $isAdminOrHr) && 
-            !$appraisal->is_locked && 
-            in_array($appraisal->status, ['submitted_self_eval', 'pending_manager_eval']);
+        // Deadline & Lock evaluation
+        $isEmployeeSubmissionLocked = $appraisal->isEmployeeSubmissionLocked();
+        $isManagerReviewLocked = $appraisal->isManagerReviewLocked();
 
-        $canEditHod = ($isHod || $isAdminOrHr) && 
-            !$appraisal->is_locked && 
-            in_array($appraisal->status, ['submitted_manager_eval', 'pending_hod_eval', ($appraisal->workflow_type === 'two_tier' ? 'submitted_self_eval' : '')]);
+        $isEmployeeOverdue = ($appraisal->status === 'pending_self_eval') && $appraisal->cycle?->self_eval_deadline && now()->gt($appraisal->cycle->self_eval_deadline->endOfDay()) && !$appraisal->is_override_unlocked;
+        $isManagerOverdue = in_array($appraisal->status, ['submitted_self_eval', 'pending_manager_eval']) && $appraisal->cycle?->manager_eval_deadline && now()->gt($appraisal->cycle->manager_eval_deadline->endOfDay()) && !$appraisal->is_override_unlocked;
+
+        // Action permissions (Admin has ALL access and is never blocked by deadlines)
+        $canEditSelf = $isAdminOrHr || ($isEmployeeHimself && !$isEmployeeSubmissionLocked);
+        $canEditManager = $isAdminOrHr || ($isReportingManager && !$isManagerReviewLocked);
+        $canEditHod = $isAdminOrHr || ($isHod && !$appraisal->is_locked);
 
         $canManageIncrement = $isAdminOrHr;
         
         // Employees have only Evaluation Form and Changes Requested (never Increment & Promotion)
         $canSeeIncrement = !$isEmployeeOnly && ($isAdminOrHr || ($isHod && $appraisal->is_increment_visible_to_hod));
 
-        $canRequestChange = $appraisal->is_locked && ($isEmployeeHimself || $isReportingManager || $isHod);
-        $canUnlock = $isAdminOrHr && $appraisal->is_locked;
+        // Anyone locked out by deadline or manual lock can request an unlock
+        $canRequestChange = ($isEmployeeHimself && ($isEmployeeSubmissionLocked || $isEmployeeOverdue || $appraisal->is_locked))
+            || ($isReportingManager && ($isManagerReviewLocked || $isManagerOverdue || $appraisal->is_locked))
+            || ($isHod && $appraisal->is_locked);
+        $canUnlock = $isAdminOrHr;
 
         $designations = Designation::orderBy('name')->get();
 
@@ -274,6 +281,8 @@ class AppraisalController extends Controller
             'canSeeIncrement',
             'canRequestChange',
             'canUnlock',
+            'isEmployeeOverdue',
+            'isManagerOverdue',
             'designations'
         ));
     }
@@ -285,9 +294,21 @@ class AppraisalController extends Controller
     {
         [$user, $employee, $role] = $this->getActorContext();
         $appraisal = Appraisal::with('criteriaScores')->findOrFail($id);
+        $isAdminOrHr = in_array($role, ['Super Admin', 'HR Lead']);
+        $isEmployeeHimself = ($employee && $appraisal->employee_id == $employee->id);
+        $isReportingManager = ($employee && $appraisal->reporting_manager_id == $employee->id);
 
-        if ($appraisal->is_locked && !in_array($role, ['Super Admin', 'HR Lead'])) {
-            return back()->with('error', 'Appraisal is locked and cannot be edited.');
+        // Admin has all access and can always save drafts
+        if (!$isAdminOrHr) {
+            if ($isEmployeeHimself && $appraisal->isEmployeeSubmissionLocked()) {
+                return back()->with('error', 'Self-evaluation submission duration has passed or is locked. Please request an unlock from HR.');
+            }
+            if ($isReportingManager && $appraisal->isManagerReviewLocked()) {
+                return back()->with('error', 'Manager review duration has passed or is locked. Please request an unlock from HR.');
+            }
+            if ($appraisal->is_locked && !$appraisal->is_override_unlocked) {
+                return back()->with('error', 'Appraisal is locked and cannot be edited.');
+            }
         }
 
         $scoresData = $request->input('scores', []);
@@ -333,6 +354,11 @@ class AppraisalController extends Controller
     {
         [$user, $employee, $role] = $this->getActorContext();
         $appraisal = Appraisal::with(['criteriaScores', 'employee.user', 'reportingManager.user', 'hod.user'])->findOrFail($id);
+        $isAdminOrHr = in_array($role, ['Super Admin', 'HR Lead']);
+
+        if (!$isAdminOrHr && $appraisal->isEmployeeSubmissionLocked()) {
+            return back()->with('error', 'The self-evaluation deadline has passed. This appraisal is locked. Please submit an unlock request to HR with your reason.');
+        }
 
         // Save scores first
         $this->saveDraft($request, $id);
@@ -355,8 +381,8 @@ class AppraisalController extends Controller
             $roleLabel = 'Head of Department';
         }
 
-        $appraisal->is_locked = true;
         $appraisal->self_submitted_at = now();
+        $appraisal->is_override_unlocked = false; // Reset unlock override so manager adheres to manager duration
         $appraisal->save();
 
         // Notification to next reviewer
@@ -372,7 +398,7 @@ class AppraisalController extends Controller
         }
 
         return redirect()->route('appraisal.show', $appraisal->id)
-            ->with('success', "Self-evaluation submitted successfully! Form is now locked and routed to your {$roleLabel} for review.");
+            ->with('success', "Self-evaluation submitted successfully! Form is now routed to your {$roleLabel} for review.");
     }
 
     /**
@@ -382,6 +408,11 @@ class AppraisalController extends Controller
     {
         [$user, $employee, $role] = $this->getActorContext();
         $appraisal = Appraisal::with(['criteriaScores', 'employee.user', 'hod.user'])->findOrFail($id);
+        $isAdminOrHr = in_array($role, ['Super Admin', 'HR Lead']);
+
+        if (!$isAdminOrHr && $appraisal->isManagerReviewLocked()) {
+            return back()->with('error', 'The manager review deadline has passed. This appraisal is locked. Please submit an unlock request to HR with your reason.');
+        }
 
         $this->saveDraft($request, $id);
 
@@ -396,7 +427,7 @@ class AppraisalController extends Controller
 
         // Route to HOD
         $appraisal->status = 'pending_hod_eval';
-        $appraisal->is_locked = true;
+        $appraisal->is_override_unlocked = false;
         $appraisal->save();
 
         // Notify HOD
@@ -547,11 +578,23 @@ class AppraisalController extends Controller
         }
 
         $appraisal = Appraisal::with('employee.user')->findOrFail($id);
-        $targetStage = $request->input('target_stage', 'pending_self_eval');
+        $defaultStage = in_array($appraisal->status, ['submitted_self_eval', 'pending_manager_eval']) 
+            ? 'pending_manager_eval' 
+            : 'pending_self_eval';
+        $targetStage = $request->input('target_stage', $defaultStage);
+
+        $extensionDays = (int)$request->input('extension_days', 7);
+        if ($extensionDays < 1) {
+            $extensionDays = 7;
+        }
+        $unlockedUntil = now()->addDays($extensionDays)->endOfDay();
 
         $appraisal->update([
             'is_locked' => false,
             'status' => $targetStage,
+            'is_override_unlocked' => true,
+            'unlocked_until' => $unlockedUntil,
+            'unlocked_by_user_id' => $user->id,
         ]);
 
         // Resolve any open change requests
@@ -560,7 +603,7 @@ class AppraisalController extends Controller
             ->update([
                 'status' => 'Approved_Unlocked',
                 'actioned_by_user_id' => $user->id,
-                'action_notes' => $request->input('notes', 'Unlocked by HR Administrator'),
+                'action_notes' => $request->input('notes', "Unlocked by HR Administrator with {$extensionDays}-day extension until {$unlockedUntil->format('d M Y')}"),
                 'actioned_at' => now(),
             ]);
 
@@ -570,13 +613,13 @@ class AppraisalController extends Controller
                 'user_id' => $appraisal->employee->user_id,
                 'type' => 'appraisal_unlocked',
                 'title' => 'Appraisal Form Unlocked',
-                'message' => "HR has unlocked your appraisal for {$appraisal->cycle?->name}. You can now make required edits and resubmit.",
+                'message' => "HR has unlocked your appraisal for {$appraisal->cycle?->name} until {$unlockedUntil->format('d M Y')}. You can now make required edits and resubmit.",
                 'link' => route('appraisal.show', $appraisal->id),
                 'is_read' => false,
             ]);
         }
 
-        return back()->with('success', "Appraisal unlocked successfully. Status set to '{$targetStage}'.");
+        return back()->with('success', "Appraisal unlocked successfully until {$unlockedUntil->format('d M Y')}. Status set to '{$targetStage}'.");
     }
 
     /**
@@ -638,16 +681,30 @@ class AppraisalController extends Controller
         $notes = $request->input('notes', '');
 
         if ($action === 'approve') {
+            $extensionDays = (int)$request->input('extension_days', 7);
+            if ($extensionDays < 1) {
+                $extensionDays = 7;
+            }
+            $unlockedUntil = now()->addDays($extensionDays)->endOfDay();
+
+            $defaultStage = in_array($changeReq->appraisal->status, ['submitted_self_eval', 'pending_manager_eval']) 
+                ? 'pending_manager_eval' 
+                : 'pending_self_eval';
+            $targetStage = $request->input('target_stage', $defaultStage);
+
             $changeReq->update([
                 'status' => 'Approved_Unlocked',
                 'actioned_by_user_id' => $user->id,
-                'action_notes' => $notes,
+                'action_notes' => $notes ?: "Approved with {$extensionDays}-day extension until {$unlockedUntil->format('d M Y')}",
                 'actioned_at' => now(),
             ]);
 
             $changeReq->appraisal->update([
                 'is_locked' => false,
-                'status' => 'pending_self_eval',
+                'status' => $targetStage,
+                'is_override_unlocked' => true,
+                'unlocked_until' => $unlockedUntil,
+                'unlocked_by_user_id' => $user->id,
             ]);
 
             if ($changeReq->appraisal->employee && $changeReq->appraisal->employee->user_id) {
@@ -655,13 +712,13 @@ class AppraisalController extends Controller
                     'user_id' => $changeReq->appraisal->employee->user_id,
                     'type' => 'change_request_approved',
                     'title' => 'Appraisal Change Request Approved',
-                    'message' => "Your change request has been approved by HR. The appraisal form is unlocked for edits.",
+                    'message' => "Your change request has been approved by HR. The appraisal form is unlocked until {$unlockedUntil->format('d M Y')} for edits.",
                     'link' => route('appraisal.show', $changeReq->appraisal_id),
                     'is_read' => false,
                 ]);
             }
 
-            return back()->with('success', 'Change request approved and appraisal unlocked.');
+            return back()->with('success', "Change request approved. Appraisal unlocked until {$unlockedUntil->format('d M Y')}.");
         } else {
             $changeReq->update([
                 'status' => 'Rejected',
@@ -700,6 +757,35 @@ class AppraisalController extends Controller
         $departments = Department::orderBy('name')->get();
 
         return view('pages.appraisal-templates', compact('templates', 'designations', 'departments', 'role', 'employee'));
+    }
+
+    /**
+     * Toggle Appraisal Template Active Status (Enables/Disables Template)
+     * When enabled, auto-initializes appraisals for matching employees in the active cycle.
+     */
+    public function toggleTemplate(Request $request, $id)
+    {
+        [$user, $employee, $role] = $this->getActorContext();
+        if (!in_array($role, ['Super Admin', 'HR Lead'])) {
+            abort(403, 'Unauthorized');
+        }
+
+        $template = AppraisalTemplate::with('criteria')->findOrFail($id);
+        $template->is_active = !$template->is_active;
+        $template->save();
+
+        $count = 0;
+        if ($template->is_active) {
+            $count = self::initializeAppraisalsForActiveEmployees(null, $template);
+        }
+
+        $state = $template->is_active ? 'enabled' : 'disabled';
+        $msg = "Appraisal template '{$template->title}' has been {$state}.";
+        if ($count > 0) {
+            $msg .= " Initialized {$count} employee appraisal record(s).";
+        }
+
+        return back()->with('success', $msg);
     }
 
     /**
@@ -745,7 +831,9 @@ class AppraisalController extends Controller
             ]);
         }
 
-        return back()->with('success', 'New appraisal template created successfully.');
+        self::initializeAppraisalsForActiveEmployees(null, $template);
+
+        return back()->with('success', 'New appraisal template created and enabled successfully.');
     }
 
     /**
@@ -795,7 +883,110 @@ class AppraisalController extends Controller
             ]);
         }
 
+        if ($template->is_active) {
+            self::initializeAppraisalsForActiveEmployees(null, $template);
+        }
+
         return back()->with('success', 'Appraisal template updated successfully.');
+    }
+
+    /**
+     * Initialize appraisals for active employees when templates are enabled or cycles start.
+     */
+    public static function initializeAppraisalsForActiveEmployees(?AppraisalCycle $cycle = null, ?AppraisalTemplate $specificTemplate = null): int
+    {
+        if (!$cycle) {
+            $cycle = AppraisalCycle::where('status', 'Active')->latest()->first() ?? AppraisalCycle::latest()->first();
+        }
+
+        if (!$cycle) {
+            return 0;
+        }
+
+        $activeTemplates = AppraisalTemplate::with('criteria')->where('is_active', true)->get();
+        if ($activeTemplates->isEmpty()) {
+            return 0;
+        }
+
+        $employees = Employee::all();
+        $initialized = 0;
+
+        foreach ($employees as $emp) {
+            $existing = Appraisal::where('cycle_id', $cycle->id)->where('employee_id', $emp->id)->first();
+            if ($existing && $existing->criteriaScores()->count() > 0) {
+                continue;
+            }
+
+            $template = null;
+            if ($specificTemplate && $specificTemplate->is_active) {
+                if (($specificTemplate->designation_id && $specificTemplate->designation_id == $emp->designation_id)
+                    || ($specificTemplate->department_id && $specificTemplate->department_id == $emp->department_id)
+                    || (!$specificTemplate->designation_id && !$specificTemplate->department_id)) {
+                    $template = $specificTemplate;
+                }
+            }
+
+            if (!$template) {
+                // 1. Designation match
+                $template = $activeTemplates->firstWhere('designation_id', $emp->designation_id);
+                // 2. Department match
+                if (!$template && $emp->department_id) {
+                    $template = $activeTemplates->firstWhere('department_id', $emp->department_id);
+                }
+                // 3. Fallback generic active template
+                if (!$template) {
+                    $template = $activeTemplates->first(fn($t) => is_null($t->designation_id) && is_null($t->department_id));
+                }
+                // 4. Any first active template
+                if (!$template) {
+                    $template = $activeTemplates->first();
+                }
+            }
+
+            if (!$template || $template->criteria->isEmpty()) {
+                continue;
+            }
+
+            $workflow = $emp->reporting_person_id ? 'three_tier' : 'two_tier';
+            $hod = $emp->hod_id ?: Employee::where('department_id', $emp->department_id)->where('id', '!=', $emp->id)->first()?->id;
+
+            if (!$existing) {
+                $existing = Appraisal::create([
+                    'cycle_id' => $cycle->id,
+                    'employee_id' => $emp->id,
+                    'template_id' => $template->id,
+                    'reporting_manager_id' => $emp->reporting_person_id,
+                    'hod_id' => $hod,
+                    'workflow_type' => $workflow,
+                    'status' => 'pending_self_eval',
+                    'is_locked' => false,
+                ]);
+                $initialized++;
+            } else {
+                $existing->update([
+                    'template_id' => $template->id,
+                    'reporting_manager_id' => $emp->reporting_person_id,
+                    'hod_id' => $hod,
+                    'workflow_type' => $workflow,
+                ]);
+            }
+
+            foreach ($template->criteria as $criterion) {
+                AppraisalCriteriaScore::firstOrCreate(
+                    ['appraisal_id' => $existing->id, 'criteria_name' => $criterion->name],
+                    [
+                        'criteria_description' => $criterion->description,
+                        'weightage' => $criterion->weightage,
+                        'self_rating' => null,
+                        'manager_rating' => null,
+                        'final_rating' => null,
+                        'weighted_score' => 0.00,
+                    ]
+                );
+            }
+        }
+
+        return $initialized;
     }
 
     /**

@@ -153,11 +153,32 @@
                 @csrf
                 <input type="hidden" name="action" :value="actionType">
 
-                <p class="text-slate-400 font-normal leading-relaxed" x-text="actionType === 'approve' ? 'Approving this request will immediately unlock the appraisal and notify the employee that they can revise their submission.' : 'Declining will keep the appraisal locked in its current submitted state.'"></p>
+                <p class="text-slate-400 font-normal leading-relaxed" x-text="actionType === 'approve' ? 'Approving this request will immediately unlock the appraisal with an extension duration and notify the requester.' : 'Declining will keep the appraisal locked in its current submitted state.'"></p>
+
+                <div x-show="actionType === 'approve'" class="space-y-3">
+                    <div>
+                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Unlock Duration (Days)</label>
+                        <select name="extension_days" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                            <option value="3">3 Days Extension</option>
+                            <option value="5">5 Days Extension</option>
+                            <option value="7" selected>7 Days Extension (Default)</option>
+                            <option value="14">14 Days Extension</option>
+                            <option value="30">30 Days Extension</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Revert to Stage</label>
+                        <select name="target_stage" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                            <option value="pending_self_eval" selected>Employee Self-Evaluation (Pending Self-Eval)</option>
+                            <option value="pending_manager_eval">Manager Review (Pending Manager Eval)</option>
+                        </select>
+                    </div>
+                </div>
 
                 <div>
                     <label class="block text-slate-700 dark:text-slate-300 mb-1">HR Feedback / Notes</label>
-                    <textarea name="notes" rows="3" placeholder="Provide note for the requester..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-normal"></textarea>
+                    <textarea name="notes" rows="2" placeholder="Provide note for the requester..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-normal"></textarea>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">

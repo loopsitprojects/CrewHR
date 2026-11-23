@@ -59,6 +59,83 @@
         </div>
     @endif
 
+    <!-- Status & Policy Banners -->
+    @if($isAdminOrHr)
+        <div class="p-4 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/90 dark:border-indigo-800/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 text-base shadow-sm">
+                    <i class="ph ph-shield-check"></i>
+                </div>
+                <div>
+                    <span class="font-black text-indigo-950 dark:text-indigo-200 block">Administrator Unrestricted Access</span>
+                    <span class="text-indigo-700/80 dark:text-indigo-300/80 font-medium">You have full override authority. You can edit criteria scores, ratings, comments, and adjust deadlines across all stages regardless of lock state.</span>
+                </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-200/60 dark:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200 self-start sm:self-auto shrink-0">
+                Full Access
+            </span>
+        </div>
+    @endif
+
+    @if($isEmployeeOverdue && !$isAdminOrHr)
+        <div class="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-start sm:items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 text-base shadow-sm">
+                    <i class="ph ph-lock-key"></i>
+                </div>
+                <div>
+                    <span class="font-black text-rose-900 dark:text-rose-200 block">Self-Evaluation Submission Duration Ended</span>
+                    <span class="text-rose-700/90 dark:text-rose-300/90 font-medium">
+                        The submission window closed on <strong>{{ $appraisal->cycle?->self_eval_deadline?->format('d M Y') ?? 'the scheduled deadline' }}</strong>. This evaluation form has been locked. To submit your evaluation, request an unlock from HR.
+                    </span>
+                </div>
+            </div>
+            <button type="button" @click="showChangeRequestModal = true" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl font-bold text-xs shrink-0 flex items-center gap-1.5 shadow-sm cursor-pointer self-start sm:self-auto">
+                <i class="ph ph-lock-key-open"></i>
+                <span>Request HR Unlock</span>
+            </button>
+        </div>
+    @endif
+
+    @if($isManagerOverdue && !$isAdminOrHr)
+        <div class="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-start sm:items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 text-base shadow-sm">
+                    <i class="ph ph-hourglass-high"></i>
+                </div>
+                <div>
+                    <span class="font-black text-amber-900 dark:text-amber-200 block">Manager Review Duration Passed</span>
+                    <span class="text-amber-800/90 dark:text-amber-300/90 font-medium">
+                        The review window for managers closed on <strong>{{ $appraisal->cycle?->manager_eval_deadline?->format('d M Y') ?? 'the scheduled deadline' }}</strong>. Review submissions are locked. To complete this review, request an unlock from HR.
+                    </span>
+                </div>
+            </div>
+            <button type="button" @click="showChangeRequestModal = true" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl font-bold text-xs shrink-0 flex items-center gap-1.5 shadow-sm cursor-pointer self-start sm:self-auto">
+                <i class="ph ph-arrow-counter-clockwise"></i>
+                <span>Request HR Unlock</span>
+            </button>
+        </div>
+    @endif
+
+    @if($appraisal->is_override_unlocked && $appraisal->unlocked_until && now()->lte($appraisal->unlocked_until))
+        <div class="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="flex items-start sm:items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 text-base shadow-sm">
+                    <i class="ph ph-lock-key-open"></i>
+                </div>
+                <div>
+                    <span class="font-black text-emerald-950 dark:text-emerald-200 block">Temporary HR Extension Active</span>
+                    <span class="text-emerald-800/90 dark:text-emerald-300/90 font-medium">
+                        This appraisal was unlocked by HR with an extension valid until <strong>{{ $appraisal->unlocked_until->format('d M Y, h:i A') }}</strong>. Please complete and submit before the extension closes.
+                    </span>
+                </div>
+            </div>
+            <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 self-start sm:self-auto shrink-0">
+                Extension Active
+            </span>
+        </div>
+    @endif
+
     <!-- Employee & Appraisal Header Banner -->
     <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-sm space-y-6">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
@@ -78,9 +155,13 @@
                             {{ $appraisal->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800' }}">
                             {{ ucwords(str_replace('_', ' ', $appraisal->status)) }}
                         </span>
-                        @if($appraisal->is_locked)
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1 border border-slate-200 dark:border-slate-700">
-                                <i class="ph ph-lock text-xs"></i> Form Locked
+                        @if($appraisal->is_override_unlocked && $appraisal->unlocked_until && now()->lte($appraisal->unlocked_until))
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-300 flex items-center gap-1">
+                                <i class="ph ph-lock-key-open text-xs"></i> HR Extension Active
+                            </span>
+                        @elseif($isEmployeeOverdue || $isManagerOverdue || $appraisal->is_locked)
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 flex items-center gap-1 border border-rose-200 dark:border-rose-800">
+                                <i class="ph ph-lock text-xs"></i> Locked ({{ $isEmployeeOverdue ? 'Self-Eval Window Closed' : ($isManagerOverdue ? 'Manager Window Closed' : 'Form Locked') }})
                             </span>
                         @else
                             <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 flex items-center gap-1">
@@ -802,17 +883,28 @@
             <form action="{{ route('appraisal.unlock', $appraisal->id) }}" method="POST" class="space-y-4 text-xs font-bold">
                 @csrf
                 <p class="text-slate-500 dark:text-slate-400 font-normal">
-                    Unlocking restores edit permissions. Select which review stage the appraisal should revert to:
+                    Unlocking restores edit permissions for the selected stage and sets a temporary extension window:
                 </p>
 
                 <div>
                     <label class="block text-slate-700 dark:text-slate-300 mb-1">Target Unlock Stage</label>
                     <select name="target_stage" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
-                        <option value="pending_self_eval">Pending Self-Evaluation (Revert to Employee)</option>
+                        <option value="pending_self_eval" {{ $appraisal->status === 'pending_self_eval' ? 'selected' : '' }}>Pending Self-Evaluation (Revert to Employee)</option>
                         @if($appraisal->workflow_type === 'three_tier' && $appraisal->reporting_manager_id)
-                            <option value="pending_manager_eval">Pending Manager Review (Revert to Manager)</option>
+                            <option value="pending_manager_eval" {{ in_array($appraisal->status, ['submitted_self_eval', 'pending_manager_eval']) ? 'selected' : '' }}>Pending Manager Review (Revert to Manager)</option>
                         @endif
-                        <option value="pending_hod_eval">Pending HOD Review (Revert to HOD)</option>
+                        <option value="pending_hod_eval" {{ $appraisal->status === 'pending_hod_eval' ? 'selected' : '' }}>Pending HOD Review (Revert to HOD)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 dark:text-slate-300 mb-1">Unlock Extension Duration (Days)</label>
+                    <select name="extension_days" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                        <option value="3">3 Days Extension</option>
+                        <option value="5">5 Days Extension</option>
+                        <option value="7" selected>7 Days Extension (Default)</option>
+                        <option value="14">14 Days Extension</option>
+                        <option value="30">30 Days Extension</option>
                     </select>
                 </div>
 

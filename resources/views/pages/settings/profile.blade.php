@@ -20,6 +20,24 @@
             if (!$initialProfileExp) {
                 $initialProfileExp = !empty($employee?->working_experience_list) ? $employee->working_experience_list : [['company' => '', 'designation' => '', 'duration' => '']];
             }
+
+            $ecRaw = $employee->emergency_contact ?? '';
+            $ecName = '';
+            $ecPhone = '';
+            if (str_contains($ecRaw, ' - ')) {
+                $parts = explode(' - ', $ecRaw, 2);
+                $ecName = $parts[0] ?? '';
+                $ecPhone = $parts[1] ?? '';
+            } elseif (str_contains($ecRaw, ',')) {
+                $parts = explode(',', $ecRaw, 2);
+                $ecName = trim($parts[0] ?? '');
+                $ecPhone = trim($parts[1] ?? '');
+            } elseif (preg_match('/^(.*?)\s*\((.*?)\)$/', $ecRaw, $m)) {
+                $ecName = trim($m[1] ?? '');
+                $ecPhone = trim($m[2] ?? '');
+            } else {
+                $ecName = $ecRaw;
+            }
         @endphp
 
         <form action="{{ route('settings.profile.update') }}" method="POST"
@@ -68,13 +86,18 @@
                 </div>
 
                 <div>
-                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Emergency Contact (Name & Phone)</label>
-                    <input type="text" name="emergency_contact" value="{{ old('emergency_contact', $employee->emergency_contact ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. Spouse (+94 71 987 6543)">
+                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">NIC / Passport Number</label>
+                    <input type="text" name="nic_passport" value="{{ old('nic_passport', $employee->nic_passport ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. 199012345678 or N1234567">
                 </div>
 
                 <div>
-                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">NIC / Passport Number</label>
-                    <input type="text" name="nic_passport" value="{{ old('nic_passport', $employee->nic_passport ?? '') }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5">
+                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Emergency Contact Name</label>
+                    <input type="text" name="emergency_contact_name" value="{{ old('emergency_contact_name', $ecName) }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. Jane Doe (Spouse)">
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1">Emergency Contact Phone</label>
+                    <input type="text" name="emergency_contact_phone" value="{{ old('emergency_contact_phone', $ecPhone) }}" class="w-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#1e2d4d] text-slate-900 dark:text-white rounded-xl text-xs font-bold p-2.5" placeholder="e.g. +94 71 987 6543">
                 </div>
             </div>
 

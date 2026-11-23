@@ -15,6 +15,8 @@ class Appraisal extends Model
 
     protected $casts = [
         'is_locked' => 'boolean',
+        'is_override_unlocked' => 'boolean',
+        'unlocked_until' => 'datetime',
         'is_promoted' => 'boolean',
         'is_increment_visible_to_employee' => 'boolean',
         'is_increment_visible_to_hod' => 'boolean',
@@ -69,6 +71,93 @@ class Appraisal extends Model
     public function letters()
     {
         return $this->hasMany(AppraisalLetter::class, 'appraisal_id');
+    }
+
+    public function unlockedBy()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'unlocked_by_user_id');
+    }
+
+    /**
+     * Check if employee self-evaluation is locked (due to manual lock or overdue deadline).
+     */
+    public function isEmployeeSubmissionLocked(): bool
+    {
+        // Not in self-eval stage -> employee cannot edit
+        if ($this->status !== 'pending_self_eval') {
+            return true;
+        }
+
+        // Active HR override unlock takes precedence
+        if ($this->is_override_unlocked) {
+            if ($this->unlocked_until && now()->gt($this->unlocked_until)) {
+                return true; // Extension expired
+            }
+            return false; // Still within approved unlock window
+        }
+
+        // Explicit manual lock
+        if ($this->is_locked) {
+            return true;
+        }
+
+        // Auto-lock if self-evaluation deadline passed
+        if ($this->cycle && $this->cycle->self_eval_deadline) {
+            return now()->gt($this->cycle->self_eval_deadline->endOfDay());
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if manager review is locked (due to manual lock or overdue deadline).
+     */
+    public function isManagerReviewLocked(): bool
+    {
+        // Not in manager review stage -> manager cannot edit
+        if (!in_array($this->status, ['submitted_self_eval', 'pending_manager_eval'])) {
+            return true;
+        }
+
+        // Active HR override unlock takes precedence
+        if ($this->is_override_unlocked) {
+            if ($this->unlocked_until && now()->gt($this->unlocked_until)) {
+                return true;
+            }
+            return false;
+        }
+
+        // Explicit manual lock
+        if ($this->is_locked) {
+            return true;
+        }
+
+        // Auto-lock if manager evaluation deadline passed
+        if ($this->cycle && $this->cycle->manager_eval_deadline) {
+            return now()->gt($this->cycle->manager_eval_deadline->endOfDay());
+        }
+
+        return false;
+    }
+
+    /**
+     * Helper to get active deadline for current stage.
+     */
+    public function currentStageDeadline(): ?\Carbon\Carbon
+    {
+        if ($this->is_override_unlocked && $this->unlocked_until) {
+            return $this->unlocked_until;
+        }
+
+        if ($this->status === 'pending_self_eval') {
+            return $this->cycle?->self_eval_deadline;
+        }
+
+        if (in_array($this->status, ['submitted_self_eval', 'pending_manager_eval'])) {
+            return $this->cycle?->manager_eval_deadline;
+        }
+
+        return $this->cycle?->end_date;
     }
 
     /**

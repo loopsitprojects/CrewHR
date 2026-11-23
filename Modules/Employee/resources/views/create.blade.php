@@ -207,9 +207,14 @@
                     <input type="text" name="phone_number" value="{{ old('phone_number') }}" placeholder="+94 77 123 4567" class="w-full border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 p-2.5 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
                 </div>
 
-                <div class="md:col-span-2 lg:col-span-1">
-                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Emergency Contact</label>
-                    <input type="text" name="emergency_contact" value="{{ old('emergency_contact') }}" placeholder="e.g. Jane Doe - +94 77 999 8888" class="w-full border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 p-2.5 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
+                <div>
+                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Emergency Contact Name</label>
+                    <input type="text" name="emergency_contact_name" value="{{ old('emergency_contact_name') }}" placeholder="e.g. Jane Doe (Spouse)" class="w-full border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 p-2.5 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Emergency Contact Phone</label>
+                    <input type="text" name="emergency_contact_phone" value="{{ old('emergency_contact_phone') }}" placeholder="e.g. +94 77 999 8888" class="w-full border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 p-2.5 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
                 </div>
             </div>
         </div>

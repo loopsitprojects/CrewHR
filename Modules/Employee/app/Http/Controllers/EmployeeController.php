@@ -184,6 +184,12 @@ class EmployeeController extends Controller
                 $profilePicture = Storage::url($path);
             }
 
+            $ecName = trim($request->input('emergency_contact_name', ''));
+            $ecPhone = trim($request->input('emergency_contact_phone', ''));
+            $emergencyContact = ($ecName || $ecPhone)
+                ? (($ecName && $ecPhone) ? "{$ecName} - {$ecPhone}" : ($ecName ?: $ecPhone))
+                : $request->emergency_contact;
+
             $emp = Employee::create([
                 'user_id' => $user->id,
                 'employee_id_number' => $request->employee_id_number,
@@ -195,7 +201,7 @@ class EmployeeController extends Controller
                 'date_of_birth' => $request->date_of_birth ?? $request->dob,
                 'nic_passport' => $request->nic_passport,
                 'phone_number' => $request->phone_number,
-                'emergency_contact' => $request->emergency_contact,
+                'emergency_contact' => $emergencyContact,
 
                 'department_id' => $request->department_id,
                 'designation_id' => $designationId,
@@ -342,6 +348,12 @@ class EmployeeController extends Controller
                 $profilePicture = Storage::url($path);
             }
 
+            $ecName = trim($request->input('emergency_contact_name', ''));
+            $ecPhone = trim($request->input('emergency_contact_phone', ''));
+            $emergencyContact = ($ecName || $ecPhone)
+                ? (($ecName && $ecPhone) ? "{$ecName} - {$ecPhone}" : ($ecName ?: $ecPhone))
+                : $request->emergency_contact;
+
             // Update Employee Profile
             $employee->update([
                 'title' => null,
@@ -352,7 +364,7 @@ class EmployeeController extends Controller
                 'date_of_birth' => $request->date_of_birth ?? $request->dob ?? $employee->date_of_birth,
                 'nic_passport' => $request->nic_passport,
                 'phone_number' => $request->phone_number,
-                'emergency_contact' => $request->emergency_contact,
+                'emergency_contact' => $emergencyContact,
 
                 'employee_id_number' => $request->employee_id_number,
                 'department_id' => $request->department_id,

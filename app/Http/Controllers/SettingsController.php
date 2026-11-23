@@ -171,6 +171,8 @@ class SettingsController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
             'phone_number' => 'nullable|string|max:50',
             'emergency_contact' => 'nullable|string|max:100',
+            'emergency_contact_name' => 'nullable|string|max:100',
+            'emergency_contact_phone' => 'nullable|string|max:50',
             'bank_name' => 'nullable|string|max:255',
             'bank_branch' => 'nullable|string|max:255',
             'branch_code' => 'nullable|string|max:100',
@@ -185,6 +187,14 @@ class SettingsController extends Controller
             'name' => $request->name,
             'email' => $request->email,
         ]);
+
+        $ecName = trim($request->input('emergency_contact_name', ''));
+        $ecPhone = trim($request->input('emergency_contact_phone', ''));
+        if ($ecName || $ecPhone) {
+            $emergencyContact = ($ecName && $ecPhone) ? "{$ecName} - {$ecPhone}" : ($ecName ?: $ecPhone);
+        } else {
+            $emergencyContact = $request->emergency_contact;
+        }
 
         $higherEducation = null;
         if ($request->has('higher_education')) {
@@ -216,7 +226,7 @@ class SettingsController extends Controller
         if ($employee) {
             $employee->update([
                 'phone_number' => $request->phone_number,
-                'emergency_contact' => $request->emergency_contact,
+                'emergency_contact' => $emergencyContact,
                 'nic_passport' => $request->nic_passport ?? $employee->nic_passport,
                 'bank_name' => $request->bank_name,
                 'bank_branch' => $request->bank_branch,

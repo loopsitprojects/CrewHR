@@ -914,8 +914,8 @@
                             {{ strtoupper(substr($firstName, 0, 2)) }}
                         </div>
                     @endif
-                    <span class="hidden sm:inline-block text-xs font-bold text-slate-900 dark:text-white leading-none truncate max-w-[120px]">
-                        {{ $firstName }}
+                    <span class="hidden sm:inline-block text-xs font-bold uppercase text-slate-900 dark:text-white leading-none truncate max-w-[120px]">
+                        {{ strtoupper($firstName) }}
                     </span>
                 </div>
 

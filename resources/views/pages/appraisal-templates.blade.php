@@ -152,13 +152,23 @@
             <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4 hover:border-blue-300 dark:hover:border-blue-600/50 transition-all flex flex-col justify-between group">
                 <div class="space-y-3">
                     <div class="flex items-start justify-between gap-3">
-                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider
-                            {{ $tmpl->applicable_type === 'Designation' ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200' : '' }}
-                            {{ $tmpl->applicable_type === 'Department' ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200' : '' }}
-                            {{ $tmpl->applicable_type === 'Probation' ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200' : '' }}
-                            {{ $tmpl->applicable_type === 'General' ? 'bg-slate-100 text-slate-700 border border-slate-200' : '' }}">
-                            {{ $tmpl->applicable_type }} Format
-                        </span>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider
+                                {{ $tmpl->applicable_type === 'Designation' ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200' : '' }}
+                                {{ $tmpl->applicable_type === 'Department' ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200' : '' }}
+                                {{ $tmpl->applicable_type === 'Probation' ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200' : '' }}
+                                {{ $tmpl->applicable_type === 'General' ? 'bg-slate-100 text-slate-700 border border-slate-200' : '' }}">
+                                {{ $tmpl->applicable_type }} Format
+                            </span>
+
+                            <form action="{{ route('appraisal.templates.toggle', $tmpl->id) }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider transition-all cursor-pointer flex items-center gap-1 {{ $tmpl->is_active ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 hover:bg-emerald-100' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-300 hover:bg-slate-200' }}" title="{{ $tmpl->is_active ? 'Enabled - Click to disable' : 'Disabled - Click to enable & populate for employees' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ $tmpl->is_active ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
+                                    <span>{{ $tmpl->is_active ? 'Active' : 'Disabled' }}</span>
+                                </button>
+                            </form>
+                        </div>
 
                         <!-- Action Icons on Card Header (View, Edit, Delete) -->
                         <div class="flex items-center gap-1">
@@ -207,10 +217,14 @@
                     </div>
                 </div>
 
-                <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-bold">
-                    <span class="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <i class="ph ph-check-circle"></i> Ready for assignment
-                    </span>
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-bold">
+                    <form action="{{ route('appraisal.templates.toggle', $tmpl->id) }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="flex items-center gap-1.5 transition-colors cursor-pointer {{ $tmpl->is_active ? 'text-emerald-600 dark:text-emerald-400 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600' }}">
+                            <i class="ph {{ $tmpl->is_active ? 'ph-toggle-right text-base text-emerald-500' : 'ph-toggle-left text-base text-slate-400' }}"></i>
+                            <span>{{ $tmpl->is_active ? 'Active & Assigned' : 'Disabled (Hidden)' }}</span>
+                        </button>
+                    </form>
                     <div class="flex items-center gap-1.5">
                         <button type="button" @click="openViewModal({{ $tmplJson }})" class="px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer flex items-center gap-1">
                             <i class="ph ph-eye"></i> View
