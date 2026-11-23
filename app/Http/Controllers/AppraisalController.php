@@ -157,7 +157,7 @@ class AppraisalController extends Controller
             $myChangeRequests = AppraisalChangeRequest::with(['appraisal.cycle', 'requestedBy', 'actionedBy'])
                 ->where(function ($q) use ($user, $employee) {
                     if ($user) {
-                        $q->where('requested_by', $user->id);
+                        $q->where('requested_by_user_id', $user->id);
                     }
                     if ($employee) {
                         $q->orWhereHas('appraisal', fn($aq) => $aq->where('employee_id', $employee->id));
@@ -596,7 +596,7 @@ class AppraisalController extends Controller
         if ($role === 'Employee') {
             $query->where(function ($q) use ($user, $employee) {
                 if ($user) {
-                    $q->where('requested_by', $user->id);
+                    $q->where('requested_by_user_id', $user->id);
                 }
                 if ($employee) {
                     $q->orWhereHas('appraisal', fn($aq) => $aq->where('employee_id', $employee->id));
@@ -607,7 +607,7 @@ class AppraisalController extends Controller
             $empId = $employee?->id;
             $query->where(function ($q) use ($user, $empId, $deptId) {
                 if ($user) {
-                    $q->where('requested_by', $user->id);
+                    $q->where('requested_by_user_id', $user->id);
                 }
                 $q->orWhereHas('appraisal', function ($aq) use ($empId, $deptId) {
                     $aq->where('reporting_manager_id', $empId)
