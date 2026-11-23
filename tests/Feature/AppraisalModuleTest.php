@@ -316,4 +316,141 @@ class AppraisalModuleTest extends TestCase
         $response->assertStatus(200);
         $this->assertStringContainsString('application/pdf', $response->headers->get('Content-Type'));
     }
+
+    public function test_admin_can_update_appraisal_template_with_valid_criteria_weightage()
+    {
+        $response = $this->actingAs($this->adminUser)
+            ->withSession(['current_role' => 'Super (Admin)'])
+            ->put(route('appraisal.templates.update', $this->template->id), [
+                'title' => 'Updated Senior Software Engineer Appraisal',
+                'applicable_type' => 'designation',
+                'designation_id' => $this->staffEmployee->designation_id,
+                'description' => 'Updated appraisal criteria description',
+                'criteria' => [
+                    [
+                        'name' => 'System Design & Code Quality',
+                        'description' => 'Scalable patterns and test suites',
+                        'weightage' => 60,
+                    ],
+                    [
+                        'name' => 'Mentorship & Collaboration',
+                        'description' => 'Mentoring junior teammates',
+                        'weightage' => 40,
+                    ],
+                ],
+            ]);
+
+        $response->assertSessionHas('success');
+        $this->template->refresh();
+        $this->assertEquals('Updated Senior Software Engineer Appraisal', $this->template->title);
+        $this->assertCount(2, $this->template->criteria);
+        $this->assertEquals(100.0, (float) $this->template->criteria->sum('weightage'));
+
+        // Test weightage validation failure when not 100%
+        $invalidResponse = $this->actingAs($this->adminUser)
+            ->withSession(['current_role' => 'Super (Admin)'])
+            ->put(route('appraisal.templates.update', $this->template->id), [
+                'title' => 'Invalid Weight Template',
+                'applicable_type' => 'designation',
+                'criteria' => [
+                    ['name' => 'Criterion A', 'weightage' => 50],
+                    ['name' => 'Criterion B', 'weightage' => 40], // Sums to 90%, not 100%
+                ],
+            ]);
+
+        $invalidResponse->assertSessionHas('error');
+    }
+
+    public function test_mid_year_and_year_end_appraisal_cycle_structure_and_increment_rules(): void
+    {
+        // 1. Launch Mid-Year Review cycle
+        $midYearResponse = $this->actingAs($this->adminUser)
+            ->withSession(['current_role' => 'Super (Admin)'])
+            ->post(route('appraisal.cycles.store'), [
+                'name' => 'FY 2026/2027 Mid-Year Performance Review',
+                'review_period' => 'Mid-Year',
+                'cycle_type' => 'mid_year',
+                'financial_year' => 'FY 2026/2027',
+                'performance_period' => 'April to September',
+                'start_date' => '2026-10-01',
+                'end_date' => '2026-10-31',
+                'self_eval_deadline' => '2026-10-20',
+                'manager_eval_deadline' => '2026-10-31',
+                'allow_increments' => 0,
+            ]);
+
+        $midYearResponse->assertSessionHas('success');
+        $midYearCycle = AppraisalCycle::where('name', 'FY 2026/2027 Mid-Year Performance Review')->first();
+        $this->assertNotNull($midYearCycle);
+        $this->assertTrue($midYearCycle->isMidYear());
+        $this->assertFalse($midYearCycle->allowsIncrements());
+        $this->assertEquals('April to September', $midYearCycle->performance_period);
+
+        // Create an appraisal under Mid-Year cycle
+        $midYearAppraisal = Appraisal::create([
+            'cycle_id' => $midYearCycle->id,
+            'template_id' => $this->template->id,
+            'employee_id' => $this->staffEmployee->id,
+            'hod_id' => $this->hodEmployee->id,
+            'workflow_type' => 'two_tier',
+            'status' => 'completed',
+        ]);
+
+        // Attempting to grant increments during Mid-Year review must be rejected
+        $incResponse = $this->actingAs($this->adminUser)
+            ->withSession(['current_role' => 'Super (Admin)'])
+            ->post(route('appraisal.increment-promotion', $midYearAppraisal->id), [
+                'increment_percentage' => 10,
+            ]);
+
+        $incResponse->assertSessionHas('error');
+        $midYearAppraisal->refresh();
+        $this->assertEquals(0, (float)$midYearAppraisal->increment_percentage);
+
+        // 2. Launch Year-End Review cycle
+        $yearEndResponse = $this->actingAs($this->adminUser)
+            ->withSession(['current_role' => 'Super (Admin)'])
+            ->post(route('appraisal.cycles.store'), [
+                'name' => 'FY 2026/2027 Year-End Performance Review',
+                'review_period' => 'Year-End',
+                'cycle_type' => 'year_end',
+                'financial_year' => 'FY 2026/2027',
+                'performance_period' => 'October to March',
+                'start_date' => '2027-02-15',
+                'end_date' => '2027-03-15',
+                'self_eval_deadline' => '2027-03-01',
+                'manager_eval_deadline' => '2027-03-15',
+                'allow_increments' => 1,
+            ]);
+
+        $yearEndResponse->assertSessionHas('success');
+        $yearEndCycle = AppraisalCycle::where('name', 'FY 2026/2027 Year-End Performance Review')->first();
+        $this->assertNotNull($yearEndCycle);
+        $this->assertTrue($yearEndCycle->isYearEnd());
+        $this->assertTrue($yearEndCycle->allowsIncrements());
+        $this->assertEquals('October to March', $yearEndCycle->performance_period);
+
+        // Create an appraisal under Year-End cycle
+        $yearEndAppraisal = Appraisal::create([
+            'cycle_id' => $yearEndCycle->id,
+            'template_id' => $this->template->id,
+            'employee_id' => $this->staffEmployee->id,
+            'hod_id' => $this->hodEmployee->id,
+            'workflow_type' => 'two_tier',
+            'status' => 'completed',
+        ]);
+
+        // Year-End allows increment and promotion recommendation
+        $incSuccessResponse = $this->actingAs($this->adminUser)
+            ->withSession(['current_role' => 'Super (Admin)'])
+            ->post(route('appraisal.increment-promotion', $yearEndAppraisal->id), [
+                'increment_percentage' => 12.5,
+                'is_promoted' => 1,
+            ]);
+
+        $incSuccessResponse->assertSessionHas('success');
+        $yearEndAppraisal->refresh();
+        $this->assertEquals(12.5, (float)$yearEndAppraisal->increment_percentage);
+        $this->assertTrue($yearEndAppraisal->is_promoted);
+    }
 }

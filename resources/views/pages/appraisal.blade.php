@@ -60,15 +60,28 @@
 
     <!-- Active Cycle Banner -->
     @if($activeCycle)
-    <div class="relative overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-5 sm:p-6 text-white shadow-xl">
+    @php
+        $isMid = $activeCycle->isMidYear();
+    @endphp
+    <div class="relative overflow-hidden rounded-2xl p-5 sm:p-6 text-white shadow-xl {{ $isMid ? 'bg-gradient-to-r from-amber-700 via-orange-800 to-slate-900' : 'bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900' }}">
         <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
-            <div class="flex items-center gap-2.5">
-                <span class="bg-white/20 backdrop-blur-md px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-white/20">
-                    {{ $activeCycle->review_period }} Cycle &bull; {{ $activeCycle->status }}
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border {{ $isMid ? 'bg-amber-400/20 text-amber-200 border-amber-300/30' : 'bg-white/20 text-white border-white/20' }}">
+                    <i class="ph {{ $isMid ? 'ph-calendar-check' : 'ph-trend-up' }} mr-1"></i>
+                    {{ $isMid ? 'Mid-Year Review' : 'Year-End Review' }} &bull; {{ $activeCycle->status }}
+                </span>
+                @if($activeCycle->financial_year)
+                    <span class="bg-white/10 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border border-white/15">
+                        {{ $activeCycle->financial_year }}
+                    </span>
+                @endif
+                <span class="text-xs font-bold {{ $isMid ? 'text-amber-100' : 'text-blue-200' }} flex items-center gap-1.5">
+                    <i class="ph ph-calendar-blank text-sm"></i>
+                    Performance: {{ $activeCycle->performance_period ?: ($isMid ? 'April to September' : 'October to March') }}
                 </span>
                 @if($activeCycle->self_eval_deadline)
-                    <span class="text-xs font-bold text-blue-200 flex items-center gap-1.5">
+                    <span class="text-xs font-bold {{ $isMid ? 'text-amber-200' : 'text-blue-200' }} flex items-center gap-1.5">
                         <i class="ph ph-clock text-sm"></i>
                         Self-Eval Deadline: {{ $activeCycle->self_eval_deadline->format('d M Y') }}
                     </span>
@@ -79,13 +92,25 @@
             </div>
         </div>
 
-        <div>
-            <h2 class="text-xl sm:text-2xl font-black tracking-tight">{{ $activeCycle->name }}</h2>
+        <div class="space-y-1">
+            <div class="flex flex-wrap items-center gap-3">
+                <h2 class="text-xl sm:text-2xl font-black tracking-tight">{{ $activeCycle->name }}</h2>
+                <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full {{ $isMid ? 'bg-amber-950/80 text-amber-200 border border-amber-500/40' : 'bg-emerald-950/80 text-emerald-200 border border-emerald-500/40' }}">
+                    Review Window: {{ $activeCycle->start_date?->format('d M') }} – {{ $activeCycle->end_date?->format('d M Y') }}
+                </span>
+            </div>
+            <p class="text-xs {{ $isMid ? 'text-amber-100/90' : 'text-slate-300' }} font-medium max-w-3xl leading-relaxed">
+                @if($isMid)
+                    Covers performance from <strong>April to September</strong>. Focuses on reviewing employee progress, identifying areas for improvement, and setting or adjusting KPIs for the remainder of the year. <strong>This review does not involve salary increments.</strong>
+                @else
+                    Covers performance from <strong>October to March</strong>. Focuses on the final performance evaluation, identifying employees for potential promotions and increments. Increment recommendations are considered alongside the company's financial performance and approved budget.
+                @endif
+            </p>
         </div>
 
         <div class="mt-4">
             <div class="w-full bg-black/30 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/10">
-                <div class="bg-gradient-to-r from-blue-300 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: {{ $completionRate }}%;"></div>
+                <div class="bg-gradient-to-r {{ $isMid ? 'from-amber-400 to-emerald-400' : 'from-blue-300 to-emerald-400' }} h-full rounded-full transition-all duration-500" style="width: {{ $completionRate }}%;"></div>
             </div>
         </div>
     </div>
@@ -202,7 +227,13 @@
                                 <th class="p-3.5">Workflow Hierarchy</th>
                                 <th class="p-3.5">Evaluation Status</th>
                                 <th class="p-3.5">Score & Band</th>
-                                <th class="p-3.5">Increment / Promo</th>
+                                <th class="p-3.5">
+                                    @if($activeCycle?->isMidYear())
+                                        Review Focus
+                                    @else
+                                        Increment / Promo
+                                    @endif
+                                </th>
                                 <th class="p-3.5 pr-5 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -297,7 +328,11 @@
                                     </td>
 
                                     <td class="p-3.5">
-                                        @if(in_array($role, ['Super Admin', 'HR Lead']) || ($app->is_increment_visible_to_employee && $employee?->id == $app->employee_id) || ($app->is_increment_visible_to_hod && $employee?->id == $app->hod_id))
+                                        @if($app->cycle && !$app->cycle->allowsIncrements())
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/60" title="Mid-Year Review focuses on progress and KPIs without salary increments.">
+                                                <i class="ph ph-prohibit text-xs"></i> No Inc (Mid-Year)
+                                            </span>
+                                        @elseif(in_array($role, ['Super Admin', 'HR Lead']) || ($app->is_increment_visible_to_employee && $employee?->id == $app->employee_id) || ($app->is_increment_visible_to_hod && $employee?->id == $app->hod_id))
                                             <div class="space-y-0.5 text-[11px]">
                                                 @if($app->increment_percentage > 0)
                                                     <div class="font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
@@ -470,7 +505,8 @@
 
     <!-- MODAL: Create Appraisal Cycle -->
     <div x-show="showCycleModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div @click.away="showCycleModal = false" class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl space-y-5">
+        <div @click.away="showCycleModal = false" class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-2xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
+             x-data="cyclePresetForm()">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
@@ -478,56 +514,151 @@
                     </div>
                     <div>
                         <h3 class="text-sm font-black text-slate-900 dark:text-white">Create Appraisal Cycle</h3>
-                        <p class="text-[11px] text-slate-400 font-semibold">Define performance review period and timeline</p>
+                        <p class="text-[11px] text-slate-400 font-semibold">Select review structure preset to auto-configure windows, periods & increment rules</p>
                     </div>
                 </div>
-                <button @click="showCycleModal = false" class="text-slate-400 hover:text-slate-600"><i class="ph ph-x text-lg"></i></button>
+                <button type="button" @click="showCycleModal = false" class="text-slate-400 hover:text-slate-600 cursor-pointer"><i class="ph ph-x text-lg"></i></button>
             </div>
 
             <form action="{{ route('appraisal.cycles.store') }}" method="POST" class="space-y-4 text-xs font-bold">
                 @csrf
+
+                <!-- Presets Switcher: Mid-Year vs Year-End -->
                 <div>
-                    <label class="block text-slate-700 dark:text-slate-300 mb-1">Cycle Name</label>
-                    <input type="text" name="name" required placeholder="e.g. 2026 Annual Employee Performance Review" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                    <label class="block text-slate-700 dark:text-slate-300 mb-2">Cycle Architecture Preset</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Option 1: Mid-Year Review -->
+                        <div @click="applyPreset('mid_year')" 
+                             :class="cycleType === 'mid_year' ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/30 ring-2 ring-amber-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-slate-50/50 dark:bg-slate-900/20'"
+                             class="p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1.5 relative">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                                    <i class="ph ph-calendar-check text-base"></i>
+                                    1. Mid-Year Review
+                                </span>
+                                <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+                                    Oct 01 – Oct 31
+                                </span>
+                            </div>
+                            <p class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                                Performance: <strong>April to September</strong>
+                            </p>
+                            <p class="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-snug">
+                                Progress, improvement areas & KPI adjustments. <strong>No salary increments.</strong>
+                            </p>
+                        </div>
+
+                        <!-- Option 2: Year-End Review -->
+                        <div @click="applyPreset('year_end')" 
+                             :class="cycleType === 'year_end' ? 'border-blue-500 bg-blue-50/70 dark:bg-blue-950/30 ring-2 ring-blue-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-slate-50/50 dark:bg-slate-900/20'"
+                             class="p-3.5 rounded-2xl border transition-all cursor-pointer space-y-1.5 relative">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+                                    <i class="ph ph-trend-up text-base"></i>
+                                    2. Year-End Review
+                                </span>
+                                <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
+                                    Feb 15 – Mar 15
+                                </span>
+                            </div>
+                            <p class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                                Performance: <strong>October to March</strong>
+                            </p>
+                            <p class="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-snug">
+                                Final performance evaluation, potential promotions & increments (aligned with approved budget).
+                            </p>
+                        </div>
+                    </div>
+                    <input type="hidden" name="cycle_type" :value="cycleType">
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <!-- Cycle Name & Financial Year -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Cycle Name</label>
+                        <input type="text" name="name" x-model="name" required class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                    </div>
                     <div>
-                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Review Period</label>
-                        <select name="review_period" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Financial Year</label>
+                        <input type="text" name="financial_year" x-model="financialYear" @input="updateCycleName()" placeholder="e.g. FY 2026/2027" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                    </div>
+                </div>
+
+                <!-- Review Period & Performance Period -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Review Period Type</label>
+                        <select name="review_period" x-model="reviewPeriod" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                            <option value="Mid-Year">Mid-Year</option>
+                            <option value="Year-End">Year-End</option>
                             <option value="Annual">Annual</option>
-                            <option value="Bi-Annual">Bi-Annual</option>
                             <option value="Probation">Probationary</option>
                             <option value="Quarterly">Quarterly</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Start Date</label>
-                        <input type="date" name="start_date" required value="{{ date('Y-01-01') }}" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Covered Performance Period</label>
+                        <input type="text" name="performance_period" x-model="perfPeriod" required class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
                     </div>
                 </div>
 
+                <!-- Review Window (Start & End Dates) -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-slate-700 dark:text-slate-300 mb-1">End Date</label>
-                        <input type="date" name="end_date" required value="{{ date('Y-12-31') }}" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Review Window: Start Date</label>
+                        <input type="date" name="start_date" x-model="startDate" required class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
                     </div>
 
                     <div>
-                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Self-Eval Deadline</label>
-                        <input type="date" name="self_eval_deadline" value="{{ date('Y-11-30') }}" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Review Window: End Date</label>
+                        <input type="date" name="end_date" x-model="endDate" required class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-slate-700 dark:text-slate-300 mb-1">Manager / HOD Deadline</label>
-                    <input type="date" name="manager_eval_deadline" value="{{ date('Y-12-15') }}" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                <!-- Deadlines -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Self-Eval Deadline</label>
+                        <input type="date" name="self_eval_deadline" x-model="selfEvalDeadline" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-700 dark:text-slate-300 mb-1">Manager / HOD Deadline</label>
+                        <input type="date" name="manager_eval_deadline" x-model="managerEvalDeadline" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
+                    </div>
+                </div>
+
+                <!-- Compensation Policy Indicator -->
+                <div class="p-3 rounded-xl border flex items-center justify-between"
+                     :class="cycleType === 'mid_year' ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/60' : 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/60'">
+                    <div class="flex items-center gap-2.5">
+                        <i :class="cycleType === 'mid_year' ? 'ph-prohibit text-amber-600' : 'ph-check-circle text-emerald-600'" class="ph text-lg"></i>
+                        <div>
+                            <span class="text-xs font-bold block" :class="cycleType === 'mid_year' ? 'text-amber-900 dark:text-amber-300' : 'text-emerald-900 dark:text-emerald-300'">
+                                <template x-if="cycleType === 'mid_year'">
+                                    <span>Salary Increments: <strong>Excluded (Mid-Year Policy)</strong></span>
+                                </template>
+                                <template x-if="cycleType !== 'mid_year'">
+                                    <span>Salary Increments & Promotions: <strong>Enabled</strong></span>
+                                </template>
+                            </span>
+                            <span class="text-[10px] font-normal" :class="cycleType === 'mid_year' ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'">
+                                <template x-if="cycleType === 'mid_year'">
+                                    <span>Mid-Year reviews strictly focus on KPI progress, areas for improvement, and adjustments without salary increments.</span>
+                                </template>
+                                <template x-if="cycleType !== 'mid_year'">
+                                    <span>Increment recommendations considered alongside financial performance and approved budget.</span>
+                                </template>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="hidden" name="allow_increments" :value="cycleType === 'mid_year' ? 0 : 1">
                 </div>
 
                 <div>
-                    <label class="block text-slate-700 dark:text-slate-300 mb-1">Description / Guidelines</label>
-                    <textarea name="description" rows="2" placeholder="Guidelines for staff and managers..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"></textarea>
+                    <label class="block text-slate-700 dark:text-slate-300 mb-1">Focus Areas & Guidelines</label>
+                    <textarea name="description" x-model="description" rows="2" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"></textarea>
                 </div>
 
                 <label class="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl cursor-pointer">
@@ -538,8 +669,8 @@
                 </label>
 
                 <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="showCycleModal = false" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100">Cancel</button>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-bold">Launch Cycle</button>
+                    <button type="button" @click="showCycleModal = false" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 cursor-pointer">Cancel</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-bold cursor-pointer">Launch Cycle</button>
                 </div>
             </form>
         </div>
@@ -582,4 +713,54 @@
     </div>
 
 </div>
+
+<script>
+function cyclePresetForm() {
+    const currentYear = {{ (int)date('Y') }};
+    const nextYear = currentYear + 1;
+    return {
+        cycleType: 'mid_year',
+        name: 'FY ' + currentYear + '/' + nextYear + ' Mid-Year Performance Review',
+        financialYear: 'FY ' + currentYear + '/' + nextYear,
+        reviewPeriod: 'Mid-Year',
+        perfPeriod: 'April to September',
+        startDate: currentYear + '-10-01',
+        endDate: currentYear + '-10-31',
+        selfEvalDeadline: currentYear + '-10-20',
+        managerEvalDeadline: currentYear + '-10-31',
+        description: 'Covers the performance period from April to September. Focuses on reviewing employee progress, identifying areas for improvement, and setting or adjusting KPIs for the remainder of the year. This review will not involve salary increments.',
+
+        updateCycleName() {
+            if (this.cycleType === 'mid_year') {
+                this.name = (this.financialYear ? this.financialYear + ' ' : '') + 'Mid-Year Performance Review';
+            } else {
+                this.name = (this.financialYear ? this.financialYear + ' ' : '') + 'Year-End Performance Review';
+            }
+        },
+
+        applyPreset(type) {
+            this.cycleType = type;
+            if (type === 'mid_year') {
+                this.reviewPeriod = 'Mid-Year';
+                this.name = (this.financialYear ? this.financialYear + ' ' : '') + 'Mid-Year Performance Review';
+                this.perfPeriod = 'April to September';
+                this.startDate = currentYear + '-10-01';
+                this.endDate = currentYear + '-10-31';
+                this.selfEvalDeadline = currentYear + '-10-20';
+                this.managerEvalDeadline = currentYear + '-10-31';
+                this.description = 'Covers the performance period from April to September. Focuses on reviewing employee progress, identifying areas for improvement, and setting or adjusting KPIs for the remainder of the year. This review will not involve salary increments.';
+            } else {
+                this.reviewPeriod = 'Year-End';
+                this.name = (this.financialYear ? this.financialYear + ' ' : '') + 'Year-End Performance Review';
+                this.perfPeriod = 'October to March';
+                this.startDate = nextYear + '-02-15';
+                this.endDate = nextYear + '-03-15';
+                this.selfEvalDeadline = nextYear + '-03-01';
+                this.managerEvalDeadline = nextYear + '-03-15';
+                this.description = 'Covers the performance period from October to March. Focuses on the final performance evaluation, identifying employees for potential promotions and increments. Increment recommendations will be considered alongside the company\'s financial performance and approved budget.';
+            }
+        }
+    };
+}
+</script>
 @endsection

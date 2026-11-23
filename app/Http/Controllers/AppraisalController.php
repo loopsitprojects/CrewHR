@@ -460,6 +460,10 @@ class AppraisalController extends Controller
 
         $appraisal = Appraisal::findOrFail($id);
 
+        if ($appraisal->cycle && !$appraisal->cycle->allowsIncrements()) {
+            return back()->with('error', 'Salary increments and promotions cannot be awarded during Mid-Year Reviews. Mid-Year reviews cover April to September and focus on progress, areas for improvement, and KPI adjustments. Increments are evaluated during Year-End Reviews.');
+        }
+
         $appraisal->update([
             'increment_percentage' => (float)$request->input('increment_percentage', 0),
             'is_promoted' => $request->boolean('is_promoted'),
@@ -701,6 +705,56 @@ class AppraisalController extends Controller
     }
 
     /**
+     * Update Existing Appraisal Template
+     */
+    public function updateTemplate(Request $request, $id)
+    {
+        [$user, $employee, $role] = $this->getActorContext();
+        if (!in_array($role, ['Super Admin', 'HR Lead'])) {
+            abort(403, 'Unauthorized');
+        }
+
+        $template = AppraisalTemplate::findOrFail($id);
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'applicable_type' => 'required|string',
+            'criteria' => 'required|array|min:1',
+            'criteria.*.name' => 'required|string',
+            'criteria.*.weightage' => 'required|numeric|min:1|max:100',
+        ]);
+
+        // Validate weightages sum to 100%
+        $totalWeightage = array_sum(array_column($request->criteria, 'weightage'));
+        if (abs($totalWeightage - 100.00) > 0.01) {
+            return back()->withInput()->with('error', "Total weightage must equal exactly 100%. Current sum: {$totalWeightage}%");
+        }
+
+        $template->update([
+            'title' => $request->title,
+            'applicable_type' => $request->applicable_type,
+            'designation_id' => $request->designation_id ?: null,
+            'department_id' => $request->department_id ?: null,
+            'description' => $request->description,
+        ]);
+
+        // Re-sync criteria
+        $template->criteria()->delete();
+
+        foreach ($request->criteria as $idx => $crit) {
+            AppraisalTemplateCriterion::create([
+                'template_id' => $template->id,
+                'name' => $crit['name'],
+                'description' => $crit['description'] ?? '',
+                'weightage' => (float)$crit['weightage'],
+                'sort_order' => $idx + 1,
+            ]);
+        }
+
+        return back()->with('success', 'Appraisal template updated successfully.');
+    }
+
+    /**
      * Delete Template
      */
     public function destroyTemplate($id)
@@ -729,21 +783,67 @@ class AppraisalController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'review_period' => 'required|string',
+            'cycle_type' => 'nullable|string|in:mid_year,year_end,probation,other',
+            'financial_year' => 'nullable|string|max:50',
+            'performance_period' => 'nullable|string|max:100',
+            'performance_period_start' => 'nullable|date',
+            'performance_period_end' => 'nullable|date',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'self_eval_deadline' => 'nullable|date',
             'manager_eval_deadline' => 'nullable|date',
         ]);
 
+        $cycleType = $request->input('cycle_type');
+        if (!$cycleType) {
+            $periodLower = strtolower($request->review_period);
+            if (str_contains($periodLower, 'mid')) {
+                $cycleType = 'mid_year';
+            } elseif (str_contains($periodLower, 'probation')) {
+                $cycleType = 'probation';
+            } else {
+                $cycleType = 'year_end';
+            }
+        }
+
+        $allowIncrements = ($cycleType === 'mid_year') ? false : $request->boolean('allow_increments', true);
+
+        // Auto-assign financial year if missing
+        $financialYear = $request->financial_year;
+        if (!$financialYear) {
+            $year = date('Y', strtotime($request->start_date));
+            $financialYear = "FY {$year}/" . ($year + 1);
+        }
+
+        // Auto-assign performance period description if missing
+        $perfPeriod = $request->performance_period;
+        if (!$perfPeriod) {
+            $perfPeriod = ($cycleType === 'mid_year') ? 'April to September' : 'October to March';
+        }
+
+        $focusAreas = $request->focus_areas;
+        if (!$focusAreas) {
+            $focusAreas = ($cycleType === 'mid_year')
+                ? 'Reviewing employee progress, identifying areas for improvement, and setting or adjusting KPIs for the remainder of the year. Excludes salary increments.'
+                : 'Final performance evaluation, identifying employees for potential promotions and increments considered alongside approved company budget.';
+        }
+
         $cycle = AppraisalCycle::create([
             'name' => $request->name,
             'review_period' => $request->review_period,
+            'cycle_type' => $cycleType,
+            'financial_year' => $financialYear,
+            'performance_period' => $perfPeriod,
+            'performance_period_start' => $request->performance_period_start,
+            'performance_period_end' => $request->performance_period_end,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'self_eval_deadline' => $request->self_eval_deadline,
             'manager_eval_deadline' => $request->manager_eval_deadline,
+            'allow_increments' => $allowIncrements,
             'status' => 'Active',
             'description' => $request->description,
+            'focus_areas' => $focusAreas,
         ]);
 
         // Auto-initialize appraisals for all active employees if requested
@@ -820,6 +920,10 @@ class AppraisalController extends Controller
         ]);
 
         $type = $request->letter_type;
+
+        if ($appraisal->cycle && !$appraisal->cycle->allowsIncrements() && in_array($type, ['increment', 'promotion'])) {
+            return back()->with('error', 'Salary increment and promotion letters cannot be issued for Mid-Year Reviews. Mid-Year reviews focus on progress and KPI adjustments; increments are evaluated in Year-End Reviews.');
+        }
         $empName = $appraisal->employee?->user?->name ?? 'Employee';
         $desig = $appraisal->employee?->designation?->name ?? 'Staff';
         $dept = $appraisal->employee?->department?->name ?? 'General';

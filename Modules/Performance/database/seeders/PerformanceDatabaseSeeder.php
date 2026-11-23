@@ -135,19 +135,51 @@ class PerformanceDatabaseSeeder extends Seeder
             );
         }
 
-        // 3. Create Active Cycle
-        $cycle = AppraisalCycle::firstOrCreate(
-            ['name' => '2026 Annual Employee Performance Review'],
+        // 3. Create Standard Two-Cycle Structure per Financial Year
+        
+        // Cycle A: Mid-Year Review (Window: Oct 01 - Oct 31, Period: Apr - Sep, No Increments)
+        $midYearCycle = AppraisalCycle::updateOrCreate(
+            ['name' => 'FY 2026/2027 Mid-Year Performance Review'],
             [
-                'review_period' => 'Annual',
-                'start_date' => '2026-01-01',
-                'end_date' => '2026-12-31',
-                'self_eval_deadline' => '2026-11-30',
-                'manager_eval_deadline' => '2026-12-15',
+                'review_period' => 'Mid-Year',
+                'cycle_type' => 'mid_year',
+                'financial_year' => 'FY 2026/2027',
+                'performance_period' => 'April to September',
+                'performance_period_start' => '2026-04-01',
+                'performance_period_end' => '2026-09-30',
+                'start_date' => '2026-10-01',
+                'end_date' => '2026-10-31',
+                'self_eval_deadline' => '2026-10-20',
+                'manager_eval_deadline' => '2026-10-31',
+                'allow_increments' => false,
                 'status' => 'Active',
-                'description' => 'Annual company-wide evaluation cycle for KPI achievements, increments, and career progression.',
+                'description' => 'Covers the performance period from April to September. Focuses on reviewing employee progress, identifying areas for improvement, and setting or adjusting KPIs for the remainder of the year. This review will not involve salary increments.',
+                'focus_areas' => 'Reviewing employee progress, identifying improvement areas, setting & adjusting KPIs for remainder of FY.',
             ]
         );
+
+        // Cycle B: Year-End Review (Window: Feb 15 - Mar 15, Period: Oct - Mar, With Increments & Promotions)
+        $yearEndCycle = AppraisalCycle::updateOrCreate(
+            ['name' => 'FY 2026/2027 Year-End Performance Review'],
+            [
+                'review_period' => 'Year-End',
+                'cycle_type' => 'year_end',
+                'financial_year' => 'FY 2026/2027',
+                'performance_period' => 'October to March',
+                'performance_period_start' => '2026-10-01',
+                'performance_period_end' => '2027-03-31',
+                'start_date' => '2027-02-15',
+                'end_date' => '2027-03-15',
+                'self_eval_deadline' => '2027-03-01',
+                'manager_eval_deadline' => '2027-03-15',
+                'allow_increments' => true,
+                'status' => 'Active',
+                'description' => 'Covers the performance period from October to March. Focuses on the final performance evaluation, identifying employees for potential promotions and increments. Increment recommendations are considered alongside the company\'s financial performance and approved budget.',
+                'focus_areas' => 'Final performance evaluation, potential promotions, and increment recommendations considered alongside approved company budget.',
+            ]
+        );
+
+        $cycle = $midYearCycle;
 
         // 4. Create Appraisals for Testing Different Workflow Stages
         
@@ -290,10 +322,11 @@ class PerformanceDatabaseSeeder extends Seeder
 
             // Create a Letter for Anjalie
             AppraisalLetter::firstOrCreate(
-                ['appraisal_id' => $appraisal3->id, 'employee_id' => $anjalie->id],
+                ['reference_no' => 'LTR/2026/INC-001'],
                 [
+                    'appraisal_id' => $appraisal3->id,
+                    'employee_id' => $anjalie->id,
                     'letter_type' => 'increment',
-                    'reference_no' => 'LTR/2026/INC-001',
                     'title' => 'Annual Performance Increment & Revision Letter - 2026',
                     'template_content' => '<p>Dear Anjalie De Silva,</p><p>We are pleased to inform you that in recognition of your exemplary performance during the <strong>2026 Annual Performance Review</strong> (Performance Band: <strong>Exceeds Expectations</strong>, Score: <strong>4.35 / 5.00</strong>), management has approved a salary increment of <strong>12.50%</strong> effective from <strong>01 January 2027</strong>.</p><p>We look forward to your continued dedication and leadership in driving product excellence.</p>',
                     'status' => 'pending_signatory',

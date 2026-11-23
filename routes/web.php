@@ -162,6 +162,7 @@ Route::post('/appraisal-change-requests/{id}/action', [AppraisalController::clas
 // Templates Management
 Route::get('/appraisal-templates', [AppraisalController::class, 'templatesIndex'])->name('appraisal.templates.index');
 Route::post('/appraisal-templates', [AppraisalController::class, 'storeTemplate'])->name('appraisal.templates.store');
+Route::put('/appraisal-templates/{id}', [AppraisalController::class, 'updateTemplate'])->name('appraisal.templates.update');
 Route::delete('/appraisal-templates/{id}', [AppraisalController::class, 'destroyTemplate'])->name('appraisal.templates.destroy');
 
 // Cycles Management

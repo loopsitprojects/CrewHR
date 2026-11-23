@@ -94,6 +94,12 @@
                         <span><strong>Department:</strong> {{ $appraisal->employee?->department?->name ?? 'General' }}</span>
                         <span>&bull;</span>
                         <span><strong>Cycle:</strong> {{ $appraisal->cycle?->name }}</span>
+                        @if($appraisal->cycle)
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border {{ $appraisal->cycle->isMidYear() ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300 dark:border-amber-800' : 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border-blue-300 dark:border-blue-800' }}">
+                                <i class="ph {{ $appraisal->cycle->isMidYear() ? 'ph-calendar-check' : 'ph-trend-up' }}"></i>
+                                {{ $appraisal->cycle->isMidYear() ? 'Mid-Year Review (Apr–Sep)' : 'Year-End Review (Oct–Mar)' }}
+                            </span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -168,7 +174,9 @@
                 <button @click="activeTab = 'increment'" :class="activeTab === 'increment' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                     <i class="ph ph-trend-up"></i>
                     <span>Increment & Promotion</span>
-                    @if($appraisal->increment_percentage > 0 || $appraisal->is_promoted)
+                    @if($appraisal->cycle && !$appraisal->cycle->allowsIncrements())
+                        <span class="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">No Inc (Mid-Year)</span>
+                    @elseif($appraisal->increment_percentage > 0 || $appraisal->is_promoted)
                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                     @endif
                 </button>
@@ -404,7 +412,7 @@
                     </p>
                 </div>
 
-                @if($canManageIncrement)
+                @if($canManageIncrement && ($appraisal->cycle?->allowsIncrements() ?? true))
                     <button type="button" @click="showLetterModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-500/20 cursor-pointer">
                         <i class="ph ph-file-plus text-base"></i>
                         <span>Generate Official Letter</span>
@@ -412,8 +420,54 @@
                 @endif
             </div>
 
-            @if($canManageIncrement)
-            <form action="{{ route('appraisal.increment-promotion', $appraisal->id) }}" method="POST" class="space-y-6 text-xs font-bold">
+            @if($appraisal->cycle && !$appraisal->cycle->allowsIncrements())
+                <!-- Mid-Year Review Informational Card (Increments Excluded) -->
+                <div class="p-6 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 space-y-4">
+                    <div class="flex items-start gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-xl shrink-0">
+                            <i class="ph ph-calendar-check"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="text-sm font-extrabold text-amber-900 dark:text-amber-200">
+                                    Mid-Year Review Policy: No Salary Increments
+                                </h3>
+                                <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200">
+                                    Review Window: Oct 01st – 31st
+                                </span>
+                            </div>
+                            <p class="text-xs text-amber-800 dark:text-amber-300 font-semibold">
+                                Covers Performance Period: <strong>April to September</strong>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="text-xs text-amber-800/95 dark:text-amber-400 font-medium leading-relaxed pl-13 space-y-2">
+                        <p>
+                            Under the financial year appraisal structure, the <strong>Mid-Year Review (October 01st to 31st)</strong> focuses specifically on:
+                        </p>
+                        <ul class="list-disc pl-5 space-y-1 text-slate-700 dark:text-slate-300 font-semibold">
+                            <li>Reviewing employee progress against assigned deliverables</li>
+                            <li>Identifying areas for improvement and professional development</li>
+                            <li>Setting or adjusting KPIs and expectations for the remainder of the financial year</li>
+                        </ul>
+                        <div class="p-3 bg-white/70 dark:bg-slate-900/60 rounded-xl border border-amber-200/80 dark:border-amber-900/40 text-[11px] text-slate-600 dark:text-slate-400 font-medium">
+                            <i class="ph ph-info text-amber-600 mr-1"></i>
+                            <strong>Increment Notice:</strong> Salary increment and promotion recommendations are reserved exclusively for the <strong>Year-End Review (February 15th to March 15th)</strong>, where recommendations will be evaluated alongside the company's financial performance and approved budget.
+                        </div>
+                    </div>
+                </div>
+            @else
+                <!-- Year-End Review Info Banner -->
+                <div class="p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex items-start gap-3">
+                    <i class="ph ph-trend-up text-blue-600 dark:text-blue-400 text-lg shrink-0 mt-0.5"></i>
+                    <div class="text-xs text-blue-900 dark:text-blue-300 font-semibold leading-relaxed">
+                        <strong>Year-End Review (February 15th to March 15th):</strong> Covers performance from <strong>October to March</strong>. Final performance evaluation identifies employees for potential promotions and salary increment recommendations, considered alongside the company's financial performance and approved budget.
+                    </div>
+                </div>
+
+                @if($canManageIncrement)
+                <form action="{{ route('appraisal.increment-promotion', $appraisal->id) }}" method="POST" class="space-y-6 text-xs font-bold">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
@@ -509,6 +563,7 @@
                         </div>
                     </div>
                 </div>
+            @endif
             @endif
         </div>
     </div>
