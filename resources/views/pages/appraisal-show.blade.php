@@ -167,10 +167,10 @@
         <div class="flex items-center gap-6 border-b border-slate-100 dark:border-slate-800 -mb-6">
             <button @click="activeTab = 'evaluation'" :class="activeTab === 'evaluation' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                 <i class="ph ph-clipboard-text"></i>
-                <span>Appraisal Evaluation Form</span>
+                <span>{{ $isEmployeeOnly ? 'Evaluation Form' : 'Appraisal Evaluation Form' }}</span>
             </button>
 
-            @if($canSeeIncrement)
+            @if(!$isEmployeeOnly && $canSeeIncrement)
                 <button @click="activeTab = 'increment'" :class="activeTab === 'increment' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                     <i class="ph ph-trend-up"></i>
                     <span>Increment & Promotion</span>
@@ -182,14 +182,16 @@
                 </button>
             @endif
 
-            <button @click="activeTab = 'letters'" :class="activeTab === 'letters' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
-                <i class="ph ph-stamp"></i>
-                <span>Letters & E-Signatures ({{ $appraisal->letters->count() }})</span>
-            </button>
+            @if(!$isEmployeeOnly)
+                <button @click="activeTab = 'letters'" :class="activeTab === 'letters' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
+                    <i class="ph ph-stamp"></i>
+                    <span>Letters & E-Signatures ({{ $appraisal->letters->count() }})</span>
+                </button>
+            @endif
 
             <button @click="activeTab = 'audit'" :class="activeTab === 'audit' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                 <i class="ph ph-clock-counter-clockwise"></i>
-                <span>Change Requests & Audit ({{ $appraisal->changeRequests->count() }})</span>
+                <span>{{ $isEmployeeOnly ? 'Changes Requested' : 'Change Requests & Audit' }} ({{ $appraisal->changeRequests->count() }})</span>
             </button>
         </div>
     </div>
@@ -396,7 +398,7 @@
     <!-- ========================================== -->
     <!-- TAB 2: INCREMENT & PROMOTION (HR Exclusive) -->
     <!-- ========================================== -->
-    @if($canSeeIncrement)
+    @if(!$isEmployeeOnly && $canSeeIncrement)
     <div x-show="activeTab === 'increment'" class="space-y-6">
         <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
@@ -570,8 +572,9 @@
     @endif
 
     <!-- ========================================== -->
-    <!-- TAB 3: LETTERS & E-SIGNATURES -->
+    <!-- TAB 3: LETTERS & E-SIGNATURES (Management & HR Only) -->
     <!-- ========================================== -->
+    @if(!$isEmployeeOnly)
     <div x-show="activeTab === 'letters'" class="space-y-6">
         <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
@@ -679,23 +682,43 @@
             @endif
         </div>
     </div>
+    @endif
 
     <!-- ========================================== -->
     <!-- TAB 4: CHANGE REQUESTS & AUDIT HISTORY -->
     <!-- ========================================== -->
     <div x-show="activeTab === 'audit'" class="space-y-6">
         <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div>
-                <span class="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider">Audit Trail</span>
-                <h2 class="text-xl font-black text-slate-900 dark:text-white">Change Requests & Unlock History</h2>
-                <p class="text-xs text-slate-400 mt-1">Audit log of all change requests submitted by employees or managers and HR unlock actions.</p>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                <div>
+                    <span class="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider">
+                        {{ $isEmployeeOnly ? 'Edit & Unlock Requests' : 'Audit Trail' }}
+                    </span>
+                    <h2 class="text-xl font-black text-slate-900 dark:text-white">
+                        {{ $isEmployeeOnly ? 'Changes Requested' : 'Change Requests & Unlock History' }}
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">
+                        {{ $isEmployeeOnly ? 'Track all formal edit requests submitted for this evaluation form and HR decisions.' : 'Audit log of all change requests submitted by employees or managers and HR unlock actions.' }}
+                    </p>
+                </div>
+
+                @if($canRequestChange)
+                    <button type="button" @click="showChangeRequestModal = true" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-amber-500/20 cursor-pointer self-start sm:self-auto">
+                        <i class="ph ph-arrow-counter-clockwise text-base"></i>
+                        <span>Request New Change</span>
+                    </button>
+                @endif
             </div>
 
             @if($appraisal->changeRequests->isEmpty())
                 <div class="text-center py-10 space-y-2">
                     <i class="ph ph-shield-check text-3xl text-emerald-500"></i>
-                    <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300">Clean Audit Trail</h4>
-                    <p class="text-[11px] text-slate-400 max-w-sm mx-auto">No change requests or unlock disputes have been recorded for this appraisal form.</p>
+                    <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        {{ $isEmployeeOnly ? 'No Changes Requested' : 'Clean Audit Trail' }}
+                    </h4>
+                    <p class="text-[11px] text-slate-400 max-w-sm mx-auto">
+                        {{ $isEmployeeOnly ? 'No edit requests or unlock tickets have been submitted for this appraisal form.' : 'No change requests or unlock disputes have been recorded for this appraisal form.' }}
+                    </p>
                 </div>
             @else
                 <div class="divide-y divide-slate-100 dark:divide-slate-800">

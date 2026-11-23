@@ -389,46 +389,71 @@
                         <i x-show="!sidebarCollapsed" x-cloak data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-200 {{ $isPerformanceActive ? 'text-white' : 'text-slate-400' }}" :class="openModules.performance ? 'rotate-180' : ''"></i>
                     </button>
                     <div x-show="openModules.performance" x-collapse x-cloak :class="sidebarCollapsed ? 'space-y-1.5 py-1' : 'space-y-1 pl-2 border-l-2 border-slate-800/80 ml-3.5 mt-1'">
-                        <a href="{{ route('appraisal.index') }}" 
-                            title="Appraisal System"
-                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.index', 'appraisal.show') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
-                            <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-amber-400 dark:text-yellow-400"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Appraisal System</span>
-                            @if(request()->routeIs('appraisal.index', 'appraisal.show'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                        @if($normalizedRole === 'Employee')
+                            <a href="{{ route('appraisal.index') }}" 
+                                title="Evaluation Form"
+                                :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                                class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.index', 'appraisal.show') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                                <i data-lucide="clipboard-check" class="w-3.5 h-3.5 shrink-0 text-amber-400 dark:text-yellow-400"></i>
+                                <span x-show="!sidebarCollapsed" x-cloak class="truncate">Evaluation Form</span>
+                                @if(request()->routeIs('appraisal.index', 'appraisal.show'))
+                                    <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                                @endif
+                            </a>
+                            <a href="{{ route('appraisal.change-requests.index') }}" 
+                                title="Changes Requested"
+                                :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                                class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.change-requests.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                                <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-rose-400"></i>
+                                <span x-show="!sidebarCollapsed" x-cloak class="truncate">Changes Requested</span>
+                                @if(request()->routeIs('appraisal.change-requests.*'))
+                                    <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                                @endif
+                            </a>
+                        @else
+                            <a href="{{ route('appraisal.index') }}" 
+                                title="Appraisal System"
+                                :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                                class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.index', 'appraisal.show') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                                <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-amber-400 dark:text-yellow-400"></i>
+                                <span x-show="!sidebarCollapsed" x-cloak class="truncate">Appraisal System</span>
+                                @if(request()->routeIs('appraisal.index', 'appraisal.show'))
+                                    <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                                @endif
+                            </a>
+                            @if(in_array($normalizedRole, ['Super Admin', 'HR Lead']))
+                                <a href="{{ route('appraisal.templates.index') }}" 
+                                    title="KPI Templates"
+                                    :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                                    class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.templates.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                                    <i data-lucide="sliders" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
+                                    <span x-show="!sidebarCollapsed" x-cloak class="truncate">KPI Templates</span>
+                                    @if(request()->routeIs('appraisal.templates.*'))
+                                        <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                                    @endif
+                                </a>
                             @endif
-                        </a>
-                        <a href="{{ route('appraisal.templates.index') }}" 
-                            title="KPI Templates"
-                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.templates.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
-                            <i data-lucide="sliders" class="w-3.5 h-3.5 shrink-0 text-blue-400"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">KPI Templates</span>
-                            @if(request()->routeIs('appraisal.templates.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
-                            @endif
-                        </a>
-                        <a href="{{ route('appraisal.change-requests.index') }}" 
-                            title="Change Requests"
-                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.change-requests.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
-                            <i data-lucide="lock" class="w-3.5 h-3.5 shrink-0 text-rose-400"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Change Requests</span>
-                            @if(request()->routeIs('appraisal.change-requests.*'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
-                            @endif
-                        </a>
-                        <a href="{{ route('appraisal.analytics') }}" 
-                            title="Analytics & Reports"
-                            :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
-                            class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.analytics') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
-                            <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
-                            <span x-show="!sidebarCollapsed" x-cloak class="truncate">Appraisal Analytics</span>
-                            @if(request()->routeIs('appraisal.analytics'))
-                                <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
-                            @endif
-                        </a>
+                            <a href="{{ route('appraisal.change-requests.index') }}" 
+                                title="Change Requests"
+                                :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                                class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.change-requests.*') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                                <i data-lucide="lock" class="w-3.5 h-3.5 shrink-0 text-rose-400"></i>
+                                <span x-show="!sidebarCollapsed" x-cloak class="truncate">Change Requests</span>
+                                @if(request()->routeIs('appraisal.change-requests.*'))
+                                    <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                                @endif
+                            </a>
+                            <a href="{{ route('appraisal.analytics') }}" 
+                                title="Analytics & Reports"
+                                :class="sidebarCollapsed ? 'w-9 h-9 mx-auto justify-center p-0 rounded-xl' : 'px-2.5 py-1.5 rounded-lg text-xs gap-2.5'"
+                                class="flex items-center font-semibold transition-all duration-200 {{ request()->routeIs('appraisal.analytics') ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                                <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 shrink-0 text-emerald-400"></i>
+                                <span x-show="!sidebarCollapsed" x-cloak class="truncate">Appraisal Analytics</span>
+                                @if(request()->routeIs('appraisal.analytics'))
+                                    <i x-show="!sidebarCollapsed" x-cloak data-lucide="check" class="w-4 h-4 text-blue-400 ml-auto shrink-0 stroke-[3]"></i>
+                                @endif
+                            </a>
+                        @endif
                     </div>
                 </div>
                 @endif

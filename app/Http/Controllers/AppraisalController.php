@@ -151,6 +151,23 @@ class AppraisalController extends Controller
         // Pending change requests count
         $pendingChangeRequestsCount = AppraisalChangeRequest::where('status', 'Pending')->count();
 
+        // My submitted change requests (for employee view)
+        $myChangeRequests = collect();
+        if ($employee || $user) {
+            $myChangeRequests = AppraisalChangeRequest::with(['appraisal.cycle', 'requestedBy', 'actionedBy'])
+                ->where(function ($q) use ($user, $employee) {
+                    if ($user) {
+                        $q->where('requested_by', $user->id);
+                    }
+                    if ($employee) {
+                        $q->orWhereHas('appraisal', fn($aq) => $aq->where('employee_id', $employee->id));
+                    }
+                })
+                ->latest()
+                ->get();
+        }
+        $myChangeRequestsCount = $myChangeRequests->count();
+
         // User's own letters (if employee) or all letters (if HR/Admin)
         $lettersQuery = AppraisalLetter::with(['employee.user', 'appraisal.cycle'])->latest();
         if ($role === 'Employee') {
@@ -179,6 +196,8 @@ class AppraisalController extends Controller
             'completionRate',
             'bandCounts',
             'pendingChangeRequestsCount',
+            'myChangeRequests',
+            'myChangeRequestsCount',
             'letters'
         ));
     }
@@ -211,6 +230,7 @@ class AppraisalController extends Controller
         $isReportingManager = ($employee && $appraisal->reporting_manager_id == $employee->id);
         $isHod = ($employee && ($appraisal->hod_id == $employee->id || ($employee->department_id == $appraisal->employee?->department_id && in_array($role, ['Manager', 'HR Lead', 'Super Admin']))));
         $isAdminOrHr = in_array($role, ['Super Admin', 'HR Lead']);
+        $isEmployeeOnly = ($role === 'Employee') || (!$isAdminOrHr && !$isReportingManager && !$isHod);
 
         // Authorization check
         if (!$isAdminOrHr && !$isHod && !$isReportingManager && !$isEmployeeHimself) {
@@ -230,9 +250,8 @@ class AppraisalController extends Controller
 
         $canManageIncrement = $isAdminOrHr;
         
-        $canSeeIncrement = $isAdminOrHr 
-            || ($isHod && $appraisal->is_increment_visible_to_hod)
-            || ($isEmployeeHimself && $appraisal->is_increment_visible_to_employee);
+        // Employees have only Evaluation Form and Changes Requested (never Increment & Promotion)
+        $canSeeIncrement = !$isEmployeeOnly && ($isAdminOrHr || ($isHod && $appraisal->is_increment_visible_to_hod));
 
         $canRequestChange = $appraisal->is_locked && ($isEmployeeHimself || $isReportingManager || $isHod);
         $canUnlock = $isAdminOrHr && $appraisal->is_locked;
@@ -247,6 +266,7 @@ class AppraisalController extends Controller
             'isReportingManager',
             'isHod',
             'isAdminOrHr',
+            'isEmployeeOnly',
             'canEditSelf',
             'canEditManager',
             'canEditHod',
@@ -560,21 +580,45 @@ class AppraisalController extends Controller
     }
 
     /**
-     * Change Requests Management Center (HR View)
+     * Change Requests Management Center
      */
     public function changeRequestsIndex(Request $request)
     {
         [$user, $employee, $role] = $this->getActorContext();
-        if (!in_array($role, ['Super Admin', 'HR Lead'])) {
-            return redirect()->route('appraisal.index')->with('error', 'Restricted to HR Administration.');
-        }
 
-        $requests = AppraisalChangeRequest::with([
+        $query = AppraisalChangeRequest::with([
             'appraisal.employee.user',
             'appraisal.cycle',
             'requestedBy',
             'actionedBy'
-        ])->latest()->get();
+        ])->latest();
+
+        if ($role === 'Employee') {
+            $query->where(function ($q) use ($user, $employee) {
+                if ($user) {
+                    $q->where('requested_by', $user->id);
+                }
+                if ($employee) {
+                    $q->orWhereHas('appraisal', fn($aq) => $aq->where('employee_id', $employee->id));
+                }
+            });
+        } elseif ($role === 'Manager') {
+            $deptId = $employee?->department_id;
+            $empId = $employee?->id;
+            $query->where(function ($q) use ($user, $empId, $deptId) {
+                if ($user) {
+                    $q->where('requested_by', $user->id);
+                }
+                $q->orWhereHas('appraisal', function ($aq) use ($empId, $deptId) {
+                    $aq->where('reporting_manager_id', $empId)
+                      ->orWhere('hod_id', $empId)
+                      ->orWhereHas('employee', fn($eq) => $eq->where('department_id', $deptId));
+                });
+            });
+        }
+        // HR Lead & Super Admin see all requests
+
+        $requests = $query->get();
 
         return view('pages.appraisal-change-requests', compact('requests', 'role', 'employee'));
     }

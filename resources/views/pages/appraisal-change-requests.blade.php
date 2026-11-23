@@ -34,10 +34,10 @@
         <div>
             <h1 class="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <i class="ph ph-lock-key-open text-amber-500"></i>
-                <span>Appraisal Unlock & Change Requests</span>
+                <span>{{ $role === 'Employee' ? 'My Changes Requested' : 'Appraisal Unlock & Change Requests' }}</span>
             </h1>
             <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-                Review formal edit requests submitted by employees or department managers for locked evaluation records.
+                {{ $role === 'Employee' ? 'Track formal edit and unlock requests submitted for your evaluation forms.' : 'Review formal edit requests submitted by employees or department managers for locked evaluation records.' }}
             </p>
         </div>
 
@@ -116,7 +116,7 @@
 
                                 <td class="p-4 pr-6 text-right">
                                     <div class="flex items-center justify-end gap-2">
-                                        @if($req->status === 'Pending')
+                                        @if(in_array($role, ['Super Admin', 'HR Lead']) && $req->status === 'Pending')
                                             <button @click="selectedRequest = {{ $req->id }}; actionType = 'approve'; activeModal = true;" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 shadow-sm cursor-pointer">
                                                 <i class="ph ph-lock-key-open"></i>
                                                 <span>Approve & Unlock</span>

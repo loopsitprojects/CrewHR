@@ -194,24 +194,36 @@
     <!-- Navigation Tabs -->
     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
         <div class="flex items-center gap-6">
-            <button @click="activeTab = 'roster'" :class="activeTab === 'roster' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
-                <i class="ph ph-list-dashes text-sm"></i>
-                <span>Appraisals Roster ({{ $appraisals->count() }})</span>
-            </button>
+            @if($role === 'Employee')
+                <button @click="activeTab = 'roster'" :class="activeTab === 'roster' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
+                    <i class="ph ph-clipboard-text text-sm"></i>
+                    <span>Evaluation Form ({{ $appraisals->count() }})</span>
+                </button>
+                <button @click="activeTab = 'my_changes'" :class="activeTab === 'my_changes' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
+                    <i class="ph ph-clock-counter-clockwise text-sm"></i>
+                    <span>Changes Requested ({{ $myChangeRequestsCount }})</span>
+                </button>
+            @else
+                <button @click="activeTab = 'roster'" :class="activeTab === 'roster' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
+                    <i class="ph ph-list-dashes text-sm"></i>
+                    <span>Appraisals Roster ({{ $appraisals->count() }})</span>
+                </button>
 
-            @if($employee)
-                <button @click="activeTab = 'my_appraisal'" :class="activeTab === 'my_appraisal' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
-                    <i class="ph ph-user text-sm"></i>
-                    <span>My Self-Evaluation</span>
+                @if($employee)
+                    <button @click="activeTab = 'my_appraisal'" :class="activeTab === 'my_appraisal' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
+                        <i class="ph ph-user text-sm"></i>
+                        <span>My Self-Evaluation</span>
+                    </button>
+                @endif
+
+                <button @click="activeTab = 'letters'" :class="activeTab === 'letters' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
+                    <i class="ph ph-file-text text-sm"></i>
+                    <span>Official Letters & E-Signatures ({{ $letters->count() }})</span>
                 </button>
             @endif
-
-            <button @click="activeTab = 'letters'" :class="activeTab === 'letters' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
-                <i class="ph ph-file-text text-sm"></i>
-                <span>Official Letters & E-Signatures ({{ $letters->count() }})</span>
-            </button>
         </div>
 
+        @if($role !== 'Employee')
         <!-- Filter bar -->
         <form method="GET" action="{{ route('appraisal.index') }}" class="hidden md:flex items-center gap-2 pb-2">
             <input type="hidden" name="cycle_id" value="{{ $activeCycle?->id }}">
@@ -232,6 +244,7 @@
                 <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
             </select>
         </form>
+        @endif
     </div>
 
     <!-- TAB 1: Appraisals Roster -->
@@ -464,7 +477,8 @@
     </div>
     @endif
 
-    <!-- TAB 3: Official Letters & E-Signatures -->
+    <!-- TAB 3: Official Letters & E-Signatures (Management / HR Only) -->
+    @if($role !== 'Employee')
     <div x-show="activeTab === 'letters'" class="space-y-4">
         @if($letters->isEmpty())
             <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-12 text-center space-y-3">
@@ -530,6 +544,58 @@
             </div>
         @endif
     </div>
+    @endif
+
+    <!-- TAB: Changes Requested (For Employees) -->
+    @if($role === 'Employee')
+    <div x-show="activeTab === 'my_changes'" class="space-y-4">
+        <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-sm font-black text-slate-900 dark:text-white">Changes Requested</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Formal edit requests and unlock status for your appraisal evaluation forms.</p>
+                </div>
+            </div>
+
+            @if($myChangeRequests->isEmpty())
+                <div class="text-center py-12 space-y-3">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center text-xl">
+                        <i class="ph ph-shield-check"></i>
+                    </div>
+                    <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300">No Changes Requested</h4>
+                    <p class="text-[11px] text-slate-400 max-w-sm mx-auto">You have not submitted any edit or unlock requests for your performance evaluations.</p>
+                </div>
+            @else
+                <div class="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                    @foreach($myChangeRequests as $cr)
+                        <div class="py-4 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-extrabold text-slate-900 dark:text-white">{{ $cr->appraisal?->cycle?->name ?? 'Appraisal Cycle' }}</span>
+                                    <span class="text-[11px] text-slate-400 font-semibold">&bull; {{ $cr->created_at->format('d M Y, h:i A') }}</span>
+                                </div>
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black 
+                                    {{ $cr->status === 'Approved_Unlocked' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : '' }}
+                                    {{ $cr->status === 'Rejected' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' : '' }}
+                                    {{ $cr->status === 'Pending' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : '' }}">
+                                    {{ $cr->status }}
+                                </span>
+                            </div>
+                            <div class="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl text-slate-700 dark:text-slate-300">
+                                <strong>Reason for Request:</strong> {{ $cr->reason }}
+                            </div>
+                            @if($cr->action_notes)
+                                <div class="text-[11px] text-slate-500 dark:text-slate-400 pl-2 border-l-2 border-slate-300 dark:border-slate-700">
+                                    <strong>HR Response:</strong> {{ $cr->action_notes }} (by {{ $cr->actionedBy?->name ?? 'HR Admin' }} on {{ $cr->actioned_at?->format('d M Y') }})
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </div>
+    @endif
 
     <!-- MODAL: Create Appraisal Cycle -->
     <div x-show="showCycleModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">

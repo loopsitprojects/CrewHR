@@ -453,4 +453,46 @@ class AppraisalModuleTest extends TestCase
         $this->assertEquals(12.5, (float)$yearEndAppraisal->increment_percentage);
         $this->assertTrue($yearEndAppraisal->is_promoted);
     }
+
+    public function test_employee_has_only_evaluation_form_and_changes_requested(): void
+    {
+        $appraisal = Appraisal::create([
+            'cycle_id' => $this->cycle->id,
+            'template_id' => $this->template->id,
+            'employee_id' => $this->staffEmployee->id,
+            'hod_id' => $this->hodEmployee->id,
+            'workflow_type' => 'two_tier',
+            'status' => 'pending_self_eval',
+            'is_locked' => false,
+        ]);
+
+        // 1. Employee visits appraisal detail page
+        $response = $this->actingAs($this->staffUser)
+            ->withSession(['current_role' => 'Employee'])
+            ->get(route('appraisal.show', $appraisal->id));
+
+        $response->assertStatus(200);
+        $response->assertSee('Evaluation Form');
+        $response->assertSee('Changes Requested');
+        $response->assertDontSee('Increment & Promotion');
+        $response->assertDontSee('Letters & E-Signatures');
+
+        // 2. Employee visits appraisal hub
+        $hubResponse = $this->actingAs($this->staffUser)
+            ->withSession(['current_role' => 'Employee'])
+            ->get(route('appraisal.index'));
+
+        $hubResponse->assertStatus(200);
+        $hubResponse->assertSee('Evaluation Form');
+        $hubResponse->assertSee('Changes Requested');
+        $hubResponse->assertDontSee('Official Letters & E-Signatures');
+
+        // 3. Employee visits change requests page
+        $crResponse = $this->actingAs($this->staffUser)
+            ->withSession(['current_role' => 'Employee'])
+            ->get(route('appraisal.change-requests.index'));
+
+        $crResponse->assertStatus(200);
+        $crResponse->assertSee('My Changes Requested');
+    }
 }
