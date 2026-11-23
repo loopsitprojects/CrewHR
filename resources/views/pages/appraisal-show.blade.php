@@ -35,6 +35,12 @@
         if (s >= 2.00) return { band: 'Needs Improvement', badge: '🟠 Needs Improvement', color: 'text-orange-600 bg-orange-50 dark:bg-orange-950/60 border-orange-300 dark:border-orange-800' };
         if (s > 0) return { band: 'Unsatisfactory', badge: '🔴 Unsatisfactory', color: 'text-rose-600 bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800' };
         return { band: 'Pending', badge: 'Pending Evaluation', color: 'text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700' };
+    },
+
+    autoExpand(el) {
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = Math.max(38, el.scrollHeight) + 'px';
     }
 }">
 
@@ -353,8 +359,11 @@
                                             <textarea name="scores[{{ $criterion->id }}][self_comments]" 
                                                       rows="2" 
                                                       {{ ($canEditSelf) ? '' : 'readonly' }}
+                                                      @input="autoExpand($el)"
+                                                      @focus="autoExpand($el)"
+                                                      x-init="$nextTick(() => autoExpand($el))"
                                                       placeholder="Describe specific achievements, projects, or context..." 
-                                                      class="w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white p-2.5 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-80 read-only:bg-slate-50/50">{{ $criterion->self_comments }}</textarea>
+                                                      class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white p-2.5 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-80 read-only:bg-slate-50/50 resize-none overflow-hidden leading-relaxed min-h-[38px]">{{ $criterion->self_comments }}</textarea>
                                         </div>
                                     </td>
 
@@ -383,8 +392,11 @@
                                             <textarea name="scores[{{ $criterion->id }}][manager_comments]" 
                                                       rows="2" 
                                                       {{ ($canEditManager || $canEditHod) ? '' : 'readonly' }}
+                                                      @input="autoExpand($el)"
+                                                      @focus="autoExpand($el)"
+                                                      x-init="$nextTick(() => autoExpand($el))"
                                                       placeholder="Evaluation rationale and feedback..." 
-                                                      class="w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white p-2.5 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-80 read-only:bg-slate-50/50">{{ $criterion->manager_comments }}</textarea>
+                                                      class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white p-2.5 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-80 read-only:bg-slate-50/50 resize-none overflow-hidden leading-relaxed min-h-[38px]">{{ $criterion->manager_comments }}</textarea>
                                         </div>
                                     </td>
                                 </tr>
@@ -421,7 +433,7 @@
                         <span>Employee General Self-Reflection</span>
                         <span class="text-[10px] text-slate-400 font-normal">Self Assessment</span>
                     </label>
-                    <textarea name="general_employee_comments" rows="3" {{ $canEditSelf ? '' : 'readonly' }} placeholder="Highlights of achievements, career aspirations, and support needed..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white p-3 read-only:bg-slate-50/40">{{ $appraisal->general_employee_comments }}</textarea>
+                    <textarea name="general_employee_comments" rows="3" {{ $canEditSelf ? '' : 'readonly' }} @input="autoExpand($el)" @focus="autoExpand($el)" x-init="$nextTick(() => autoExpand($el))" placeholder="Highlights of achievements, career aspirations, and support needed..." class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white p-3 read-only:bg-slate-50/40 resize-none overflow-hidden leading-relaxed min-h-[50px]">{{ $appraisal->general_employee_comments }}</textarea>
                 </div>
 
                 <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-2">
@@ -429,7 +441,7 @@
                         <span>Manager / HOD General Feedback</span>
                         <span class="text-[10px] text-slate-400 font-normal">Leadership Review</span>
                     </label>
-                    <textarea name="general_manager_comments" rows="3" {{ ($canEditManager || $canEditHod) ? '' : 'readonly' }} placeholder="Summary of overall strengths, areas for development, and leadership review..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white p-3 read-only:bg-slate-50/40">{{ $appraisal->general_manager_comments }}</textarea>
+                    <textarea name="general_manager_comments" rows="3" {{ ($canEditManager || $canEditHod) ? '' : 'readonly' }} @input="autoExpand($el)" @focus="autoExpand($el)" x-init="$nextTick(() => autoExpand($el))" placeholder="Summary of overall strengths, areas for development, and leadership review..." class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white p-3 read-only:bg-slate-50/40 resize-none overflow-hidden leading-relaxed min-h-[50px]">{{ $appraisal->general_manager_comments }}</textarea>
                 </div>
             </div>
 
@@ -856,7 +868,12 @@
 
                 <div>
                     <label class="block text-slate-700 dark:text-slate-300 mb-1">Reason for Change Request <span class="text-rose-500">*</span></label>
-                    <textarea name="reason" rows="4" required minlength="10" placeholder="State clearly which criteria or scores need to be adjusted and why..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"></textarea>
+                    <textarea name="reason" rows="3" required minlength="10" 
+                              @input="autoExpand($el)"
+                              @focus="autoExpand($el)"
+                              x-init="$nextTick(() => autoExpand($el))"
+                              placeholder="State clearly which criteria or scores need to be adjusted and why..." 
+                              class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs resize-none overflow-hidden leading-relaxed min-h-[50px]"></textarea>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">
@@ -910,7 +927,12 @@
 
                 <div>
                     <label class="block text-slate-700 dark:text-slate-300 mb-1">HR Admin Note</label>
-                    <textarea name="notes" rows="2" placeholder="Audit note explaining the unlock reason..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"></textarea>
+                    <textarea name="notes" rows="2" 
+                              @input="autoExpand($el)"
+                              @focus="autoExpand($el)"
+                              x-init="$nextTick(() => autoExpand($el))"
+                              placeholder="Audit note explaining the unlock reason..." 
+                              class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs resize-none overflow-hidden leading-relaxed min-h-[42px]"></textarea>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">

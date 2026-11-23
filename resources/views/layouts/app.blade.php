@@ -1070,6 +1070,29 @@
             setTimeout(prefetchCoreNavigation, 800);
         }
     })();
+
+    // Global auto-expanding input fields & textareas
+    function autoExpandField(el) {
+        if (!el || el.tagName !== 'TEXTAREA') return;
+        el.style.height = 'auto';
+        el.style.height = Math.max(38, el.scrollHeight) + 'px';
+    }
+
+    document.addEventListener('input', (e) => {
+        if (e.target && (e.target.matches('textarea.auto-expand') || e.target.classList.contains('auto-expand'))) {
+            autoExpandField(e.target);
+        }
+    });
+
+    document.addEventListener('focusin', (e) => {
+        if (e.target && (e.target.matches('textarea.auto-expand') || e.target.classList.contains('auto-expand'))) {
+            autoExpandField(e.target);
+        }
+    });
+
+    window.addEventListener('load', () => {
+        document.querySelectorAll('textarea.auto-expand').forEach(autoExpandField);
+    });
 </script>
 
 </body>

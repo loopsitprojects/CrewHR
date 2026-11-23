@@ -65,6 +65,12 @@
         }
     },
 
+    autoExpand(el) {
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = Math.max(38, el.scrollHeight) + 'px';
+    },
+
     openView(tmpl) {
         const data = (typeof tmpl === 'object' && tmpl !== null) ? tmpl : (this.templateMap[tmpl] || null);
         if (!data) return;
@@ -99,6 +105,9 @@
         }
         this.currentView = 'edit';
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        this.$nextTick(() => {
+            document.querySelectorAll('textarea.auto-expand').forEach(el => this.autoExpand(el));
+        });
     },
 
     openEditModal(tmpl) {
@@ -108,10 +117,16 @@
     openCreate() {
         this.currentView = 'create';
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        this.$nextTick(() => {
+            document.querySelectorAll('textarea.auto-expand').forEach(el => this.autoExpand(el));
+        });
     },
 
     addEditCriteria() {
         this.editForm.criteria.push({ name: '', description: '', weightage: 0 });
+        this.$nextTick(() => {
+            document.querySelectorAll('textarea.auto-expand').forEach(el => this.autoExpand(el));
+        });
     },
 
     removeEditCriteria(index) {
@@ -476,7 +491,12 @@
 
                 <div>
                     <label class="block text-slate-700 dark:text-slate-300 mb-1.5">Template Description & Guidelines</label>
-                    <textarea name="description" x-model="editForm.description" rows="3" placeholder="Context, applicability notes, and instructions for reviewers..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white text-xs font-normal"></textarea>
+                    <textarea name="description" x-model="editForm.description" rows="2"
+                              @input="autoExpand($el)"
+                              @focus="autoExpand($el)"
+                              x-init="$nextTick(() => autoExpand($el))"
+                              placeholder="Context, applicability notes, and instructions for reviewers..." 
+                              class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white text-xs font-normal resize-none overflow-hidden leading-relaxed"></textarea>
                 </div>
             </div>
 
@@ -521,11 +541,21 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                                 <div>
                                     <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Criteria Name <span class="text-rose-500">*</span></label>
-                                    <input type="text" :name="'criteria['+idx+'][name]'" x-model="row.name" required placeholder="e.g. Code Quality & Performance" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold">
+                                    <textarea :name="'criteria['+idx+'][name]'" x-model="row.name" required rows="1"
+                                              @input="autoExpand($el)"
+                                              @focus="autoExpand($el)"
+                                              x-init="$nextTick(() => autoExpand($el))"
+                                              placeholder="e.g. Code Quality & Performance" 
+                                              class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold resize-none overflow-hidden leading-relaxed min-h-[38px]"></textarea>
                                 </div>
                                 <div>
                                     <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Evaluation Standards / Qualitative Description</label>
-                                    <input type="text" :name="'criteria['+idx+'][description]'" x-model="row.description" placeholder="Description of expectations and standards..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-normal">
+                                    <textarea :name="'criteria['+idx+'][description]'" x-model="row.description" rows="1"
+                                              @input="autoExpand($el)"
+                                              @focus="autoExpand($el)"
+                                              x-init="$nextTick(() => autoExpand($el))"
+                                              placeholder="Description of expectations and standards..." 
+                                              class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-normal resize-none overflow-hidden leading-relaxed min-h-[38px]"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -642,7 +672,12 @@
 
                 <div>
                     <label class="block text-slate-700 dark:text-slate-300 mb-1.5">Template Description & Guidelines</label>
-                    <textarea name="description" rows="3" placeholder="Context, applicability notes, and instructions for reviewers..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white text-xs font-normal"></textarea>
+                    <textarea name="description" rows="3"
+                              @input="autoExpand($el)"
+                              @focus="autoExpand($el)"
+                              x-init="$nextTick(() => autoExpand($el))"
+                              placeholder="Context, applicability notes, and instructions for reviewers..." 
+                              class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white text-xs font-normal resize-none overflow-hidden leading-relaxed"></textarea>
                 </div>
             </div>
 
@@ -687,11 +722,21 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                                 <div>
                                     <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Criteria Name <span class="text-rose-500">*</span></label>
-                                    <input type="text" :name="'criteria['+idx+'][name]'" x-model="row.name" required placeholder="e.g. Code Quality & Performance" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold">
+                                    <textarea :name="'criteria['+idx+'][name]'" x-model="row.name" required rows="1"
+                                              @input="autoExpand($el)"
+                                              @focus="autoExpand($el)"
+                                              x-init="$nextTick(() => autoExpand($el))"
+                                              placeholder="e.g. Code Quality & Performance" 
+                                              class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold resize-none overflow-hidden leading-relaxed min-h-[38px]"></textarea>
                                 </div>
                                 <div>
                                     <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Evaluation Standards / Qualitative Description</label>
-                                    <input type="text" :name="'criteria['+idx+'][description]'" x-model="row.description" placeholder="Description of expectations and standards..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-normal">
+                                    <textarea :name="'criteria['+idx+'][description]'" x-model="row.description" rows="1"
+                                              @input="autoExpand($el)"
+                                              @focus="autoExpand($el)"
+                                              x-init="$nextTick(() => autoExpand($el))"
+                                              placeholder="Description of expectations and standards..." 
+                                              class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-normal resize-none overflow-hidden leading-relaxed min-h-[38px]"></textarea>
                                 </div>
                             </div>
                         </div>
