@@ -498,31 +498,35 @@
 
                 <div class="space-y-3">
                     <template x-for="(row, idx) in editForm.criteria" :key="idx">
-                        <div class="p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center gap-3">
-                            <div class="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-black text-slate-500 shrink-0" x-text="idx + 1"></div>
-                            
-                            <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                        <div class="p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                            <div class="flex items-center justify-between gap-3 border-b border-slate-200/60 dark:border-slate-700/60 pb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0" x-text="idx + 1"></span>
+                                    <span class="text-xs font-black text-slate-800 dark:text-slate-200" x-text="row.name ? row.name : ('Criteria Area #' + (idx + 1))"></span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase">Weight:</span>
+                                        <div class="relative w-24">
+                                            <input type="number" :name="'criteria['+idx+'][weightage]'" x-model="row.weightage" required min="1" max="100" class="w-full border-slate-200 dark:border-slate-700 rounded-lg py-1.5 pl-2 pr-6 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-black text-center">
+                                            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" @click="removeEditCriteria(idx)" :disabled="editForm.criteria.length <= 1" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer" title="Remove criteria">
+                                        <i class="ph ph-trash text-base"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                                 <div>
                                     <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Criteria Name <span class="text-rose-500">*</span></label>
                                     <input type="text" :name="'criteria['+idx+'][name]'" x-model="row.name" required placeholder="e.g. Code Quality & Performance" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Evaluation Standards / Description</label>
+                                    <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Evaluation Standards / Qualitative Description</label>
                                     <input type="text" :name="'criteria['+idx+'][description]'" x-model="row.description" placeholder="Description of expectations and standards..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-normal">
                                 </div>
-                            </div>
-
-                            <div class="w-full md:w-36 flex items-center justify-between md:justify-end gap-2 pt-2 md:pt-0">
-                                <div>
-                                    <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Weight %</label>
-                                    <div class="relative">
-                                        <input type="number" :name="'criteria['+idx+'][weightage]'" x-model="row.weightage" required min="1" max="100" class="w-24 border-slate-200 dark:border-slate-700 rounded-xl p-2.5 pr-7 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-black text-center">
-                                        <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
-                                    </div>
-                                </div>
-                                <button type="button" @click="removeEditCriteria(idx)" :disabled="editForm.criteria.length <= 1" class="p-2.5 mt-4 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer" title="Remove criteria">
-                                    <i class="ph ph-trash text-base"></i>
-                                </button>
                             </div>
                         </div>
                     </template>
@@ -660,31 +664,35 @@
 
                 <div class="space-y-3">
                     <template x-for="(row, idx) in criteriaRows" :key="idx">
-                        <div class="p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center gap-3">
-                            <div class="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-black text-slate-500 shrink-0" x-text="idx + 1"></div>
-                            
-                            <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-                                <div>
-                                    <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Criteria Name <span class="text-rose-500">*</span></label>
-                                    <input type="text" :name="'criteria['+idx+'][name]'" x-model="row.name" required placeholder="e.g. Code Quality & Architecture" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold">
+                        <div class="p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                            <div class="flex items-center justify-between gap-3 border-b border-slate-200/60 dark:border-slate-700/60 pb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0" x-text="idx + 1"></span>
+                                    <span class="text-xs font-black text-slate-800 dark:text-slate-200" x-text="row.name ? row.name : ('Criteria Area #' + (idx + 1))"></span>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Evaluation Standards / Description</label>
-                                    <input type="text" :name="'criteria['+idx+'][description]'" x-model="row.description" placeholder="Description of expectations and standards..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-normal">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase">Weight:</span>
+                                        <div class="relative w-24">
+                                            <input type="number" :name="'criteria['+idx+'][weightage]'" x-model="row.weightage" required min="1" max="100" class="w-full border-slate-200 dark:border-slate-700 rounded-lg py-1.5 pl-2 pr-6 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-black text-center">
+                                            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" @click="removeCriteria(idx)" :disabled="criteriaRows.length <= 1" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer" title="Remove criteria">
+                                        <i class="ph ph-trash text-base"></i>
+                                    </button>
                                 </div>
                             </div>
 
-                            <div class="w-full md:w-36 flex items-center justify-between md:justify-end gap-2 pt-2 md:pt-0">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                                 <div>
-                                    <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Weight %</label>
-                                    <div class="relative">
-                                        <input type="number" :name="'criteria['+idx+'][weightage]'" x-model="row.weightage" required min="1" max="100" class="w-24 border-slate-200 dark:border-slate-700 rounded-xl p-2.5 pr-7 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-black text-center">
-                                        <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">%</span>
-                                    </div>
+                                    <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Criteria Name <span class="text-rose-500">*</span></label>
+                                    <input type="text" :name="'criteria['+idx+'][name]'" x-model="row.name" required placeholder="e.g. Code Quality & Performance" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold">
                                 </div>
-                                <button type="button" @click="removeCriteria(idx)" :disabled="criteriaRows.length <= 1" class="p-2.5 mt-4 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer" title="Remove criteria">
-                                    <i class="ph ph-trash text-base"></i>
-                                </button>
+                                <div>
+                                    <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Evaluation Standards / Qualitative Description</label>
+                                    <input type="text" :name="'criteria['+idx+'][description]'" x-model="row.description" placeholder="Description of expectations and standards..." class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-normal">
+                                </div>
                             </div>
                         </div>
                     </template>
