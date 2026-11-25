@@ -186,11 +186,11 @@
                         <div class="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 rounded-full transition-all duration-500" style="width: {{ $cRate }}%"></div>
                     </div>
                     <div class="flex items-center justify-between text-[10px] font-bold text-slate-400 pt-0.5">
-                        <span>{{ $cSelfSubmitted }}/{{ $cTotal }} Submitted</span>
-                        <span>&bull;</span>
-                        <span>{{ $cManagerDone }}/{{ $cTotal }} Reviewed</span>
-                        <span>&bull;</span>
-                        <span>{{ $cCompleted }}/{{ $cTotal }} Finalized</span>
+                        <span title="Employees who have submitted their self-evaluation">{{ $cSelfSubmitted }}/{{ $cTotal }} Self-Eval Submitted</span>
+                        <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 inline-block"></span>
+                        <span title="Evaluations reviewed by managers">{{ $cManagerDone }}/{{ $cTotal }} Manager Reviewed</span>
+                        <span class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 inline-block"></span>
+                        <span title="Appraisals finalized and completed">{{ $cCompleted }}/{{ $cTotal }} Finalized</span>
                     </div>
                 </div>
 
