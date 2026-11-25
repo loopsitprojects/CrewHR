@@ -65,7 +65,7 @@ class LeaveDashboardController extends Controller
             })
             ->whereYear('start_date', $year)
             ->whereMonth('start_date', $month)
-            ->whereNotIn('status', ['Rejected', 'Canceled'])
+            ->whereNotIn('status', ['Rejected', 'Canceled', 'Cancelled'])
             ->count();
 
         $activeRole = $this->getActiveRole();
@@ -501,6 +501,11 @@ class LeaveDashboardController extends Controller
 
     public function storeLeaveRequest(Request $request)
     {
+        // Fallback: If end_date is missing (e.g., short leave, half day, or single-day disabled in browser), default to start_date
+        if (!$request->filled('end_date') && $request->filled('start_date')) {
+            $request->merge(['end_date' => $request->start_date]);
+        }
+
         // Handle Handover Notes and Additional Notes
         $handoverNotes = $request->input('handover_notes');
         $anythingElse = $request->input('anything_else') ?? $request->input('reason');
@@ -672,7 +677,7 @@ class LeaveDashboardController extends Controller
                 'is_half_day' => $isHalfDay,
                 'half_day_slot' => $isHalfDay ? ($request->input('half_day_slot') ?: 'Morning') : null,
                 'is_short_leave' => $isShortLeave,
-                'short_leave_slot' => $isShortLeave ? $request->input('short_leave_slot') : null,
+                'short_leave_slot' => $isShortLeave ? ($request->input('short_leave_slot') ?: '08:30 AM – 10:00 AM') : null,
                 'medical_certificate_path' => $certificatePath,
                 'project_client_name' => $request->input('project_client_name'),
                 'night_sign_out_time' => $signOutTime,

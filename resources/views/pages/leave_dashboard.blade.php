@@ -121,7 +121,7 @@
 
 <div class="flex-1 flex flex-col min-h-0 space-y-4" 
      x-data="{ 
-         applyLeaveModal: false, 
+         applyLeaveModal: {{ $errors->any() ? 'true' : 'false' }}, 
          addCompanyLeaveModal: false, 
          dayModalOpen: false, 
          quotaModalOpen: false,
@@ -143,7 +143,7 @@
          isHalfDay: false,
          halfDaySlot: 'Morning',
          isShortLeave: false,
-         shortLeaveSlot: '9:30 AM–10:00 AM',
+         shortLeaveSlot: '08:30 AM – 10:00 AM',
          coveringEmployeeId: '',
          coveringEmployeeName: '',
          handoverNotes: '',
@@ -460,8 +460,8 @@
                  return this.halfDaySlot === 'Morning' ? 'Morning (9:00 AM – 1:00 PM)' : 'Afternoon (1:00 PM – 5:00 PM)';
              }
              if (this.selectedLeaveTypeCode === 'SHORT') {
-                 if (this.shortLeaveSlot === '9:30 AM–10:00 AM') return 'Morning (9:30 AM – 10:00 AM)';
-                 if (this.shortLeaveSlot === '3:30 PM–5:00 PM') return 'Evening (3:30 PM – 5:00 PM)';
+                 if (this.shortLeaveSlot && (this.shortLeaveSlot.includes('10:00') || this.shortLeaveSlot.includes('9:30') || this.shortLeaveSlot.includes('8:30'))) return 'Morning (8:30 AM – 10:00 AM)';
+                 if (this.shortLeaveSlot && (this.shortLeaveSlot.includes('3:30') || this.shortLeaveSlot.includes('5:00'))) return 'Evening (3:30 PM – 5:00 PM)';
                  return this.shortLeaveSlot ? this.shortLeaveSlot : '1.5 Hours Slot';
              }
              if (this.selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY') {
@@ -537,7 +537,8 @@
 
                  // Rule 4: Both are short leaves
                  if (isNewShortLeave && rIsShortLeave) {
-                     return (!newShortLeaveSlot || !rShortLeaveSlot || newShortLeaveSlot === rShortLeaveSlot);
+                     const norm = str => (str || '').toLowerCase().includes('10:00') || (str || '').toLowerCase().includes('morning') || (str || '').includes('8:30') || (str || '').includes('9:30') ? 'morning' : 'evening';
+                     return norm(newShortLeaveSlot) === norm(rShortLeaveSlot);
                  }
 
                  return false;
@@ -608,10 +609,27 @@
                  return { pass: true, message: `Night shift concession granted (${text}) — non-deductible from standard leave quotas.` };
              }
              if (this.selectedLeaveTypeCode === 'SHORT') {
-                 if ({{ (int)($monthlyShortLeavesUsed ?? 0) }} >= 2) {
-                     return { pass: false, message: 'Short leave monthly quota exceeded (2/2 already used this month).' };
+                 let usedThisMonth = 0;
+                 if (this.targetStartDate) {
+                     const parts = this.targetStartDate.split('-').map(Number);
+                     const targetYear = parts[0];
+                     const targetMonth = parts[1];
+                     usedThisMonth = (this.allMyHistory || []).filter(r => {
+                         const st = (r.status || '').toLowerCase();
+                         if (st === 'rejected' || st === 'canceled' || st === 'cancelled') return false;
+                         const isShort = Boolean(r.is_short_leave || (r.leave_type?.code || '').toUpperCase() === 'SHORT' || (Number(r.duration) < 0.5 && Number(r.duration) > 0));
+                         if (!isShort || !r.start_date) return false;
+                         const rParts = r.start_date.split('-').map(Number);
+                         return (rParts[0] === targetYear && rParts[1] === targetMonth);
+                     }).length;
+                 } else {
+                     usedThisMonth = {{ (int)($monthlyShortLeavesUsed ?? 0) }};
                  }
-                 return { pass: true, message: `Balance — uses 1 short leave. {{ max(0, 2 - (int)($monthlyShortLeavesUsed ?? 0) - 1) }} left after this.` };
+                 if (usedThisMonth >= 2) {
+                     return { pass: false, message: 'Short leave monthly quota exceeded (2/2 already used for this month).' };
+                 }
+                 const leftAfter = Math.max(0, 2 - usedThisMonth - 1);
+                 return { pass: true, message: `Balance — uses 1 short leave. ${leftAfter} left for this month.` };
              }
              
              const item = (this.leaveCatalog || []).find(c => c.code === this.selectedLeaveTypeCode);
@@ -1649,6 +1667,7 @@
                 
                 <!-- Hidden inputs to submit all needed data -->
                 <input type="hidden" name="leave_type_id" :value="selectedLeaveTypeId">
+                <input type="hidden" name="end_date" :value="targetEndDate || targetStartDate">
                 <input type="hidden" name="is_half_day" :value="isHalfDay || (selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' && nightShiftConcession?.category === 'half_day_off') ? '1' : '0'">
                 <input type="hidden" name="half_day_slot" :value="selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' && nightShiftConcession?.category === 'half_day_off' ? 'Morning' : halfDaySlot">
                 <input type="hidden" name="is_short_leave" :value="isShortLeave || selectedLeaveTypeCode === 'SHORT' ? '1' : '0'">
@@ -1735,9 +1754,11 @@
                                     <i data-lucide="calendar" class="w-3 h-3 text-slate-400"></i>
                                     <span>Last day <span class="text-rose-500 font-black">*</span></span>
                                 </label>
-                                <input type="date" name="end_date" x-model="targetEndDate" 
+                                <input type="date" 
+                                       :name="(selectedLeaveTypeCode === 'SHORT' || selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' || isHalfDay) ? 'end_date_view' : 'end_date'" 
+                                       x-model="targetEndDate" 
                                        :disabled="selectedLeaveTypeCode === 'SHORT' || selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' || isHalfDay"
-                                       class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed" required>
+                                       class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                             </div>
                         </div>
 
@@ -1779,13 +1800,13 @@
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <label class="flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] cursor-pointer transition-all"
-                                           :class="shortLeaveSlot === '9:30 AM–10:00 AM' ? 'bg-amber-500/20 border-amber-500 text-amber-950 dark:text-white font-bold' : 'bg-white dark:bg-[#141b29] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'">
-                                        <input type="radio" x-model="shortLeaveSlot" value="9:30 AM–10:00 AM" class="text-amber-500 w-3 h-3">
-                                        <span class="font-semibold">Morning (9:30 AM – 10:00 AM)</span>
+                                           :class="shortLeaveSlot.includes('10:00') ? 'bg-amber-500/20 border-amber-500 text-amber-950 dark:text-white font-bold' : 'bg-white dark:bg-[#141b29] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'">
+                                        <input type="radio" x-model="shortLeaveSlot" value="08:30 AM – 10:00 AM" class="text-amber-500 w-3 h-3">
+                                        <span class="font-semibold">Morning (8:30 AM – 10:00 AM)</span>
                                     </label>
                                     <label class="flex items-center gap-1.5 p-1.5 rounded-lg border text-[11px] cursor-pointer transition-all"
-                                           :class="shortLeaveSlot === '3:30 PM–5:00 PM' ? 'bg-amber-500/20 border-amber-500 text-amber-950 dark:text-white font-bold' : 'bg-white dark:bg-[#141b29] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'">
-                                        <input type="radio" x-model="shortLeaveSlot" value="3:30 PM–5:00 PM" class="text-amber-500 w-3 h-3">
+                                           :class="shortLeaveSlot.includes('3:30') || shortLeaveSlot.includes('03:30') ? 'bg-amber-500/20 border-amber-500 text-amber-950 dark:text-white font-bold' : 'bg-white dark:bg-[#141b29] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'">
+                                        <input type="radio" x-model="shortLeaveSlot" value="03:30 PM – 05:00 PM" class="text-amber-500 w-3 h-3">
                                         <span class="font-semibold">Evening (3:30 PM – 5:00 PM)</span>
                                     </label>
                                 </div>

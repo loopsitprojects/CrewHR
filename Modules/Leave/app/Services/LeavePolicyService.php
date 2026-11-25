@@ -180,9 +180,13 @@ class LeavePolicyService
 
                 // Rule D: Both are Short Leaves
                 if ($newIsShortLeave && $existingIsShortLeave) {
-                    if ($newShortLeaveSlot && $existingShortLeaveSlot && $newShortLeaveSlot === $existingShortLeaveSlot) {
+                    $normSlot = function($s) {
+                        $str = strtolower($s ?? '');
+                        return (str_contains($str, '10:00') || str_contains($str, 'morning') || str_contains($str, '8:30') || str_contains($str, '9:30')) ? 'morning' : 'evening';
+                    };
+                    if ($normSlot($newShortLeaveSlot) === $normSlot($existingShortLeaveSlot)) {
                         throw ValidationException::withMessages([
-                            'start_date' => "Time conflict: you already have a Short Leave booked for {$newShortLeaveSlot} on {$existing->start_date}."
+                            'start_date' => "Time conflict: you already have a Short Leave booked for the " . ($normSlot($newShortLeaveSlot) === 'morning' ? 'Morning' : 'Evening') . " slot on {$existing->start_date}."
                         ]);
                     }
                 }
@@ -225,7 +229,7 @@ class LeavePolicyService
                 })
                 ->whereMonth('start_date', $startCarbon->month)
                 ->whereYear('start_date', $startCarbon->year)
-                ->whereNotIn('status', ['Rejected', 'Canceled'])
+                ->whereNotIn('status', ['Rejected', 'Canceled', 'Cancelled'])
                 ->count();
 
             if ($shortCount >= 2) {
