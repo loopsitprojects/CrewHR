@@ -329,21 +329,14 @@
                     </div>
 
                     @if(!empty($employee->promotion_designation))
-                        <div class="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/70 dark:border-emerald-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                <span class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
-                                    Promotion Tracked: <span class="font-black">{{ $employee->promotion_designation }}</span>
-                                    @if($employee->promotion_date)
-                                        <span class="font-normal text-slate-500 dark:text-slate-400">effective {{ \Carbon\Carbon::parse($employee->promotion_date)->format('d M Y') }}</span>
-                                    @endif
-                                </span>
-                            </div>
-                            @if((float)($employee->increment_amount ?? 0) > 0)
-                                <span class="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700">
-                                    +Rs. {{ number_format((float)$employee->increment_amount, 2) }} Increment
-                                </span>
-                            @endif
+                        <div class="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/70 dark:border-emerald-800/50 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
+                                Promotion Tracked: <span class="font-black">{{ $employee->promotion_designation }}</span>
+                                @if($employee->promotion_date)
+                                    <span class="font-normal text-slate-500 dark:text-slate-400">effective {{ \Carbon\Carbon::parse($employee->promotion_date)->format('d M Y') }}</span>
+                                @endif
+                            </span>
                         </div>
                     @endif
 
