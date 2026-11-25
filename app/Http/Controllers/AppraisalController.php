@@ -93,6 +93,13 @@ class AppraisalController extends Controller
                 ?? $fyCycles->first();
         }
 
+        // Security check: Only Super Admin & HR Lead can view/select an inactive (Upcoming) cycle
+        if ($activeCycle && $activeCycle->status !== 'Active' && !in_array($role, ['Super Admin', 'HR Lead'])) {
+            $activeCycle = $fyCycles->firstWhere('status', 'Active')
+                ?? $fyCycles->firstWhere('cycle_type', 'mid_year')
+                ?? $fyCycles->first();
+        }
+
         // Compute Cards Data for Both Quarters
         $cycleCardsData = [];
         foreach ($fyCycles as $cItem) {
@@ -253,8 +260,29 @@ class AppraisalController extends Controller
         }
         $letters = $lettersQuery->get();
 
+        // Self-evaluation appraisals for current employee
+        $myAppraisals = collect();
+        if ($employee) {
+            $myAppraisals = Appraisal::with([
+                'cycle',
+                'template',
+                'employee.user',
+                'employee.department',
+                'employee.designation',
+                'reportingManager.user',
+                'hod.user',
+                'criteriaScores',
+                'changeRequests'
+            ])
+            ->when($activeCycle, fn($q) => $q->where('cycle_id', $activeCycle->id))
+            ->where('employee_id', $employee->id)
+            ->latest()
+            ->get();
+        }
+
         return view('pages.appraisal', compact(
             'appraisals',
+            'myAppraisals',
             'activeCycle',
             'cycleCardsData',
             'cycles',
@@ -309,6 +337,11 @@ class AppraisalController extends Controller
         // Authorization check
         if (!$isAdminOrHr && !$isHod && !$isReportingManager && !$isEmployeeHimself) {
             abort(403, 'Unauthorized access to this appraisal record.');
+        }
+
+        // Security check: only HR or Admin can view an appraisal from an inactive/upcoming cycle
+        if ($appraisal->cycle && $appraisal->cycle->status !== 'Active' && !$isAdminOrHr) {
+            abort(403, 'This appraisal review cycle has not been activated yet. Activating review cycles can only be done by HR or Admin.');
         }
 
         // Deadline & Lock evaluation
@@ -373,6 +406,9 @@ class AppraisalController extends Controller
 
         // Admin has all access and can always save drafts
         if (!$isAdminOrHr) {
+            if ($appraisal->cycle && $appraisal->cycle->status !== 'Active') {
+                return back()->with('error', 'This review cycle has not been activated by HR yet.');
+            }
             if ($isEmployeeHimself && $appraisal->isEmployeeSubmissionLocked()) {
                 return back()->with('error', 'Self-evaluation submission duration has passed or is locked. Please request an unlock from HR.');
             }
@@ -426,8 +462,12 @@ class AppraisalController extends Controller
     public function submitSelfEvaluation(Request $request, $id)
     {
         [$user, $employee, $role] = $this->getActorContext();
-        $appraisal = Appraisal::with(['criteriaScores', 'employee.user', 'reportingManager.user', 'hod.user'])->findOrFail($id);
+        $appraisal = Appraisal::with(['criteriaScores', 'employee.user', 'reportingManager.user', 'hod.user', 'cycle'])->findOrFail($id);
         $isAdminOrHr = in_array($role, ['Super Admin', 'HR Lead']);
+
+        if ($appraisal->cycle && $appraisal->cycle->status !== 'Active' && !$isAdminOrHr) {
+            return back()->with('error', 'This review cycle has not been activated by HR yet.');
+        }
 
         if (!$isAdminOrHr && $appraisal->isEmployeeSubmissionLocked()) {
             return back()->with('error', 'The self-evaluation deadline has passed. This appraisal is locked. Please submit an unlock request to HR with your reason.');
@@ -480,8 +520,12 @@ class AppraisalController extends Controller
     public function submitManagerEvaluation(Request $request, $id)
     {
         [$user, $employee, $role] = $this->getActorContext();
-        $appraisal = Appraisal::with(['criteriaScores', 'employee.user', 'hod.user'])->findOrFail($id);
+        $appraisal = Appraisal::with(['criteriaScores', 'employee.user', 'hod.user', 'cycle'])->findOrFail($id);
         $isAdminOrHr = in_array($role, ['Super Admin', 'HR Lead']);
+
+        if ($appraisal->cycle && $appraisal->cycle->status !== 'Active' && !$isAdminOrHr) {
+            return back()->with('error', 'This review cycle has not been activated by HR yet.');
+        }
 
         if (!$isAdminOrHr && $appraisal->isManagerReviewLocked()) {
             return back()->with('error', 'The manager review deadline has passed. This appraisal is locked. Please submit an unlock request to HR with your reason.');
@@ -525,7 +569,12 @@ class AppraisalController extends Controller
     public function submitHodEvaluation(Request $request, $id)
     {
         [$user, $employee, $role] = $this->getActorContext();
-        $appraisal = Appraisal::with(['criteriaScores', 'employee.user'])->findOrFail($id);
+        $appraisal = Appraisal::with(['criteriaScores', 'employee.user', 'cycle'])->findOrFail($id);
+        $isAdminOrHr = in_array($role, ['Super Admin', 'HR Lead']);
+
+        if ($appraisal->cycle && $appraisal->cycle->status !== 'Active' && !$isAdminOrHr) {
+            return back()->with('error', 'This review cycle has not been activated by HR yet.');
+        }
 
         $this->saveDraft($request, $id);
 

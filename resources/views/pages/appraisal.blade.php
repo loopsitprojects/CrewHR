@@ -40,38 +40,47 @@
                 $cManagerDone = $cData['manager_done'];
                 $cRate = $cData['rate'];
 
-                // Milestone 1: Submit (Self-Evaluation)
-                $m1Status = ($cTotal > 0 && $cData['pending_self'] === 0) ? 'completed' : 'current';
+                $isCycleActive = ($c->status === 'Active');
 
-                // Milestone 2: Manager Review
-                if ($cTotal > 0 && $cManagerDone === $cTotal) {
-                    $m2Status = 'completed';
-                } elseif ($cSelfSubmitted > 0 || $cManagerDone > 0) {
-                    $m2Status = 'current';
-                } else {
+                if (!$isCycleActive) {
+                    $m1Status = 'upcoming';
                     $m2Status = 'upcoming';
-                }
-
-                // Milestone 3: Complete (Final Sign-off)
-                if ($cTotal > 0 && $cCompleted === $cTotal) {
-                    $m3Status = 'completed';
-                } elseif ($cCompleted > 0) {
-                    $m3Status = 'current';
-                } else {
                     $m3Status = 'upcoming';
-                }
-
-                $selfRatio = ($cTotal > 0) ? ($cSelfSubmitted / $cTotal) : 0;
-                $managerRatio = ($cTotal > 0) ? ($cManagerDone / $cTotal) : 0;
-                $completedRatio = ($cTotal > 0) ? ($cCompleted / $cTotal) : 0;
-
-                if ($cTotal > 0 && $cCompleted === $cTotal) {
-                    $progressLineWidth = 100;
-                } elseif ($cTotal > 0) {
-                    $progressLineWidth = round(($selfRatio * 50) + (($managerRatio * 0.25 + $completedRatio * 0.25) * 100));
-                    $progressLineWidth = min(100, max(0, $progressLineWidth));
-                } else {
                     $progressLineWidth = 0;
+                } else {
+                    // Milestone 1: Submit (Self-Evaluation)
+                    $m1Status = ($cTotal > 0 && $cData['pending_self'] === 0) ? 'completed' : 'current';
+
+                    // Milestone 2: Manager Review
+                    if ($cTotal > 0 && $cManagerDone === $cTotal) {
+                        $m2Status = 'completed';
+                    } elseif ($cSelfSubmitted > 0 || $cManagerDone > 0) {
+                        $m2Status = 'current';
+                    } else {
+                        $m2Status = 'upcoming';
+                    }
+
+                    // Milestone 3: Complete (Final Sign-off)
+                    if ($cTotal > 0 && $cCompleted === $cTotal) {
+                        $m3Status = 'completed';
+                    } elseif ($cCompleted > 0) {
+                        $m3Status = 'current';
+                    } else {
+                        $m3Status = 'upcoming';
+                    }
+
+                    $selfRatio = ($cTotal > 0) ? ($cSelfSubmitted / $cTotal) : 0;
+                    $managerRatio = ($cTotal > 0) ? ($cManagerDone / $cTotal) : 0;
+                    $completedRatio = ($cTotal > 0) ? ($cCompleted / $cTotal) : 0;
+
+                    if ($cTotal > 0 && $cCompleted === $cTotal) {
+                        $progressLineWidth = 100;
+                    } elseif ($cTotal > 0) {
+                        $progressLineWidth = round(($selfRatio * 50) + (($managerRatio * 0.25 + $completedRatio * 0.25) * 100));
+                        $progressLineWidth = min(100, max(0, $progressLineWidth));
+                    } else {
+                        $progressLineWidth = 0;
+                    }
                 }
             @endphp
 
@@ -82,12 +91,22 @@
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider {{ $isMid ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/70 dark:text-indigo-300 border border-indigo-300/80 dark:border-indigo-800' }}">
-                                <span class="w-1.5 h-1.5 rounded-full {{ $c->status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
                                 <span>{{ $cData['quarter_badge'] }}</span>
                             </span>
                             <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                                 {{ $c->financial_year ?: 'FY 2026/2027' }}
                             </span>
+                            @if($c->status === 'Active')
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    <span>Active</span>
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                    <span>Upcoming</span>
+                                </span>
+                            @endif
                         </div>
                         <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight mt-1.5">
                             {{ $c->name }}
@@ -103,92 +122,76 @@
                             <span>{{ $c->start_date?->format('d M') }} – {{ $c->end_date?->format('d M Y') }}</span>
                         </div>
 
-                        @if($isSelected)
-                            <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
-                                <i class="ph-bold ph-check"></i>
-                                <span>Active View</span>
-                            </span>
-                        @else
-                            <a href="{{ route('appraisal.index', array_filter(['cycle_id' => $c->id, 'tab' => request('tab'), 'status' => request('status'), 'department_id' => request('department_id')])) }}" 
-                               class="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 dark:bg-slate-800 dark:hover:bg-blue-950/60 dark:text-slate-300 dark:hover:text-blue-300 border border-slate-200 dark:border-slate-700 transition-colors">
-                                <span>Switch Quarter</span>
-                                <i class="ph ph-arrow-right text-xs"></i>
-                            </a>
-                        @endif
-                    </div>
-                </div>
+                        <div class="flex items-center gap-2">
+                            @if($isSelected)
+                                <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 border border-blue-200 dark:border-blue-700">
+                                    <i class="ph-bold ph-check"></i>
+                                    <span>Active View</span>
+                                </span>
+                            @elseif($c->status === 'Active')
+                                <a href="{{ route('appraisal.index', array_filter(['cycle_id' => $c->id, 'tab' => request('tab'), 'status' => request('status'), 'department_id' => request('department_id')])) }}" 
+                                   class="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 dark:bg-slate-800 dark:hover:bg-blue-950/60 dark:text-slate-300 dark:hover:text-blue-300 border border-slate-200 dark:border-slate-700 transition-colors">
+                                    <span>Switch Quarter</span>
+                                    <i class="ph ph-arrow-right text-xs"></i>
+                                </a>
+                            @endif
 
-                <!-- Progressive Review Milestones Track -->
-                <div class="relative bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4">
-                    <!-- Background connecting track -->
-                    <div class="absolute top-[28px] left-[16.67%] right-[16.67%] h-1.5 bg-slate-200/80 dark:bg-slate-700/70 -translate-y-1/2 rounded-full overflow-hidden z-0">
-                        <div class="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 rounded-full transition-all duration-700 ease-out" 
-                             style="width: {{ $progressLineWidth }}%"></div>
-                    </div>
-
-                    <!-- 3 Milestones Grid -->
-                    <div class="relative z-10 grid grid-cols-3 gap-2">
-                        <!-- Milestone 1: Submit -->
-                        <div class="flex flex-col items-center text-center">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $m1Status === 'completed' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' }}">
-                                @if($m1Status === 'completed')
-                                    <i class="ph-bold ph-check text-xs"></i>
-                                @else
-                                    1
+                            {{-- HR & Super Admin cycle activation management --}}
+                            @if(in_array($role, ['Super Admin', 'HR Lead']))
+                                @if($c->status === 'Upcoming')
+                                    <form method="POST" action="{{ route('appraisal.cycles.toggle-status', $c->id) }}" onsubmit="return confirm('Activate review cycle \'{{ $c->name }}\' for the organization? Active employees will be initialized for evaluation.');">
+                                        @csrf
+                                        <button type="submit" 
+                                                class="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-all cursor-pointer"
+                                                title="Only HR or Admin can activate this appraisal cycle">
+                                            <i class="ph-bold ph-play text-xs"></i>
+                                            <span>Activate (HR)</span>
+                                        </button>
+                                    </form>
+                                @elseif($c->status === 'Active' && !$isSelected)
+                                    <form method="POST" action="{{ route('appraisal.cycles.toggle-status', $c->id) }}" onsubmit="return confirm('Deactivate review cycle \'{{ $c->name }}\' and set to Upcoming?');">
+                                        @csrf
+                                        <button type="submit" 
+                                                class="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                                title="Deactivate / Set to Upcoming">
+                                            <i class="ph ph-pause text-xs"></i>
+                                            <span>Pause</span>
+                                        </button>
+                                    </form>
                                 @endif
-                            </div>
-                            <div class="mt-2 space-y-0.5">
-                                <span class="text-xs font-black text-slate-900 dark:text-white block">Submit</span>
-                                <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                                    {{ $cSelfSubmitted }}/{{ $cTotal }} Submitted
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 2: Manager Review -->
-                        <div class="flex flex-col items-center text-center">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $m2Status === 'completed' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : ($m2Status === 'current' ? 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
-                                @if($m2Status === 'completed')
-                                    <i class="ph-bold ph-check text-xs"></i>
-                                @else
-                                    2
+                            @else
+                                {{-- For Employees and Managers --}}
+                                @if($c->status === 'Upcoming')
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200/80 dark:border-slate-700/80" title="Activating cycles can only be done by HR or Admin">
+                                        <i class="ph ph-lock-simple text-xs"></i>
+                                        <span>Pending HR Activation</span>
+                                    </span>
                                 @endif
-                            </div>
-                            <div class="mt-2 space-y-0.5">
-                                <span class="text-xs font-black {{ $m2Status === 'upcoming' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white' }} block">Manager Review</span>
-                                <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                                    {{ $cManagerDone }}/{{ $cTotal }} Reviewed
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Milestone 3: Complete -->
-                        <div class="flex flex-col items-center text-center">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $m3Status === 'completed' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : ($m3Status === 'current' ? 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
-                                @if($m3Status === 'completed')
-                                    <i class="ph-bold ph-check text-xs"></i>
-                                @else
-                                    <i class="ph-bold ph-flag-banner text-xs"></i>
-                                @endif
-                            </div>
-                            <div class="mt-2 space-y-0.5">
-                                <span class="text-xs font-black {{ $m3Status === 'upcoming' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white' }} block">Complete</span>
-                                <p class="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                                    {{ $cCompleted }}/{{ $cTotal }} Finalized
-                                </p>
-                            </div>
+                            @endif
                         </div>
                     </div>
                 </div>
 
-                <!-- Footer Summary -->
-                <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-slate-800/80">
-                    <span class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
-                        Progress: <strong class="text-slate-800 dark:text-slate-200">{{ $cCompleted }} of {{ $cTotal }} Finalized</strong>
-                    </span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black {{ $cRate == 100 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' }}">
-                        {{ $cRate }}%
-                    </span>
+                <!-- Cycle Finalization Progress Bar -->
+                <div class="space-y-2.5 pt-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+                            Cycle Finalization: <strong class="text-slate-800 dark:text-slate-200">{{ $cCompleted }} of {{ $cTotal }} Finalized</strong>
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black {{ $cRate == 100 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' }}">
+                            {{ $cRate }}%
+                        </span>
+                    </div>
+                    <div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 rounded-full transition-all duration-500" style="width: {{ $cRate }}%"></div>
+                    </div>
+                    <div class="flex items-center justify-between text-[10px] font-bold text-slate-400 pt-0.5">
+                        <span>{{ $cSelfSubmitted }}/{{ $cTotal }} Submitted</span>
+                        <span>&bull;</span>
+                        <span>{{ $cManagerDone }}/{{ $cTotal }} Reviewed</span>
+                        <span>&bull;</span>
+                        <span>{{ $cCompleted }}/{{ $cTotal }} Finalized</span>
+                    </div>
                 </div>
 
             </div>
@@ -426,154 +429,161 @@
     @if($employee)
     <div x-show="activeTab === 'my_appraisal'" class="space-y-4">
         @php
-            $myAppraisal = $appraisals->where('employee_id', $employee->id)->first();
+            $selfList = (isset($myAppraisals) && $myAppraisals->isNotEmpty()) 
+                ? $myAppraisals 
+                : $appraisals->where('employee_id', $employee->id);
         @endphp
 
-        @if($myAppraisal)
-            <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
-                    <div>
-                        <span class="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider">My Annual Review</span>
-                        <h2 class="text-xl font-black text-slate-900 dark:text-white">{{ $myAppraisal->cycle?->name }}</h2>
-                        <p class="text-xs text-slate-400 mt-1">Review your self-ratings, submit comments, and track manager and HOD evaluations.</p>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <span class="px-3 py-1 rounded-full text-xs font-bold 
-                            {{ $myAppraisal->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
-                            Status: {{ ucwords(str_replace('_', ' ', $myAppraisal->status)) }}
-                        </span>
-                        <a href="{{ route('appraisal.show', $myAppraisal->id) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-500/20">
-                            <span>Open Full Evaluation Sheet</span>
-                            <i class="ph ph-arrow-square-out text-sm"></i>
-                        </a>
-                    </div>
+        @if($selfList->isEmpty())
+            <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-12 text-center space-y-3">
+                <div class="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 mx-auto flex items-center justify-center text-2xl">
+                    <i class="ph ph-user"></i>
                 </div>
-
-                @php
-                    // Due Date Calculation
-                    $dueDate = null;
-                    $dueLabel = 'Deadline';
-                    $isOverdue = false;
-                    if ($myAppraisal->status === 'pending_self_eval') {
-                        $dueDate = $myAppraisal->cycle?->self_eval_deadline;
-                        $dueLabel = 'Self-Evaluation Due';
-                        $isOverdue = $dueDate && now()->gt($dueDate->endOfDay()) && !$myAppraisal->is_override_unlocked;
-                    } elseif (in_array($myAppraisal->status, ['submitted_self_eval', 'pending_manager_eval'])) {
-                        $dueDate = $myAppraisal->cycle?->manager_eval_deadline;
-                        $dueLabel = 'Manager Review Due';
-                        $isOverdue = $dueDate && now()->gt($dueDate->endOfDay()) && !$myAppraisal->is_override_unlocked;
-                    } else {
-                        $dueDate = $myAppraisal->cycle?->end_date;
-                        $dueLabel = 'Cycle Closing';
-                    }
-                @endphp
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- 1. Evaluation Stage -->
-                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 flex flex-col justify-between">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Evaluation Stage</span>
-                            <i class="ph ph-git-commit text-sm text-blue-600 dark:text-blue-400"></i>
-                        </div>
-                        <div class="mt-2.5">
-                            <div class="text-sm font-black">
-                                @if($myAppraisal->status === 'pending_self_eval')
-                                    <span class="text-blue-600 dark:text-blue-400">1. Self-Evaluation</span>
-                                @elseif(in_array($myAppraisal->status, ['submitted_self_eval', 'pending_manager_eval']))
-                                    <span class="text-amber-600 dark:text-amber-400">2. Manager Review</span>
-                                @elseif(in_array($myAppraisal->status, ['submitted_manager_eval', 'pending_hod_eval']))
-                                    <span class="text-purple-600 dark:text-purple-400">3. HOD Moderation</span>
-                                @elseif($myAppraisal->status === 'completed')
-                                    <span class="text-emerald-600 dark:text-emerald-400">Completed & Finalized</span>
-                                @else
-                                    <span class="text-slate-700 dark:text-slate-200">{{ ucwords(str_replace('_', ' ', $myAppraisal->status)) }}</span>
-                                @endif
-                            </div>
-                            <p class="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
-                                @if($myAppraisal->status === 'pending_self_eval')
-                                    Pending your submission
-                                @elseif(in_array($myAppraisal->status, ['submitted_self_eval', 'pending_manager_eval']))
-                                    Pending manager rating
-                                @elseif(in_array($myAppraisal->status, ['submitted_manager_eval', 'pending_hod_eval']))
-                                    Pending HOD review
-                                @elseif($myAppraisal->status === 'completed')
-                                    Score: {{ $myAppraisal->total_weighted_score }}/5.00
-                                @else
-                                    In progress
-                                @endif
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- 2. Due Date -->
-                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 flex flex-col justify-between">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Due Date</span>
-                            <i class="ph ph-calendar-blank text-sm {{ $isOverdue ? 'text-rose-600' : 'text-amber-600 dark:text-amber-400' }}"></i>
-                        </div>
-                        <div class="mt-2.5">
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-sm font-black text-slate-900 dark:text-white">
-                                    {{ $dueDate ? $dueDate->format('d M Y') : 'Not Set' }}
-                                </span>
-                                @if($isOverdue)
-                                    <span class="text-[9px] font-black text-rose-600 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800">Overdue</span>
-                                @endif
-                            </div>
-                            <p class="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
-                                {{ $dueLabel }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- 3. Assigned Managers -->
-                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 flex flex-col justify-between">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Assigned Managers</span>
-                            <i class="ph ph-users text-sm text-purple-600 dark:text-purple-400"></i>
-                        </div>
-                        <div class="mt-2.5 space-y-1">
-                            @if($myAppraisal->reportingManager)
-                                <div class="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
-                                    <span class="text-[9px] uppercase font-black px-1.5 py-0.2 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/60 shrink-0">Mgr</span>
-                                    <span class="truncate">{{ $myAppraisal->reportingManager->user->name ?? 'Reporting Manager' }}</span>
-                                </div>
-                            @endif
-                            @if($myAppraisal->hod)
-                                <div class="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
-                                    <span class="text-[9px] uppercase font-black px-1.5 py-0.2 rounded bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-900/60 shrink-0">HOD</span>
-                                    <span class="truncate">{{ $myAppraisal->hod->user->name ?? 'Head of Department' }}</span>
-                                </div>
-                            @endif
-                            @if(!$myAppraisal->reportingManager && !$myAppraisal->hod)
-                                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Direct Admin Review</span>
-                            @endif
-                        </div>
-                    </div>
-
-                    <!-- 4. Form Updated Date -->
-                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 flex flex-col justify-between">
-                        <div class="flex items-center justify-between">
-                            <span class="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Form Updated Date</span>
-                            <i class="ph ph-clock-counter-clockwise text-sm text-emerald-600 dark:text-emerald-400"></i>
-                        </div>
-                        <div class="mt-2.5">
-                            <div class="text-sm font-black text-slate-900 dark:text-white">
-                                {{ $myAppraisal->updated_at ? $myAppraisal->updated_at->format('d M Y') : 'Not Updated Yet' }}
-                            </div>
-                            <p class="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
-                                {{ $myAppraisal->updated_at ? $myAppraisal->updated_at->format('h:i A') . ' (' . $myAppraisal->updated_at->diffForHumans() . ')' : 'Initial state' }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">No Self-Evaluation Assigned</h3>
+                <p class="text-xs text-slate-400 max-w-sm mx-auto">You do not currently have a pending evaluation assigned in this review cycle.</p>
             </div>
         @else
-            <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-12 text-center space-y-2">
-                <i class="ph ph-smiley text-3xl text-slate-400"></i>
-                <h3 class="text-sm font-bold text-slate-900 dark:text-white">No Active Appraisal Assigned</h3>
-                <p class="text-xs text-slate-400">You do not currently have a pending evaluation assigned in this review cycle.</p>
+            <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 dark:bg-slate-800/50 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
+                            <tr>
+                                <th class="p-3.5 pl-5">Employee & Designation</th>
+                                <th class="p-3.5">Department</th>
+                                <th class="p-3.5">Workflow Hierarchy</th>
+                                <th class="p-3.5">Evaluation Status</th>
+                                <th class="p-3.5">Score & Band</th>
+                                <th class="p-3.5">
+                                    @if($activeCycle?->isMidYear())
+                                        Review Focus
+                                    @else
+                                        Increment / Promo
+                                    @endif
+                                </th>
+                                <th class="p-3.5 pr-5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80">
+                            @foreach($selfList as $app)
+                                <tr>
+                                    <td class="p-3.5 pl-5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">
+                                                {{ strtoupper(substr($app->employee->user->name ?? 'EM', 0, 2)) }}
+                                            </div>
+                                            <div>
+                                                <span class="font-extrabold text-slate-900 dark:text-white block">
+                                                    {{ $app->employee->user->name ?? 'Employee' }}
+                                                </span>
+                                                <span class="text-[11px] text-slate-400 font-medium">
+                                                    {{ $app->employee->designation->name ?? 'Designation' }} &bull; {{ $app->employee->employee_id_number ?? 'ID' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="p-3.5 font-bold text-slate-700 dark:text-slate-300">
+                                        {{ $app->employee->department->name ?? 'General' }}
+                                    </td>
+
+                                    <td class="p-3.5">
+                                        <div class="space-y-0.5 text-[11px]">
+                                            <div class="flex items-center gap-1 font-semibold text-slate-600 dark:text-slate-300">
+                                                <span class="text-slate-400">Mgr:</span>
+                                                <span>{{ $app->reportingManager->user->name ?? 'Not Assigned' }}</span>
+                                            </div>
+                                            <div class="flex items-center gap-1 font-semibold text-slate-600 dark:text-slate-300">
+                                                <span class="text-slate-400">HOD:</span>
+                                                <span class="text-purple-600 dark:text-purple-400">{{ $app->hod->user->name ?? 'Not Assigned' }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="p-3.5">
+                                        @if($app->status === 'completed')
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Finalized
+                                            </span>
+                                        @elseif($app->status === 'pending_self_eval')
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pending Self-Eval
+                                            </span>
+                                        @elseif($app->status === 'pending_manager_eval' || $app->status === 'submitted_self_eval')
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> Pending Manager
+                                            </span>
+                                        @elseif($app->status === 'pending_hod_eval' || $app->status === 'submitted_manager_eval')
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span> Pending HOD
+                                            </span>
+                                        @endif
+                                    </td>
+
+                                    <td class="p-3.5">
+                                        @if($app->total_weighted_score > 0)
+                                            <div class="space-y-1">
+                                                <div class="font-black text-slate-900 dark:text-white flex items-center gap-1">
+                                                    <span>{{ number_format($app->total_weighted_score, 2) }}</span>
+                                                    <span class="text-[10px] text-slate-400">/ 5.00</span>
+                                                </div>
+                                                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-extrabold 
+                                                    {{ $app->performance_band === 'Exceptional' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' : '' }}
+                                                    {{ $app->performance_band === 'Exceeds Expectations' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300' : '' }}
+                                                    {{ $app->performance_band === 'Meets Expectations' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300' : '' }}
+                                                    {{ $app->performance_band === 'Needs Improvement' ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/70 dark:text-orange-300' : '' }}
+                                                    {{ $app->performance_band === 'Unsatisfactory' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300' : '' }}
+                                                ">
+                                                    {{ $app->performance_band }}
+                                                </span>
+                                            </div>
+                                        @else
+                                            <span class="text-slate-400 text-xs font-semibold">—</span>
+                                        @endif
+                                    </td>
+
+                                    <td class="p-3.5">
+                                        @if($app->cycle && !$app->cycle->allowsIncrements())
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/60" title="Mid-Year Review focuses on progress and KPIs without salary increments.">
+                                                <i class="ph ph-prohibit text-xs"></i> No Inc (Mid-Year)
+                                            </span>
+                                        @elseif(in_array($role, ['Super Admin', 'HR Lead']) || ($app->is_increment_visible_to_employee && $employee?->id == $app->employee_id) || ($app->is_increment_visible_to_hod && $employee?->id == $app->hod_id))
+                                            <div class="space-y-0.5 text-[11px]">
+                                                @if($app->increment_percentage > 0)
+                                                    <div class="font-extrabold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                                        <i class="ph ph-trend-up"></i>
+                                                        <span>+{{ number_format($app->increment_percentage, 1) }}% Increment</span>
+                                                    </div>
+                                                @endif
+                                                @if($app->is_promoted)
+                                                    <div class="font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                                                        <i class="ph ph-crown"></i>
+                                                        <span>Promoted</span>
+                                                    </div>
+                                                @endif
+                                                @if(!$app->increment_percentage && !$app->is_promoted)
+                                                    <span class="text-slate-400 text-[10px]">—</span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-slate-400 text-[10px] italic flex items-center gap-1">
+                                                <i class="ph ph-eye-slash text-xs"></i> Confidential
+                                            </span>
+                                        @endif
+                                    </td>
+
+                                    <td class="p-3.5 pr-5 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <a href="{{ route('appraisal.show', $app->id) }}" class="bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-xl font-bold transition-all text-xs flex items-center gap-1.5">
+                                                <span>Review</span>
+                                                <i class="ph ph-arrow-right text-xs"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             </div>
         @endif
     </div>
