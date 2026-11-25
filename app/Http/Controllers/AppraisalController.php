@@ -262,7 +262,7 @@ class AppraisalController extends Controller
         }
         $letters = $lettersQuery->get();
 
-        // Self-evaluation appraisals for current employee
+        // Self-evaluation appraisals for current employee across all cycles
         $myAppraisals = collect();
         if ($employee) {
             $myAppraisals = Appraisal::with([
@@ -276,7 +276,6 @@ class AppraisalController extends Controller
                 'criteriaScores',
                 'changeRequests'
             ])
-            ->when($activeCycle, fn($q) => $q->where('cycle_id', $activeCycle->id))
             ->where('employee_id', $employee->id)
             ->latest()
             ->get();

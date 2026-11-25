@@ -127,20 +127,251 @@
                     </div>
                 </div>
 
-                <!-- Self-Evaluation Progress Bar -->
-                <div class="space-y-2 pt-2">
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
-                            Self-Evaluation Progress: <strong class="text-slate-800 dark:text-slate-200">{{ $cSelfSubmitted }} of {{ $cTotal }} Submitted</strong>
-                        </span>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black {{ $cSelfRate == 100 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' }}">
-                            {{ $cSelfRate }}%
-                        </span>
+                @php
+                    // Resolve individual employee appraisal in this cycle
+                    $myApp = (isset($myAppraisals) && $myAppraisals->isNotEmpty())
+                        ? $myAppraisals->firstWhere('cycle_id', $c->id)
+                        : null;
+
+                    if (!$myApp && $employee) {
+                        $myApp = \Modules\Performance\Models\Appraisal::with(['reportingManager.user', 'hod.user', 'employee.user'])
+                            ->where('cycle_id', $c->id)
+                            ->where('employee_id', $employee->id)
+                            ->first();
+                    }
+
+                    $hasManager = $myApp ? (bool)($myApp->reporting_manager_id && $myApp->reportingManager && $myApp->workflow_type !== 'two_tier' && $myApp->reporting_manager_id !== $myApp->hod_id) : false;
+                    $myAppStatus = $myApp?->status;
+
+                    if ($myApp) {
+                        if ($hasManager) {
+                            // 4 Stages: Self-Evaluation -> Manager Review -> HOD Moderation -> Final Sign-off
+                            $s1Done = in_array($myAppStatus, ['submitted_self_eval', 'pending_manager_eval', 'submitted_manager_eval', 'pending_hod_eval', 'completed']) || !empty($myApp->self_submitted_at);
+                            $s1Active = ($myAppStatus === 'pending_self_eval');
+
+                            $s2Done = in_array($myAppStatus, ['submitted_manager_eval', 'pending_hod_eval', 'completed']) || !empty($myApp->manager_submitted_at);
+                            $s2Active = in_array($myAppStatus, ['submitted_self_eval', 'pending_manager_eval']);
+
+                            $s3Done = ($myAppStatus === 'completed') || !empty($myApp->hod_submitted_at);
+                            $s3Active = in_array($myAppStatus, ['submitted_manager_eval', 'pending_hod_eval']);
+
+                            $s4Done = ($myAppStatus === 'completed');
+
+                            if ($s4Done) {
+                                $myProgressPercent = 100;
+                                $myStageLabel = 'Completed & Finalized';
+                            } elseif ($s3Active) {
+                                $myProgressPercent = 66.6;
+                                $myStageLabel = 'Stage 3: HOD Moderation';
+                            } elseif ($s2Active) {
+                                $myProgressPercent = 33.3;
+                                $myStageLabel = 'Stage 2: Manager Review';
+                            } else {
+                                $myProgressPercent = 0;
+                                $myStageLabel = 'Stage 1: Self-Evaluation';
+                            }
+                        } else {
+                            // 3 Stages: Self-Evaluation -> HOD Review & Moderation -> Final Sign-off
+                            $s1Done = in_array($myAppStatus, ['submitted_self_eval', 'pending_hod_eval', 'completed']) || !empty($myApp->self_submitted_at);
+                            $s1Active = ($myAppStatus === 'pending_self_eval');
+
+                            $s2Done = ($myAppStatus === 'completed') || !empty($myApp->hod_submitted_at);
+                            $s2Active = in_array($myAppStatus, ['submitted_self_eval', 'pending_hod_eval', 'submitted_manager_eval', 'pending_manager_eval']);
+
+                            $s3Done = ($myAppStatus === 'completed');
+
+                            if ($s3Done) {
+                                $myProgressPercent = 100;
+                                $myStageLabel = 'Completed & Finalized';
+                            } elseif ($s2Active) {
+                                $myProgressPercent = 50;
+                                $myStageLabel = 'Stage 2: HOD Review';
+                            } else {
+                                $myProgressPercent = 0;
+                                $myStageLabel = 'Stage 1: Self-Evaluation';
+                            }
+                        }
+                    } else {
+                        $myProgressPercent = 0;
+                        $myStageLabel = 'Not Assigned';
+                        $hasManager = false;
+                        $s1Done = $s1Active = $s2Done = $s2Active = $s3Done = $s3Active = $s4Done = false;
+                    }
+                @endphp
+
+                @if($employee)
+                    {{-- Personal Evaluation Stages (Shown on My Self-Evaluation or for Employee role) --}}
+                    <div x-show="{{ $role === 'Employee' ? 'true' : 'activeTab === \'my_appraisal\'' }}" class="space-y-3 pt-2">
+                        @if($myApp)
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Evaluation Stage:</span>
+                                    <strong class="text-[11px] text-blue-600 dark:text-blue-400 font-black">{{ $myStageLabel }}</strong>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black {{ $myProgressPercent == 100 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' }}">
+                                    {{ round($myProgressPercent) }}%
+                                </span>
+                            </div>
+
+                            <!-- Stepped Stage Progress Bar -->
+                            <div class="relative pt-1 pb-1">
+                                <!-- Track Line -->
+                                <div class="absolute top-[18px] {{ $hasManager ? 'left-[12.5%] right-[12.5%]' : 'left-[16.67%] right-[16.67%]' }} h-1.5 bg-slate-100 dark:bg-slate-800 -translate-y-1/2 rounded-full overflow-hidden z-0">
+                                    <div class="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 rounded-full transition-all duration-500" style="width: {{ $myProgressPercent }}%"></div>
+                                </div>
+
+                                @if($hasManager)
+                                    <!-- 4 Stages Grid -->
+                                    <div class="relative z-10 grid grid-cols-4 gap-1">
+                                        <!-- Stage 1 -->
+                                        <div class="flex flex-col items-center text-center">
+                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s1Done ? 'bg-emerald-500 text-white' : ($s1Active ? 'bg-blue-600 text-white ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500') }}">
+                                                @if($s1Done)
+                                                    <i class="ph-bold ph-check text-[10px]"></i>
+                                                @else
+                                                    1
+                                                @endif
+                                            </div>
+                                            <span class="text-[10px] font-bold mt-1.5 {{ $s1Active ? 'text-blue-600 dark:text-blue-400 font-black' : ($s1Done ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400') }}">
+                                                Self-Eval
+                                            </span>
+                                            <span class="text-[9px] font-medium text-slate-400">
+                                                {{ $s1Done ? 'Submitted' : 'Pending' }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Stage 2 -->
+                                        <div class="flex flex-col items-center text-center">
+                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s2Done ? 'bg-emerald-500 text-white' : ($s2Active ? 'bg-blue-600 text-white ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500') }}">
+                                                @if($s2Done)
+                                                    <i class="ph-bold ph-check text-[10px]"></i>
+                                                @else
+                                                    2
+                                                @endif
+                                            </div>
+                                            <span class="text-[10px] font-bold mt-1.5 {{ $s2Active ? 'text-blue-600 dark:text-blue-400 font-black' : ($s2Done ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400') }}">
+                                                Manager
+                                            </span>
+                                            <span class="text-[9px] font-medium text-slate-400">
+                                                {{ $s2Done ? 'Reviewed' : ($s2Active ? 'In Review' : 'Awaiting') }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Stage 3 -->
+                                        <div class="flex flex-col items-center text-center">
+                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s3Done ? 'bg-emerald-500 text-white' : ($s3Active ? 'bg-blue-600 text-white ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500') }}">
+                                                @if($s3Done)
+                                                    <i class="ph-bold ph-check text-[10px]"></i>
+                                                @else
+                                                    3
+                                                @endif
+                                            </div>
+                                            <span class="text-[10px] font-bold mt-1.5 {{ $s3Active ? 'text-blue-600 dark:text-blue-400 font-black' : ($s3Done ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400') }}">
+                                                HOD
+                                            </span>
+                                            <span class="text-[9px] font-medium text-slate-400">
+                                                {{ $s3Done ? 'Approved' : ($s3Active ? 'Moderating' : 'Awaiting') }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Stage 4 -->
+                                        <div class="flex flex-col items-center text-center">
+                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s4Done ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500') }}">
+                                                @if($s4Done)
+                                                    <i class="ph-bold ph-check text-[10px]"></i>
+                                                @else
+                                                    4
+                                                @endif
+                                            </div>
+                                            <span class="text-[10px] font-bold mt-1.5 {{ $s4Done ? 'text-emerald-600 dark:text-emerald-400 font-black' : 'text-slate-400' }}">
+                                                Finalized
+                                            </span>
+                                            <span class="text-[9px] font-medium text-slate-400">
+                                                {{ $s4Done ? number_format($myApp->total_weighted_score, 2) . '/5.00' : 'Pending' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                @else
+                                    <!-- 3 Stages Grid -->
+                                    <div class="relative z-10 grid grid-cols-3 gap-2">
+                                        <!-- Stage 1 -->
+                                        <div class="flex flex-col items-center text-center">
+                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s1Done ? 'bg-emerald-500 text-white' : ($s1Active ? 'bg-blue-600 text-white ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500') }}">
+                                                @if($s1Done)
+                                                    <i class="ph-bold ph-check text-[10px]"></i>
+                                                @else
+                                                    1
+                                                @endif
+                                            </div>
+                                            <span class="text-[10px] font-bold mt-1.5 {{ $s1Active ? 'text-blue-600 dark:text-blue-400 font-black' : ($s1Done ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400') }}">
+                                                Self-Evaluation
+                                            </span>
+                                            <span class="text-[9px] font-medium text-slate-400">
+                                                {{ $s1Done ? 'Submitted' : 'Pending' }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Stage 2 -->
+                                        <div class="flex flex-col items-center text-center">
+                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s2Done ? 'bg-emerald-500 text-white' : ($s2Active ? 'bg-blue-600 text-white ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500') }}">
+                                                @if($s2Done)
+                                                    <i class="ph-bold ph-check text-[10px]"></i>
+                                                @else
+                                                    2
+                                                @endif
+                                            </div>
+                                            <span class="text-[10px] font-bold mt-1.5 {{ $s2Active ? 'text-blue-600 dark:text-blue-400 font-black' : ($s2Done ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400') }}">
+                                                HOD Review
+                                            </span>
+                                            <span class="text-[9px] font-medium text-slate-400">
+                                                {{ $s2Done ? 'Approved' : ($s2Active ? 'In Review' : 'Awaiting') }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Stage 3 -->
+                                        <div class="flex flex-col items-center text-center">
+                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s3Done ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500') }}">
+                                                @if($s3Done)
+                                                    <i class="ph-bold ph-check text-[10px]"></i>
+                                                @else
+                                                    3
+                                                @endif
+                                            </div>
+                                            <span class="text-[10px] font-bold mt-1.5 {{ $s3Done ? 'text-emerald-600 dark:text-emerald-400 font-black' : 'text-slate-400' }}">
+                                                Finalized
+                                            </span>
+                                            <span class="text-[9px] font-medium text-slate-400">
+                                                {{ $s3Done ? number_format($myApp->total_weighted_score, 2) . '/5.00' : 'Pending' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        @else
+                            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 text-center py-3">
+                                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">No Self-Evaluation Assigned</span>
+                                <p class="text-[10px] text-slate-400 mt-0.5">Evaluation will be assigned once this review quarter is activated.</p>
+                            </div>
+                        @endif
                     </div>
-                    <div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-500" style="width: {{ $cSelfRate }}%"></div>
+                @endif
+
+                @if($role !== 'Employee')
+                    {{-- Team / Cycle Overview (Shown on Appraisals Roster / Letters for Managers & HR) --}}
+                    <div x-show="activeTab !== 'my_appraisal'" class="space-y-2 pt-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+                                Team Evaluation Submissions: <strong class="text-slate-800 dark:text-slate-200">{{ $cSelfSubmitted }} of {{ $cTotal }} Completed</strong>
+                            </span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-black {{ $cSelfRate == 100 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' }}">
+                                {{ $cSelfRate }}%
+                            </span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-500" style="width: {{ $cSelfRate }}%"></div>
+                        </div>
                     </div>
-                </div>
+                @endif
 
             </div>
         @endforeach
