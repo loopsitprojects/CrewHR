@@ -16,25 +16,14 @@
             </h1>
         </div>
 
+        @if(in_array($role, ['Super Admin', 'HR Lead']))
         <div class="flex flex-wrap items-center gap-2.5">
-            <!-- Cycle Selector Dropdown -->
-            <form method="GET" action="{{ route('appraisal.index') }}" class="flex items-center">
-                <select name="cycle_id" onchange="this.form.submit()" class="border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold bg-white dark:bg-[#111927] text-slate-800 dark:text-slate-200 p-2 shadow-sm focus:ring-2 focus:ring-blue-500/20">
-                    @foreach($cycles as $c)
-                        <option value="{{ $c->id }}" {{ ($activeCycle?->id == $c->id) ? 'selected' : '' }}>
-                            {{ $c->name }} ({{ $c->status }})
-                        </option>
-                    @endforeach
-                </select>
-            </form>
-
-            @if(in_array($role, ['Super Admin', 'HR Lead']))
-                <button @click="showCycleModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all shrink-0 cursor-pointer">
-                    <i class="ph ph-plus-circle text-base"></i>
-                    <span>New Appraisal Cycle</span>
-                </button>
-            @endif
+            <button @click="showCycleModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all shrink-0 cursor-pointer">
+                <i class="ph ph-plus-circle text-base"></i>
+                <span>New Appraisal Cycle</span>
+            </button>
         </div>
+        @endif
     </div>
 
     <!-- Review Cycles / Quarters Cards (Both Quarters) -->
