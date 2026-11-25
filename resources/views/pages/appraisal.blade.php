@@ -3,6 +3,7 @@
 @section('content')
 <div class="space-y-6" x-data="{
     activeTab: '{{ request('tab', ($role !== 'Employee' && $employee) ? 'my_appraisal' : 'roster') }}',
+    selectedCategory: null,
     showCycleModal: false,
     showReminderModal: false,
     statusFilter: '{{ request('status', '') }}',
@@ -26,7 +27,7 @@
         @endif
     </div>
 
-    <!-- Two-Tile Overview: Quarterly Reviews & Bi-Annual Reviews -->
+    <!-- Two-Tile Category Selector: Quarterly Reviews & Bi-Annual Reviews -->
     @php
         $tileSourceAppraisals = ($role === 'Employee' || (isset($myAppraisals) && $myAppraisals->isNotEmpty()))
             ? ($myAppraisals ?? $appraisals->where('employee_id', $employee?->id))
@@ -45,56 +46,85 @@
         });
     @endphp
 
-    <div x-show="{{ $role === 'Employee' ? 'true' : 'activeTab === \'my_appraisal\'' }}" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <!-- Tile 1: Quarterly Reviews -->
-        <div class="bg-white dark:bg-[#111927] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/90 dark:border-white/[0.08] space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3.5">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200/70 dark:border-amber-800/60 flex items-center justify-center shrink-0">
-                        <i class="ph ph-calendar-check text-lg"></i>
+    <div x-show="{{ $role === 'Employee' ? 'true' : 'activeTab === \'my_appraisal\'' }}" class="space-y-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Tile 1: Quarterly Reviews -->
+            <button type="button"
+                    @click="selectedCategory = (selectedCategory === 'quarterly' ? null : 'quarterly')"
+                    :class="selectedCategory === 'quarterly' ? 'border-2 border-amber-500 ring-2 ring-amber-500/20 shadow-md' : 'border border-slate-200/90 dark:border-white/[0.08] hover:border-amber-300 dark:hover:border-amber-700/60'"
+                    class="w-full text-left bg-white dark:bg-[#111927] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm transition-all cursor-pointer flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200/70 dark:border-amber-800/60 flex items-center justify-center shrink-0">
+                        <i class="ph ph-calendar-check text-xl"></i>
                     </div>
                     <div>
                         <h2 class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight">Quarterly Reviews</h2>
-                        <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">All quarterly &amp; mid-year appraisals</p>
+                        <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Click to view all quarterly &amp; mid-year appraisals</p>
                     </div>
                 </div>
-                <span class="px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                    {{ $quarterlyAppraisals->count() }} {{ Str::plural('Appraisal', $quarterlyAppraisals->count()) }}
-                </span>
-            </div>
-
-            @if($quarterlyAppraisals->isEmpty())
-                <div class="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-                    No quarterly appraisals recorded yet.
+                <div class="flex flex-col items-end gap-1.5 shrink-0">
+                    <span class="px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        {{ $quarterlyAppraisals->count() }} {{ Str::plural('Appraisal', $quarterlyAppraisals->count()) }}
+                    </span>
+                    <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400" x-text="selectedCategory === 'quarterly' ? 'Viewing ▲' : 'Open ▼'"></span>
                 </div>
+            </button>
+
+            <!-- Tile 2: Bi-Annual Reviews -->
+            <button type="button"
+                    @click="selectedCategory = (selectedCategory === 'biannual' ? null : 'biannual')"
+                    :class="selectedCategory === 'biannual' ? 'border-2 border-indigo-500 ring-2 ring-indigo-500/20 shadow-md' : 'border border-slate-200/90 dark:border-white/[0.08] hover:border-indigo-300 dark:hover:border-indigo-700/60'"
+                    class="w-full text-left bg-white dark:bg-[#111927] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm transition-all cursor-pointer flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/70 dark:border-indigo-800/60 flex items-center justify-center shrink-0">
+                        <i class="ph ph-chart-line-up text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight">Bi-Annual Reviews</h2>
+                        <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Click to view all bi-annual &amp; year-end appraisals</p>
+                    </div>
+                </div>
+                <div class="flex flex-col items-end gap-1.5 shrink-0">
+                    <span class="px-2.5 py-1 rounded-full text-[11px] font-black bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                        {{ $biAnnualAppraisals->count() }} {{ Str::plural('Appraisal', $biAnnualAppraisals->count()) }}
+                    </span>
+                    <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400" x-text="selectedCategory === 'biannual' ? 'Viewing ▲' : 'Open ▼'"></span>
+                </div>
+            </button>
+        </div>
+
+        <!-- Opened Category Panel: Quarterly Reviews -->
+        <div x-show="selectedCategory === 'quarterly'" x-cloak class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div class="px-5 py-3.5 bg-amber-50/50 dark:bg-amber-950/20 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                <span class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Quarterly Reviews ({{ $quarterlyAppraisals->count() }})</span>
+                <button type="button" @click="selectedCategory = null" class="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer">&times; Close</button>
+            </div>
+            @if($quarterlyAppraisals->isEmpty())
+                <div class="p-8 text-center text-xs text-slate-400">No quarterly appraisals recorded yet.</div>
             @else
-                <div class="divide-y divide-slate-100 dark:divide-slate-800/80 max-h-64 overflow-y-auto pr-1">
+                <div class="divide-y divide-slate-100 dark:divide-slate-800/80">
                     @foreach($quarterlyAppraisals as $qApp)
-                        <div class="py-2.5 flex items-center justify-between gap-3">
+                        <div class="p-4 flex items-center justify-between gap-4 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
                             <div class="min-w-0">
-                                <div class="text-xs font-extrabold text-slate-900 dark:text-white truncate">
-                                    {{ $qApp->cycle?->name ?? 'Quarterly Review' }}
-                                </div>
-                                <div class="text-[11px] text-slate-400 font-medium truncate">
-                                    {{ $qApp->employee?->user?->name ?? 'Employee' }} &bull; {{ $qApp->template?->title ?? 'Appraisal' }}
-                                </div>
+                                <div class="text-xs font-extrabold text-slate-900 dark:text-white">{{ $qApp->cycle?->name ?? 'Quarterly Review' }}</div>
+                                <div class="text-[11px] text-slate-400 font-medium mt-0.5">{{ $qApp->employee?->user?->name ?? 'Employee' }} &bull; {{ $qApp->template?->title ?? 'Appraisal' }}</div>
                             </div>
-                            <div class="flex items-center gap-2 shrink-0">
+                            <div class="flex items-center gap-3 shrink-0">
                                 @if($qApp->status === 'completed')
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                        {{ $qApp->total_weighted_score > 0 ? number_format($qApp->total_weighted_score, 2) . '/5.00' : 'Finalized' }}
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                        {{ $qApp->total_weighted_score > 0 ? number_format($qApp->total_weighted_score, 2) . ' / 5.00' : 'Finalized' }}
                                     </span>
                                 @elseif($qApp->status === 'pending_self_eval')
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                                         Pending Self-Eval
                                     </span>
                                 @else
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                                         In Progress
                                     </span>
                                 @endif
-                                <a href="{{ route('appraisal.show', $qApp->id) }}" class="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 text-[11px] font-bold border border-slate-200 dark:border-slate-700 transition-colors">
-                                    Open &rarr;
+                                <a href="{{ route('appraisal.show', $qApp->id) }}" class="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors">
+                                    Review &rarr;
                                 </a>
                             </div>
                         </div>
@@ -103,55 +133,38 @@
             @endif
         </div>
 
-        <!-- Tile 2: Bi-Annual Reviews -->
-        <div class="bg-white dark:bg-[#111927] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/90 dark:border-white/[0.08] space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3.5">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/70 dark:border-indigo-800/60 flex items-center justify-center shrink-0">
-                        <i class="ph ph-chart-line-up text-lg"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight">Bi-Annual Reviews</h2>
-                        <p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">All bi-annual &amp; year-end appraisals</p>
-                    </div>
-                </div>
-                <span class="px-2.5 py-1 rounded-full text-[11px] font-black bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                    {{ $biAnnualAppraisals->count() }} {{ Str::plural('Appraisal', $biAnnualAppraisals->count()) }}
-                </span>
+        <!-- Opened Category Panel: Bi-Annual Reviews -->
+        <div x-show="selectedCategory === 'biannual'" x-cloak class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div class="px-5 py-3.5 bg-indigo-50/50 dark:bg-indigo-950/20 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                <span class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Bi-Annual Reviews ({{ $biAnnualAppraisals->count() }})</span>
+                <button type="button" @click="selectedCategory = null" class="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer">&times; Close</button>
             </div>
-
             @if($biAnnualAppraisals->isEmpty())
-                <div class="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
-                    No bi-annual appraisals recorded yet.
-                </div>
+                <div class="p-8 text-center text-xs text-slate-400">No bi-annual appraisals recorded yet.</div>
             @else
-                <div class="divide-y divide-slate-100 dark:divide-slate-800/80 max-h-64 overflow-y-auto pr-1">
+                <div class="divide-y divide-slate-100 dark:divide-slate-800/80">
                     @foreach($biAnnualAppraisals as $bApp)
-                        <div class="py-2.5 flex items-center justify-between gap-3">
+                        <div class="p-4 flex items-center justify-between gap-4 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
                             <div class="min-w-0">
-                                <div class="text-xs font-extrabold text-slate-900 dark:text-white truncate">
-                                    {{ $bApp->cycle?->name ?? 'Bi-Annual Review' }}
-                                </div>
-                                <div class="text-[11px] text-slate-400 font-medium truncate">
-                                    {{ $bApp->employee?->user?->name ?? 'Employee' }} &bull; {{ $bApp->template?->title ?? 'Appraisal' }}
-                                </div>
+                                <div class="text-xs font-extrabold text-slate-900 dark:text-white">{{ $bApp->cycle?->name ?? 'Bi-Annual Review' }}</div>
+                                <div class="text-[11px] text-slate-400 font-medium mt-0.5">{{ $bApp->employee?->user?->name ?? 'Employee' }} &bull; {{ $bApp->template?->title ?? 'Appraisal' }}</div>
                             </div>
-                            <div class="flex items-center gap-2 shrink-0">
+                            <div class="flex items-center gap-3 shrink-0">
                                 @if($bApp->status === 'completed')
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                        {{ $bApp->total_weighted_score > 0 ? number_format($bApp->total_weighted_score, 2) . '/5.00' : 'Finalized' }}
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                        {{ $bApp->total_weighted_score > 0 ? number_format($bApp->total_weighted_score, 2) . ' / 5.00' : 'Finalized' }}
                                     </span>
                                 @elseif($bApp->status === 'pending_self_eval')
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                                         Pending Self-Eval
                                     </span>
                                 @else
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                                         In Progress
                                     </span>
                                 @endif
-                                <a href="{{ route('appraisal.show', $bApp->id) }}" class="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 text-[11px] font-bold border border-slate-200 dark:border-slate-700 transition-colors">
-                                    Open &rarr;
+                                <a href="{{ route('appraisal.show', $bApp->id) }}" class="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors">
+                                    Review &rarr;
                                 </a>
                             </div>
                         </div>
@@ -160,8 +173,6 @@
             @endif
         </div>
     </div>
-
-
 
     <!-- Navigation Tabs -->
     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
