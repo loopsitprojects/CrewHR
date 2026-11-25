@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL', 'http://localhost') . '/auth/google/callback'),
+        'allowed_domains' => env('GOOGLE_ALLOWED_DOMAINS', 'loopshr.com,loopshr.lk'),
+        'auto_register' => env('GOOGLE_AUTO_REGISTER', true),
+    ],
+
 ];

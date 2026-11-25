@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="space-y-6" x-data="{
-    activeTab: 'roster',
+    activeTab: '{{ request('tab', ($employee ? 'my_appraisal' : 'roster')) }}',
     showCycleModal: false,
     showReminderModal: false,
     statusFilter: '{{ request('status', '') }}',
@@ -65,74 +65,31 @@
     @endphp
     <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-white/[0.08] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm space-y-4 transition-colors">
         
-        <!-- Top Row: Cycle Status, Type, and Metrics -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-3.5">
-            <div class="flex flex-wrap items-center gap-2">
-                <!-- Cycle Type Badge -->
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider {{ $isMid ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800' : 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-300/80 dark:border-blue-800' }}">
-                    <i class="ph {{ $isMid ? 'ph-calendar-check' : 'ph-trend-up' }} text-sm"></i>
-                    <span>{{ $isMid ? 'Mid-Year Review' : 'Year-End Review' }}</span>
-                    <span class="w-1.5 h-1.5 rounded-full {{ $activeCycle->status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
-                    <span class="text-[10px] font-bold">{{ $activeCycle->status }}</span>
-                </span>
-
-                @if($activeCycle->financial_year)
-                    <span class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700">
-                        {{ $activeCycle->financial_year }}
-                    </span>
-                @endif
-
-                <span class="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-200/70 dark:border-slate-700 flex items-center gap-1.5">
-                    <i class="ph ph-calendar-blank text-slate-400"></i>
-                    <span>Period: <strong class="text-slate-800 dark:text-slate-200">{{ $activeCycle->performance_period ?: ($isMid ? 'April to September' : 'October to March') }}</strong></span>
-                </span>
-
-                @if($activeCycle->self_eval_deadline)
-                    <span class="bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 text-xs font-bold px-2.5 py-1 rounded-lg border border-purple-200/80 dark:border-purple-800 flex items-center gap-1.5">
-                        <i class="ph ph-clock text-sm"></i>
-                        <span>Self-Eval Deadline: {{ $activeCycle->self_eval_deadline->format('d M Y') }}</span>
-                    </span>
-                @endif
-            </div>
-
-            <!-- Progress Metric -->
-            <div class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2 shrink-0">
-                <span>{{ $completedCount }} of {{ $totalAppraisals }} Finalized</span>
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-black {{ $completionRate == 100 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' }}">
-                    {{ $completionRate }}%
-                </span>
-            </div>
-        </div>
-
-        <!-- Middle Row: Title, Review Window, and Policy Summary -->
-        <div class="space-y-2.5">
-            <div class="flex flex-wrap items-center justify-between gap-3">
+        <!-- Cycle Header: Title, Status, Dates & Progress -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800/80 pb-4">
+            <div class="flex items-center gap-3">
                 <h2 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
                     {{ $activeCycle->name }}
                 </h2>
-                <div class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                    <i class="ph ph-calendar text-sm text-blue-600 dark:text-blue-400"></i>
-                    <span>Review Window:</span>
-                    <strong class="text-slate-900 dark:text-white">{{ $activeCycle->start_date?->format('d M') }} – {{ $activeCycle->end_date?->format('d M Y') }}</strong>
-                </div>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider {{ $isMid ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800' : 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-300/80 dark:border-blue-800' }}">
+                    <span class="w-1.5 h-1.5 rounded-full {{ $activeCycle->status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
+                    <span>{{ $activeCycle->status }}</span>
+                </span>
             </div>
 
-            <!-- Policy Context Notice Bar -->
-            @if($isMid)
-                <div class="p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/90 dark:border-amber-800/60 flex items-start sm:items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200">
-                    <i class="ph ph-info text-amber-600 dark:text-amber-400 text-base shrink-0 mt-0.5 sm:mt-0"></i>
-                    <div class="leading-relaxed">
-                        Covers performance from <strong>April to September</strong>. Focuses on employee progress, identifying improvement areas, and setting/adjusting KPIs. <strong class="text-amber-800 dark:text-amber-300 underline decoration-amber-400">This review does not involve salary increments.</strong>
-                    </div>
+            <div class="flex flex-wrap items-center gap-3 shrink-0">
+                <div class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    <i class="ph ph-calendar text-sm text-blue-600 dark:text-blue-400"></i>
+                    <span>{{ $activeCycle->start_date?->format('d M') }} – {{ $activeCycle->end_date?->format('d M Y') }}</span>
                 </div>
-            @else
-                <div class="p-3 rounded-xl bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200/90 dark:border-blue-800/60 flex items-start sm:items-center gap-2.5 text-xs text-blue-900 dark:text-blue-200">
-                    <i class="ph ph-trend-up text-blue-600 dark:text-blue-400 text-base shrink-0 mt-0.5 sm:mt-0"></i>
-                    <div class="leading-relaxed">
-                        Covers performance from <strong>October to March</strong>. Final performance evaluation for potential promotions and annual increments (aligned with approved company budget).
-                    </div>
+
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <span>{{ $completedCount }} of {{ $totalAppraisals }} Finalized</span>
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-black {{ $completionRate == 100 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' }}">
+                        {{ $completionRate }}%
+                    </span>
                 </div>
-            @endif
+            </div>
         </div>
 
         @php
@@ -177,114 +134,66 @@
             }
         @endphp
 
-        <!-- Progressive Review Milestones (Single Connected Progress Line) -->
-        <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-3.5">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
-                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Review Milestones</span>
-                </div>
-                <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Current Milestone: 
-                    <strong class="text-blue-600 dark:text-blue-400">
-                        @if($m3Status === 'completed')
-                            Complete & Finalized
-                        @elseif($m2Status === 'current' && $pendingSelfCount === 0)
-                            Manager Review & Moderation
-                        @elseif($selfSubmittedCount > 0)
-                            Self-Evaluation & Submission Window
-                        @else
-                            Self-Evaluation Window
-                        @endif
-                    </strong>
-                </div>
+        <!-- Progressive Review Milestones Track -->
+        <div class="relative bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5">
+            <!-- Background connecting track -->
+            <div class="absolute top-[28px] sm:top-[34px] left-[16.67%] right-[16.67%] h-1.5 sm:h-2 bg-slate-200/80 dark:bg-slate-700/70 -translate-y-1/2 rounded-full overflow-hidden z-0">
+                <div class="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 rounded-full transition-all duration-700 ease-out" 
+                     style="width: {{ $progressLineWidth }}%"></div>
             </div>
 
-            <!-- Single Connected Milestone Progress Line -->
-            <div class="relative bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5">
-                <!-- Background connecting track -->
-                <div class="absolute top-[32px] sm:top-[40px] left-[16.67%] right-[16.67%] h-1.5 sm:h-2 bg-slate-200/80 dark:bg-slate-700/70 -translate-y-1/2 rounded-full overflow-hidden z-0">
-                    <div class="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 rounded-full transition-all duration-700 ease-out" 
-                         style="width: {{ $progressLineWidth }}%"></div>
+            <!-- 3 Milestones Grid -->
+            <div class="relative z-10 grid grid-cols-3 gap-2">
+                <!-- Milestone 1: Submit -->
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $m1Status === 'completed' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' }}">
+                        @if($m1Status === 'completed')
+                            <i class="ph-bold ph-check text-sm sm:text-base"></i>
+                        @else
+                            1
+                        @endif
+                    </div>
+                    <div class="mt-2 space-y-0.5">
+                        <span class="text-xs sm:text-sm font-black text-slate-900 dark:text-white block">Submit</span>
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                            {{ $selfSubmittedCount }}/{{ $totalAppraisals }} Submitted
+                        </p>
+                    </div>
                 </div>
 
-                <!-- 3 Milestones Grid -->
-                <div class="relative z-10 grid grid-cols-3 gap-2">
-                    <!-- Milestone 1: Submit -->
-                    <div class="flex flex-col items-center text-center">
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $m1Status === 'completed' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' }}">
-                            @if($m1Status === 'completed')
-                                <i class="ph-bold ph-check text-sm sm:text-base"></i>
-                            @else
-                                1
-                            @endif
-                        </div>
-                        <div class="mt-2 sm:mt-2.5 space-y-0.5">
-                            <div class="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5">
-                                <span class="text-xs sm:text-sm font-black text-slate-900 dark:text-white">Submit</span>
-                                <span class="text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md {{ $m1Status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300' }}">
-                                    {{ $m1Status === 'completed' ? 'Completed' : 'In Progress' }}
-                                </span>
-                            </div>
-                            <p class="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                                {{ $selfSubmittedCount }}/{{ $totalAppraisals }} Submitted
-                            </p>
-                            <span class="text-[10px] font-semibold text-slate-400 block">
-                                Due: {{ $activeCycle->self_eval_deadline ? $activeCycle->self_eval_deadline->format('d M') : '20 Oct' }}
-                            </span>
-                        </div>
+                <!-- Milestone 2: Manager Review -->
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $m2Status === 'completed' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : ($m2Status === 'current' ? 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
+                        @if($m2Status === 'completed')
+                            <i class="ph-bold ph-check text-sm sm:text-base"></i>
+                        @elseif($m2Status === 'current')
+                            2
+                        @else
+                            2
+                        @endif
                     </div>
-
-                    <!-- Milestone 2: Manager Review -->
-                    <div class="flex flex-col items-center text-center">
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $m2Status === 'completed' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : ($m2Status === 'current' ? 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
-                            @if($m2Status === 'completed')
-                                <i class="ph-bold ph-check text-sm sm:text-base"></i>
-                            @elseif($m2Status === 'current')
-                                2
-                            @else
-                                2
-                            @endif
-                        </div>
-                        <div class="mt-2 sm:mt-2.5 space-y-0.5">
-                            <div class="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5">
-                                <span class="text-xs sm:text-sm font-black {{ $m2Status === 'upcoming' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white' }}">Manager Review</span>
-                                <span class="text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md {{ $m2Status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' : ($m2Status === 'current' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300' : 'bg-slate-200/80 text-slate-600 dark:bg-slate-700 dark:text-slate-400') }}">
-                                    {{ $m2Status === 'completed' ? 'Completed' : ($m2Status === 'current' ? 'In Progress' : 'Upcoming') }}
-                                </span>
-                            </div>
-                            <p class="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                                {{ $managerDoneCount }}/{{ $totalAppraisals }} Reviewed
-                            </p>
-                            <span class="text-[10px] font-semibold text-slate-400 block">
-                                Ratings & Feedback
-                            </span>
-                        </div>
+                    <div class="mt-2 space-y-0.5">
+                        <span class="text-xs sm:text-sm font-black {{ $m2Status === 'upcoming' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white' }} block">Manager Review</span>
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                            {{ $managerDoneCount }}/{{ $totalAppraisals }} Reviewed
+                        </p>
                     </div>
+                </div>
 
-                    <!-- Milestone 3: Complete -->
-                    <div class="flex flex-col items-center text-center">
-                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $m3Status === 'completed' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : ($m3Status === 'current' ? 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
-                            @if($m3Status === 'completed')
-                                <i class="ph-bold ph-check text-sm sm:text-base"></i>
-                            @else
-                                <i class="ph-bold ph-flag-banner text-xs sm:text-sm"></i>
-                            @endif
-                        </div>
-                        <div class="mt-2 sm:mt-2.5 space-y-0.5">
-                            <div class="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5">
-                                <span class="text-xs sm:text-sm font-black {{ $m3Status === 'upcoming' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white' }}">Complete</span>
-                                <span class="text-[9px] sm:text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md {{ $m3Status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' : ($m3Status === 'current' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300' : 'bg-slate-200/80 text-slate-600 dark:bg-slate-700 dark:text-slate-400') }}">
-                                    {{ $m3Status === 'completed' ? 'Finalized' : ($m3Status === 'current' ? 'In Progress' : 'Pending') }}
-                                </span>
-                            </div>
-                            <p class="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                                {{ $completedCount }}/{{ $totalAppraisals }} Finalized
-                            </p>
-                            <span class="text-[10px] font-semibold text-slate-400 block">
-                                Ends: {{ $activeCycle->end_date ? $activeCycle->end_date->format('d M') : '31 Oct' }}
-                            </span>
-                        </div>
+                <!-- Milestone 3: Complete -->
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $m3Status === 'completed' ? 'bg-emerald-500 text-white shadow-emerald-500/30' : ($m3Status === 'current' ? 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
+                        @if($m3Status === 'completed')
+                            <i class="ph-bold ph-check text-sm sm:text-base"></i>
+                        @else
+                            <i class="ph-bold ph-flag-banner text-xs sm:text-sm"></i>
+                        @endif
+                    </div>
+                    <div class="mt-2 space-y-0.5">
+                        <span class="text-xs sm:text-sm font-black {{ $m3Status === 'upcoming' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-white' }} block">Complete</span>
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                            {{ $completedCount }}/{{ $totalAppraisals }} Finalized
+                        </p>
                     </div>
                 </div>
             </div>
@@ -292,52 +201,7 @@
     </div>
     @endif
 
-    <!-- Key Metrics Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-                <span class="text-[11px] font-bold uppercase tracking-wider">Total Evaluated</span>
-                <i class="ph ph-users text-lg text-blue-500"></i>
-            </div>
-            <div class="text-2xl font-black text-slate-900 dark:text-white">{{ $totalAppraisals }}</div>
-        </div>
 
-        <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-                <span class="text-[11px] font-bold uppercase tracking-wider">Self-Evaluation</span>
-                <i class="ph ph-hourglass-high text-lg text-amber-500"></i>
-            </div>
-            <div class="text-2xl font-black text-amber-600 dark:text-amber-400">{{ $pendingSelfCount }}</div>
-        </div>
-
-        <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-                <span class="text-[11px] font-bold uppercase tracking-wider">Review Queue</span>
-                <i class="ph ph-git-pull-request text-lg text-indigo-500"></i>
-            </div>
-            <div class="text-2xl font-black text-indigo-600 dark:text-indigo-400">{{ $pendingReviewCount }}</div>
-        </div>
-
-        <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-                <span class="text-[11px] font-bold uppercase tracking-wider">Completed</span>
-                <i class="ph ph-check-circle text-lg text-emerald-500"></i>
-            </div>
-            <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400">{{ $completedCount }}</div>
-        </div>
-
-        <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 shadow-sm col-span-2 sm:col-span-1">
-            <div class="flex items-center justify-between text-slate-400 mb-2">
-                <span class="text-[11px] font-bold uppercase tracking-wider">Average Score</span>
-                <i class="ph ph-star text-lg text-amber-400"></i>
-            </div>
-            <div class="text-2xl font-black text-slate-900 dark:text-white flex items-baseline gap-1">
-                <span>{{ number_format($averageScore, 2) }}</span>
-                <span class="text-xs font-semibold text-slate-400">/ 5.00</span>
-            </div>
-            <span class="text-[10px] text-slate-400 font-semibold">{{ \Modules\Performance\Models\Appraisal::scoreToBand($averageScore) }}</span>
-        </div>
-    </div>
 
     <!-- Navigation Tabs -->
     <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
@@ -352,17 +216,17 @@
                     <span>Changes Requested ({{ $myChangeRequestsCount }})</span>
                 </button>
             @else
-                <button @click="activeTab = 'roster'" :class="activeTab === 'roster' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
-                    <i class="ph ph-list-dashes text-sm"></i>
-                    <span>Appraisals Roster ({{ $appraisals->count() }})</span>
-                </button>
-
                 @if($employee)
                     <button @click="activeTab = 'my_appraisal'" :class="activeTab === 'my_appraisal' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                         <i class="ph ph-user text-sm"></i>
                         <span>My Self-Evaluation</span>
                     </button>
                 @endif
+
+                <button @click="activeTab = 'roster'" :class="activeTab === 'roster' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
+                    <i class="ph ph-list-dashes text-sm"></i>
+                    <span>Appraisals Roster ({{ $appraisals->count() }})</span>
+                </button>
 
                 <button @click="activeTab = 'letters'" :class="activeTab === 'letters' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                     <i class="ph ph-file-text text-sm"></i>

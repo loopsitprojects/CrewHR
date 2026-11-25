@@ -1901,8 +1901,10 @@
                                 <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Reason / Handover Notes <span class="text-rose-500 font-black">*</span></label>
                             </div>
                             <textarea name="handover_notes" x-model="handoverNotes" rows="2" required
+                                      @input="$el.style.height = 'auto'; $el.style.height = Math.max(52, $el.scrollHeight) + 'px'"
+                                      x-init="$watch('handoverNotes', () => { $nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max(52, $el.scrollHeight) + 'px'; }) }); $nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max(52, $el.scrollHeight) + 'px'; })"
                                       placeholder="Reason for leave, brief details, live jobs, deadlines, file locations or context for your manager..."
-                                      class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg p-2 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none transition-all"></textarea>
+                                      class="auto-expand w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg p-2 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-y min-h-[52px] overflow-hidden transition-[border-color,box-shadow]"></textarea>
                         </div>
 
                     </div>
@@ -2448,8 +2450,10 @@
                                   x-model="lieuReason" 
                                   rows="2" 
                                   required 
+                                  @input="$el.style.height = 'auto'; $el.style.height = Math.max(52, $el.scrollHeight) + 'px'"
+                                  x-init="$watch('lieuReason', () => { $nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max(52, $el.scrollHeight) + 'px'; }) }); $nextTick(() => { $el.style.height = 'auto'; $el.style.height = Math.max(52, $el.scrollHeight) + 'px'; })"
                                   placeholder="Briefly describe work completed..." 
-                                  class="w-full p-2.5 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500"></textarea>
+                                  class="auto-expand w-full p-2.5 bg-slate-50 dark:bg-[#161f30] border border-slate-200 dark:border-slate-700/80 rounded-lg text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-teal-500 resize-y min-h-[52px] overflow-hidden transition-[border-color,box-shadow]"></textarea>
                     </div>
 
                 </div>

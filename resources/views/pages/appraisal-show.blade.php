@@ -143,14 +143,14 @@
     @endif
 
     <!-- Employee & Appraisal Header Banner -->
-    <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-sm space-y-6">
+    <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-xl flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
+                <div class="w-13 h-13 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-lg flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
                     {{ strtoupper(substr($appraisal->employee?->user?->name ?? 'E', 0, 2)) }}
                 </div>
                 <div>
-                    <div class="flex items-center gap-2 flex-wrap">
+                    <div class="flex items-center gap-2.5 flex-wrap">
                         <h1 class="text-xl font-black text-slate-900 dark:text-white">
                             {{ $appraisal->employee?->user?->name ?? 'Staff Employee' }}
                         </h1>
@@ -158,112 +158,89 @@
                             ({{ $appraisal->employee?->employee_id_number ?? 'EMP-00' }})
                         </span>
                         <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full 
-                            {{ $appraisal->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800' }}">
+                            {{ $appraisal->status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300' }}">
                             {{ ucwords(str_replace('_', ' ', $appraisal->status)) }}
                         </span>
-                        @if($appraisal->is_override_unlocked && $appraisal->unlocked_until && now()->lte($appraisal->unlocked_until))
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-300 flex items-center gap-1">
-                                <i class="ph ph-lock-key-open text-xs"></i> HR Extension Active
-                            </span>
-                        @elseif($isEmployeeOverdue || $isManagerOverdue || $appraisal->is_locked)
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 flex items-center gap-1 border border-rose-200 dark:border-rose-800">
-                                <i class="ph ph-lock text-xs"></i> Locked ({{ $isEmployeeOverdue ? 'Self-Eval Window Closed' : ($isManagerOverdue ? 'Manager Window Closed' : 'Form Locked') }})
-                            </span>
-                        @else
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 flex items-center gap-1">
-                                <i class="ph ph-lock-simple-open text-xs"></i> Editable
-                            </span>
+                        @if($appraisal->status !== 'completed')
+                            @if($appraisal->is_override_unlocked && $appraisal->unlocked_until && now()->lte($appraisal->unlocked_until))
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-300 flex items-center gap-1">
+                                    <i class="ph ph-lock-key-open text-xs"></i> Extension Active
+                                </span>
+                            @elseif($isEmployeeOverdue || $isManagerOverdue || $appraisal->is_locked)
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 flex items-center gap-1 border border-rose-200 dark:border-rose-800">
+                                    <i class="ph ph-lock text-xs"></i> Locked
+                                </span>
+                            @endif
                         @endif
                     </div>
-                    <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-3">
-                        <span><strong>Designation:</strong> {{ $appraisal->employee?->designation?->name ?? 'Staff' }}</span>
+                    
+                    <!-- Clean Subtitle Metadata -->
+                    <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
+                        <span>{{ $appraisal->employee?->designation?->name ?? 'Staff' }}</span>
                         <span>&bull;</span>
-                        <span><strong>Department:</strong> {{ $appraisal->employee?->department?->name ?? 'General' }}</span>
+                        <span>{{ $appraisal->employee?->department?->name ?? 'General' }}</span>
                         <span>&bull;</span>
-                        <span><strong>Cycle:</strong> {{ $appraisal->cycle?->name }}</span>
-                        @if($appraisal->cycle)
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border {{ $appraisal->cycle->isMidYear() ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300 dark:border-amber-800' : 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300 border-blue-300 dark:border-blue-800' }}">
-                                <i class="ph {{ $appraisal->cycle->isMidYear() ? 'ph-calendar-check' : 'ph-trend-up' }}"></i>
-                                {{ $appraisal->cycle->isMidYear() ? 'Mid-Year Review (Apr–Sep)' : 'Year-End Review (Oct–Mar)' }}
-                            </span>
+                        <span>{{ $appraisal->cycle?->name }}</span>
+                        @if($appraisal->workflow_type === 'three_tier' && $appraisal->reportingManager)
+                            <span>&bull;</span>
+                            <span>Mgr: <strong class="text-slate-700 dark:text-slate-300">{{ $appraisal->reportingManager->user->name }}</strong></span>
+                        @endif
+                        @if($appraisal->hod)
+                            <span>&bull;</span>
+                            <span>HOD: <strong class="text-slate-700 dark:text-slate-300">{{ $appraisal->hod->user->name ?? 'HOD' }}</strong></span>
                         @endif
                     </div>
                 </div>
             </div>
 
-            <!-- Hierarchy & Score Summary Badge -->
-            <div class="flex flex-wrap items-center gap-3">
+            <!-- Score Summary & Actions -->
+            <div class="flex flex-wrap items-center gap-3 shrink-0">
                 <!-- Score Pill -->
-                <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-right">
-                    <span class="text-[10px] uppercase font-bold text-slate-400 block">Weighted Score</span>
-                    <div class="text-lg font-black text-slate-900 dark:text-white flex items-baseline justify-end gap-1">
+                <div class="px-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-right">
+                    <div class="text-sm sm:text-base font-black text-slate-900 dark:text-white flex items-baseline justify-end gap-1">
                         <span x-text="calculatedScore.toFixed(2)">{{ number_format($appraisal->total_weighted_score, 2) }}</span>
-                        <span class="text-xs text-slate-400">/ 5.00</span>
+                        <span class="text-[11px] text-slate-400">/ 5.00</span>
                     </div>
                     <span :class="calculatedBand.color" class="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-black border" x-text="calculatedBand.badge">
                         {{ $appraisal->performance_band ?: 'Pending Evaluation' }}
                     </span>
                 </div>
 
-                <!-- Back button -->
-                <a href="{{ route('appraisal.index') }}" onclick="handleModuleBack(event, '{{ route('appraisal.index') }}')" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 text-xs font-bold flex items-center gap-1 cursor-pointer">
-                    <i class="ph ph-arrow-left"></i>
-                    <span>Roster</span>
-                </a>
-            </div>
-        </div>
-
-        <!-- Reporting Structure Breadcrumb -->
-        <div class="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/70 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div class="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-300">
-                <span class="text-slate-400 uppercase text-[10px]">Reporting Hierarchy:</span>
-                <span class="px-2 py-0.5 rounded bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700">
-                    {{ $appraisal->employee?->user?->name }} (Staff)
-                </span>
-                @if($appraisal->workflow_type === 'three_tier' && $appraisal->reportingManager)
-                    <i class="ph ph-arrow-right text-slate-400"></i>
-                    <span class="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900">
-                        {{ $appraisal->reportingManager->user->name ?? 'Manager' }} (Reporting Manager)
-                    </span>
-                @endif
-                <i class="ph ph-arrow-right text-slate-400"></i>
-                <span class="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900">
-                    {{ $appraisal->hod->user->name ?? 'HOD' }} (Head of Department)
-                </span>
-            </div>
-
-            <!-- Action buttons: Request Change / HR Unlock -->
-            <div class="flex items-center gap-2">
+                <!-- Action buttons -->
                 @if($canRequestChange)
-                    <button @click="showChangeRequestModal = true" class="bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-3 py-1.5 rounded-xl font-bold transition-all text-xs flex items-center gap-1.5 cursor-pointer">
+                    <button @click="showChangeRequestModal = true" class="bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-3 py-2 rounded-xl font-bold transition-all text-xs flex items-center gap-1.5 cursor-pointer">
                         <i class="ph ph-arrow-counter-clockwise"></i>
                         <span>Request Change</span>
                     </button>
                 @endif
 
                 @if($canUnlock)
-                    <button @click="showUnlockModal = true" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl font-bold transition-all text-xs flex items-center gap-1.5 shadow-sm cursor-pointer">
+                    <button @click="showUnlockModal = true" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-xl font-bold transition-all text-xs flex items-center gap-1.5 shadow-sm cursor-pointer">
                         <i class="ph ph-lock-key-open"></i>
-                        <span>Unlock Appraisal (HR)</span>
+                        <span>Unlock</span>
                     </button>
                 @endif
+
+                <!-- Back button -->
+                <a href="{{ route('appraisal.index') }}" onclick="handleModuleBack(event, '{{ route('appraisal.index') }}')" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold flex items-center gap-1 cursor-pointer">
+                    <i class="ph ph-arrow-left"></i>
+                    <span>Roster</span>
+                </a>
             </div>
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="flex items-center gap-6 border-b border-slate-100 dark:border-slate-800 -mb-6">
+        <div class="flex items-center gap-6 border-b border-slate-100 dark:border-slate-800 -mb-5">
             <button @click="activeTab = 'evaluation'" :class="activeTab === 'evaluation' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                 <i class="ph ph-clipboard-text"></i>
-                <span>{{ $isEmployeeOnly ? 'Evaluation Form' : 'Appraisal Evaluation Form' }}</span>
+                <span>Evaluation Form</span>
             </button>
 
             @if(!$isEmployeeOnly && $canSeeIncrement)
                 <button @click="activeTab = 'increment'" :class="activeTab === 'increment' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                     <i class="ph ph-trend-up"></i>
                     <span>Increment & Promotion</span>
-                    @if($appraisal->cycle && !$appraisal->cycle->allowsIncrements())
-                        <span class="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">No Inc (Mid-Year)</span>
-                    @elseif($appraisal->increment_percentage > 0 || $appraisal->is_promoted)
+                    @if($appraisal->increment_percentage > 0 || $appraisal->is_promoted)
                         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                     @endif
                 </button>
@@ -272,13 +249,13 @@
             @if(!$isEmployeeOnly)
                 <button @click="activeTab = 'letters'" :class="activeTab === 'letters' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                     <i class="ph ph-stamp"></i>
-                    <span>Letters & E-Signatures ({{ $appraisal->letters->count() }})</span>
+                    <span>Letters ({{ $appraisal->letters->count() }})</span>
                 </button>
             @endif
 
             <button @click="activeTab = 'audit'" :class="activeTab === 'audit' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                 <i class="ph ph-clock-counter-clockwise"></i>
-                <span>{{ $isEmployeeOnly ? 'Changes Requested' : 'Change Requests & Audit' }} ({{ $appraisal->changeRequests->count() }})</span>
+                <span>Change Requests ({{ $appraisal->changeRequests->count() }})</span>
             </button>
         </div>
     </div>
