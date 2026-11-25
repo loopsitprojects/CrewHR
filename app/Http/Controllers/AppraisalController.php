@@ -56,21 +56,29 @@ class AppraisalController extends Controller
     {
         [$user, $employee, $role] = $this->getActorContext();
 
-        // Active Review Cycles (Both Quarters: Mid-Year and Year-End)
+        // Active Review Cycles for the Financial Year (Both Quarters: Mid-Year and Year-End)
         $activeCycles = AppraisalCycle::where('status', 'Active')
+            ->whereNotNull('financial_year')
             ->whereIn('cycle_type', ['mid_year', 'year_end'])
-            ->orderBy('id', 'asc')
+            ->orderBy('start_date', 'asc')
             ->get();
 
         if ($activeCycles->isEmpty()) {
-            $activeCycles = AppraisalCycle::where('status', 'Active')->orderBy('id', 'asc')->get();
+            $activeCycles = AppraisalCycle::where('status', 'Active')
+                ->whereIn('cycle_type', ['mid_year', 'year_end'])
+                ->orderBy('start_date', 'asc')
+                ->take(2)
+                ->get();
         }
 
         foreach ($activeCycles as $ac) {
             self::initializeAppraisalsForActiveEmployees($ac);
         }
 
-        $cycles = AppraisalCycle::orderBy('id', 'desc')->get();
+        $cycles = AppraisalCycle::where('status', '!=', 'Archived')->whereNotNull('financial_year')->orderBy('id', 'asc')->get();
+        if ($cycles->isEmpty()) {
+            $cycles = AppraisalCycle::orderBy('id', 'desc')->get();
+        }
         $departments = Department::orderBy('name')->get();
         $templates = AppraisalTemplate::with('criteria')->orderBy('title')->get();
 
@@ -1406,7 +1414,10 @@ class AppraisalController extends Controller
     {
         [$user, $employee, $role] = $this->getActorContext();
 
-        $cycles = AppraisalCycle::orderBy('id', 'desc')->get();
+        $cycles = AppraisalCycle::where('status', '!=', 'Archived')->whereNotNull('financial_year')->orderBy('id', 'asc')->get();
+        if ($cycles->isEmpty()) {
+            $cycles = AppraisalCycle::orderBy('id', 'desc')->get();
+        }
         $departments = Department::orderBy('name')->get();
         $employees = Employee::with('user')->get();
 
