@@ -276,7 +276,7 @@
 
                                         <!-- Stage 4 -->
                                         <div class="flex flex-col items-center text-center">
-                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s4Done ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500') }}">
+                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s4Done ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500' }}">
                                                 @if($s4Done)
                                                     <i class="ph-bold ph-check text-[10px]"></i>
                                                 @else
@@ -330,7 +330,7 @@
 
                                         <!-- Stage 3 -->
                                         <div class="flex flex-col items-center text-center">
-                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s3Done ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500') }}">
+                                            <div class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all shadow-xs ring-4 ring-white dark:ring-[#111927] {{ $s3Done ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500' }}">
                                                 @if($s3Done)
                                                     <i class="ph-bold ph-check text-[10px]"></i>
                                                 @else
