@@ -254,8 +254,10 @@ class AppraisalController extends Controller
 
         $canManageIncrement = $isAdminOrHr;
         
-        // Employees have only Evaluation Form and Changes Requested (never Increment & Promotion)
-        $canSeeIncrement = !$isEmployeeOnly && ($isAdminOrHr || ($isHod && $appraisal->is_increment_visible_to_hod));
+        // Increment & Promotion visibility: Admin/HR always; HOD/Employee when toggled visible by HR
+        $canSeeIncrement = $isAdminOrHr 
+            || ($isHod && $appraisal->is_increment_visible_to_hod)
+            || ($isEmployeeHimself && $appraisal->is_increment_visible_to_employee);
 
         // Anyone locked out by deadline or manual lock can request an unlock
         $canRequestChange = ($isEmployeeHimself && ($isEmployeeSubmissionLocked || $isEmployeeOverdue || $appraisal->is_locked))

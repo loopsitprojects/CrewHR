@@ -236,7 +236,7 @@
                 <span>Evaluation Form</span>
             </button>
 
-            @if(!$isEmployeeOnly && $canSeeIncrement)
+            @if($canSeeIncrement)
                 <button @click="activeTab = 'increment'" :class="activeTab === 'increment' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                     <i class="ph ph-trend-up"></i>
                     <span>Increment & Promotion</span>
@@ -246,7 +246,7 @@
                 </button>
             @endif
 
-            @if(!$isEmployeeOnly)
+            @if(!$isEmployeeOnly || $appraisal->letters->isNotEmpty())
                 <button @click="activeTab = 'letters'" :class="activeTab === 'letters' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                     <i class="ph ph-stamp"></i>
                     <span>Letters ({{ $appraisal->letters->count() }})</span>
@@ -468,7 +468,7 @@
     <!-- ========================================== -->
     <!-- TAB 2: INCREMENT & PROMOTION (HR Exclusive) -->
     <!-- ========================================== -->
-    @if(!$isEmployeeOnly && $canSeeIncrement)
+    @if($canSeeIncrement)
     <div x-show="activeTab === 'increment'" class="space-y-6">
         <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
@@ -644,7 +644,7 @@
     <!-- ========================================== -->
     <!-- TAB 3: LETTERS & E-SIGNATURES (Management & HR Only) -->
     <!-- ========================================== -->
-    @if(!$isEmployeeOnly)
+    @if(!$isEmployeeOnly || $appraisal->letters->isNotEmpty())
     <div x-show="activeTab === 'letters'" class="space-y-6">
         <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
