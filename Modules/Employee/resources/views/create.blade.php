@@ -159,12 +159,6 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-semibold">
                 <div>
-                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Employee ID *</label>
-                    <input type="text" name="employee_id_number" value="{{ old('employee_id_number') }}" placeholder="e.g. EMP-0105" class="w-full border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 p-2.5 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400" required>
-                    @error('employee_id_number') <span class="text-rose-500 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
                     <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Full Name *</label>
                     <input type="text" name="full_name" value="{{ old('full_name') }}" placeholder="e.g. John Doe" class="w-full border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 p-2.5 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400" required>
                     @error('full_name') <span class="text-rose-500 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
@@ -197,12 +191,6 @@
                 </div>
 
                 <div>
-                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Company Email</label>
-                    <input type="email" name="company_email" value="{{ old('company_email') }}" placeholder="e.g. john@loopshr.lk" class="w-full border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 p-2.5 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
-                    @error('company_email') <span class="text-rose-500 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
-                </div>
-
-                <div>
                     <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Phone Number</label>
                     <input type="text" name="phone_number" value="{{ old('phone_number') }}" placeholder="+94 77 123 4567" class="w-full border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 p-2.5 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
                 </div>
@@ -229,6 +217,19 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-semibold">
+                <!-- Employee ID and Company Email moved here from Section 1 -->
+                <div>
+                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Employee ID *</label>
+                    <input type="text" name="employee_id_number" value="{{ old('employee_id_number') }}" placeholder="e.g. EMP-0105" class="w-full border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 p-2.5 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400" required>
+                    @error('employee_id_number') <span class="text-rose-500 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Company Email *</label>
+                    <input type="email" name="company_email" value="{{ old('company_email') }}" placeholder="e.g. john@loopshr.lk" class="w-full border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 p-2.5 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400">
+                    @error('company_email') <span class="text-rose-500 text-[10px] font-bold mt-1 block">{{ $message }}</span> @enderror
+                </div>
+
                 <div x-data="{ desigMode: '{{ old('designation_id') === 'custom' || old('custom_designation') ? 'custom' : 'select' }}' }">
                     <div class="flex items-center justify-between mb-1.5">
                         <label class="block text-slate-700 dark:text-slate-300 font-bold">Current Designation *</label>

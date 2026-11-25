@@ -307,11 +307,6 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs font-semibold">
                         <!-- Row 1 -->
                         <div>
-                            <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Employee ID <span class="text-rose-500">*</span></label>
-                            <input type="text" name="employee_id_number" value="{{ old('employee_id_number', $employee->employee_id_number ?? $employee->employee_id) }}" required class="w-full h-10 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white px-3 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all">
-                        </div>
-
-                        <div>
                             <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Full Name <span class="text-rose-500">*</span></label>
                             <input type="text" name="full_name" value="{{ old('full_name', $employee->user->name ?? '') }}" required class="w-full h-10 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white px-3 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all">
                         </div>
@@ -346,11 +341,6 @@
                         <div>
                             <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Personal Email</label>
                             <input type="email" name="personal_email" value="{{ old('personal_email', $employee->personal_email) }}" placeholder="e.g. personal@gmail.com" class="w-full h-10 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white px-3 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all">
-                        </div>
-
-                        <div>
-                            <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Company Official Email <span class="text-rose-500">*</span></label>
-                            <input type="email" name="email" value="{{ old('email', $employee->user->email ?? $employee->company_email) }}" required placeholder="e.g. employee@company.com" class="w-full h-10 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white px-3 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all">
                         </div>
 
                         <div>
@@ -403,6 +393,17 @@
 
                     <!-- Core Employment Fields in Strict 3-Column Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs font-semibold">
+                        <!-- Employee ID and Company Email now live here -->
+                        <div>
+                            <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Employee ID <span class="text-rose-500">*</span></label>
+                            <input type="text" name="employee_id_number" value="{{ old('employee_id_number', $employee->employee_id_number ?? $employee->employee_id) }}" required class="w-full h-10 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white px-3 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all">
+                        </div>
+
+                        <div>
+                            <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Company Official Email <span class="text-rose-500">*</span></label>
+                            <input type="email" name="email" value="{{ old('email', $employee->user->email ?? $employee->company_email) }}" required placeholder="e.g. employee@company.com" class="w-full h-10 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white px-3 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all">
+                        </div>
+
                         <div>
                             <label class="block text-slate-700 dark:text-slate-300 font-bold mb-1.5">Department <span class="text-rose-500">*</span></label>
                             <select name="department_id" class="w-full h-10 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold bg-slate-50/70 dark:bg-slate-800/60 text-slate-900 dark:text-white px-3 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all">

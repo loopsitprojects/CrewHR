@@ -93,16 +93,7 @@
 
                 <!-- 3-Column Info Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-6 pt-1 text-xs font-semibold">
-                    <!-- Row 1: Employee ID, Full Name, Username -->
-                    <div>
-                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Employee ID</span>
-                        @if(!empty($employee->employee_id_number))
-                            <span class="font-bold text-slate-900 dark:text-white text-xs block font-mono">{{ $employee->employee_id_number }}</span>
-                        @else
-                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not assigned</span>
-                        @endif
-                    </div>
-
+                    <!-- Row 1: Full Name, Username, Phone Number -->
                     <div>
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Full Name</span>
                         @if(!empty($employee->user->name))
@@ -121,21 +112,7 @@
                         @endif
                     </div>
 
-                    <!-- Row 2: Company Email, Personal Email, Phone Number -->
-                    <div x-data="{ copied: false }">
-                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Company Email</span>
-                        @if(!empty($compEmail))
-                            <span class="inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 text-xs cursor-pointer hover:underline"
-                                  @click="navigator.clipboard.writeText('{{ $compEmail }}'); copied = true; setTimeout(() => copied = false, 2000)">
-                                <span class="truncate max-w-[150px]">{{ $compEmail }}</span>
-                                <i data-lucide="copy" class="w-3 h-3 text-slate-400 shrink-0" x-show="!copied"></i>
-                                <i data-lucide="check" class="w-3 h-3 text-emerald-500 shrink-0" x-show="copied" x-cloak></i>
-                            </span>
-                        @else
-                            <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
-                        @endif
-                    </div>
-
+                    <!-- Row 2: Personal Email, Phone Number -->
                     <div>
                         <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Personal Email</span>
                         @if(!empty($employee->personal_email) && $employee->personal_email !== 'N/A')
@@ -228,7 +205,36 @@
                 </div>
 
                 <div class="space-y-4 pt-1 text-xs font-semibold">
-                    <!-- Top 3 cols -->
+                    <!-- Top row: Employee ID, Company Email, System Access Role -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-6">
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Employee ID</span>
+                            @if(!empty($employee->employee_id_number))
+                                <span class="font-bold text-slate-900 dark:text-white text-xs block font-mono">{{ $employee->employee_id_number }}</span>
+                            @else
+                                <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not assigned</span>
+                            @endif
+                        </div>
+                        <div x-data="{ copied: false }">
+                            <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Company Email</span>
+                            @if(!empty($compEmail))
+                                <span class="inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 text-xs cursor-pointer hover:underline"
+                                      @click="navigator.clipboard.writeText('{{ $compEmail }}'); copied = true; setTimeout(() => copied = false, 2000)">
+                                    <span class="truncate max-w-[150px]">{{ $compEmail }}</span>
+                                    <i data-lucide="copy" class="w-3 h-3 text-slate-400 shrink-0" x-show="!copied"></i>
+                                    <i data-lucide="check" class="w-3 h-3 text-emerald-500 shrink-0" x-show="copied" x-cloak></i>
+                                </span>
+                            @else
+                                <span class="text-slate-400 dark:text-slate-500 italic font-normal">Not provided</span>
+                            @endif
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">System Access Role</span>
+                            <span class="font-bold text-purple-600 dark:text-purple-400">{{ $employee->system_role ?? 'Employee' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Next row: Department, Designation -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-y-4 gap-x-6">
                         <div>
                             <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Department</span>
@@ -238,10 +244,7 @@
                             <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">Current Designation</span>
                             <span class="font-bold text-blue-600 dark:text-blue-400">{{ $employee->designation->name ?? 'Staff' }}</span>
                         </div>
-                        <div>
-                            <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-0.5">System Access Role</span>
-                            <span class="font-bold text-purple-600 dark:text-purple-400">{{ $employee->system_role ?? 'Employee' }}</span>
-                        </div>
+                        <div></div>
                     </div>
 
                     <!-- Middle 3 cols -->
