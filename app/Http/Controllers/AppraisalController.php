@@ -56,16 +56,75 @@ class AppraisalController extends Controller
     {
         [$user, $employee, $role] = $this->getActorContext();
 
-        $activeCycle = AppraisalCycle::where('status', 'Active')->latest()->first() ?? AppraisalCycle::latest()->first();
-        if ($activeCycle) {
-            self::initializeAppraisalsForActiveEmployees($activeCycle);
+        // Active Review Cycles (Both Quarters: Mid-Year and Year-End)
+        $activeCycles = AppraisalCycle::where('status', 'Active')
+            ->whereIn('cycle_type', ['mid_year', 'year_end'])
+            ->orderBy('id', 'asc')
+            ->get();
+
+        if ($activeCycles->isEmpty()) {
+            $activeCycles = AppraisalCycle::where('status', 'Active')->orderBy('id', 'asc')->get();
         }
+
+        foreach ($activeCycles as $ac) {
+            self::initializeAppraisalsForActiveEmployees($ac);
+        }
+
         $cycles = AppraisalCycle::orderBy('id', 'desc')->get();
         $departments = Department::orderBy('name')->get();
         $templates = AppraisalTemplate::with('criteria')->orderBy('title')->get();
 
-        // Selected cycle filter
-        $cycleId = $request->get('cycle_id', $activeCycle?->id);
+        // Selected cycle resolution
+        $cycleId = $request->get('cycle_id');
+        $activeCycle = $cycleId ? AppraisalCycle::find($cycleId) : null;
+        if (!$activeCycle) {
+            $activeCycle = $activeCycles->firstWhere('cycle_type', 'mid_year')
+                ?? $activeCycles->first()
+                ?? AppraisalCycle::where('status', 'Active')->latest()->first()
+                ?? AppraisalCycle::latest()->first();
+        }
+
+        // Compute Cards Data for Both Quarters
+        $cycleCardsData = [];
+        foreach ($activeCycles as $cItem) {
+            $cQuery = Appraisal::where('cycle_id', $cItem->id);
+            if ($role === 'Employee') {
+                $cQuery->where('employee_id', $employee?->id);
+            } elseif ($role === 'Manager') {
+                $empId = $employee?->id;
+                $deptId = $employee?->department_id;
+                $cQuery->where(function ($q) use ($empId, $deptId) {
+                    $q->where('reporting_manager_id', $empId)
+                      ->orWhere('hod_id', $empId)
+                      ->orWhere('employee_id', $empId)
+                      ->orWhereHas('employee', function ($eq) use ($deptId) {
+                          $eq->where('department_id', $deptId);
+                      });
+                });
+            }
+
+            $cAppraisals = $cQuery->get();
+            $cTotal = $cAppraisals->count();
+            $cCompleted = $cAppraisals->where('status', 'completed')->count();
+            $cPendingSelf = $cAppraisals->where('status', 'pending_self_eval')->count();
+            $cSelfSubmitted = $cTotal - $cPendingSelf;
+            $cManagerDone = $cAppraisals->whereNotIn('status', ['pending_self_eval', 'submitted_self_eval', 'pending_manager_eval'])->count();
+            $cRate = $cTotal > 0 ? round(($cCompleted / $cTotal) * 100) : 0;
+
+            $cycleCardsData[] = [
+                'cycle' => $cItem,
+                'is_selected' => ($activeCycle && $activeCycle->id === $cItem->id),
+                'total' => $cTotal,
+                'completed' => $cCompleted,
+                'pending_self' => $cPendingSelf,
+                'self_submitted' => $cSelfSubmitted,
+                'manager_done' => $cManagerDone,
+                'rate' => $cRate,
+                'quarter_badge' => $cItem->isMidYear() ? 'Quarter 1 • Mid-Year' : 'Quarter 2 • Year-End',
+                'quarter_title' => $cItem->isMidYear() ? 'Mid-Year Review' : 'Year-End Review',
+                'period_label' => $cItem->performance_period ?: ($cItem->isMidYear() ? 'April to September' : 'October to March'),
+            ];
+        }
 
         $query = Appraisal::with([
             'cycle',
@@ -79,8 +138,8 @@ class AppraisalController extends Controller
             'changeRequests'
         ]);
 
-        if ($cycleId) {
-            $query->where('cycle_id', $cycleId);
+        if ($activeCycle) {
+            $query->where('cycle_id', $activeCycle->id);
         }
 
         // Apply Role Restrictions
@@ -186,6 +245,7 @@ class AppraisalController extends Controller
         return view('pages.appraisal', compact(
             'appraisals',
             'activeCycle',
+            'cycleCardsData',
             'cycles',
             'departments',
             'templates',

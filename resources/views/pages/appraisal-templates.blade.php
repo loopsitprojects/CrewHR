@@ -136,27 +136,6 @@
     }
 }">
 
-    <!-- Flash Alerts -->
-    @if(session('success'))
-        <div class="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-check-circle text-lg text-emerald-500"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-            <button @click="$el.parentElement.remove()" class="text-emerald-500"><i class="ph ph-x"></i></button>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl flex items-center justify-between text-xs font-bold text-rose-800 dark:text-rose-300">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-warning-circle text-lg text-rose-500"></i>
-                <span>{{ session('error') }}</span>
-            </div>
-            <button @click="$el.parentElement.remove()" class="text-rose-500"><i class="ph ph-x"></i></button>
-        </div>
-    @endif
-
     <!-- ======================================================== -->
     <!-- VIEW 1: FULL SCREEN TEMPLATES LIST / HUB (DEFAULT)       -->
     <!-- ======================================================== -->

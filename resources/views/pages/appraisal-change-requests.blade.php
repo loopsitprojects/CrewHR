@@ -9,27 +9,6 @@
     notes: ''
 }">
 
-    <!-- Flash Alerts -->
-    @if(session('success'))
-        <div class="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl flex items-center justify-between text-xs font-bold text-emerald-800 dark:text-emerald-300">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-check-circle text-lg text-emerald-500"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-            <button @click="$el.parentElement.remove()" class="text-emerald-500"><i class="ph ph-x"></i></button>
-        </div>
-    @endif
-
-    @if(session('info'))
-        <div class="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl flex items-center justify-between text-xs font-bold text-blue-800 dark:text-blue-300">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-info text-lg text-blue-500"></i>
-                <span>{{ session('info') }}</span>
-            </div>
-            <button @click="$el.parentElement.remove()" class="text-blue-500"><i class="ph ph-x"></i></button>
-        </div>
-    @endif
-
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">

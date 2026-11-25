@@ -9,27 +9,6 @@
     editingDesigName: ''
 }">
 
-    <!-- Flash Status Messages -->
-    @if(session('success'))
-        <div class="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-check-circle text-base text-emerald-600 dark:text-emerald-400"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-            <button @click="$el.parentElement.remove()" class="text-emerald-600 dark:text-emerald-400 hover:opacity-75 cursor-pointer"><i class="ph ph-x text-sm"></i></button>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-300 rounded-2xl text-xs font-bold flex items-center justify-between shadow-xs">
-            <div class="flex items-center gap-2">
-                <i class="ph ph-warning-circle text-base text-rose-600 dark:text-rose-400"></i>
-                <span>{{ session('error') }}</span>
-            </div>
-            <button @click="$el.parentElement.remove()" class="text-rose-600 dark:text-rose-400 hover:opacity-75 cursor-pointer"><i class="ph ph-x text-sm"></i></button>
-        </div>
-    @endif
-
     @if(isset($errors) && $errors->any())
         <div class="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-300 rounded-2xl text-xs font-bold space-y-1 shadow-xs">
             <div class="flex items-center justify-between">
