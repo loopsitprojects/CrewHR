@@ -172,6 +172,16 @@ class MyUsageRecordsController extends Controller
         $totalEligibleDays = 0;
         $totalDaysTaken = 0;
 
+        $pendingRequestsByType = LeaveRequest::whereIn('employee_id', $targetEmployee ? [$targetEmployee->id] : $scopeEmployeeIds)
+            ->whereYear('start_date', $year)
+            ->where(function($q) {
+                $q->whereIn('status', ['Pending', 'Pending Covering Approval', 'Pending Manager Approval', 'Step 2: Pending HR Admin'])
+                  ->orWhere('manager_status', 'Pending');
+            })
+            ->whereNotIn('status', ['Approved', 'Rejected', 'Canceled', 'Cancelled'])
+            ->get()
+            ->groupBy('leave_type_id');
+
         if ($targetEmployee) {
             // Individual Balances
             $leaveBalances = EmployeeLeaveBalance::with('leaveType')
@@ -235,6 +245,10 @@ class MyUsageRecordsController extends Controller
                 }
 
                 $pctLeft = max(0, 100 - $pctUsed);
+                $pendingGroup = $pendingRequestsByType->get($lt->id, collect());
+                $pendingNum = $code === 'SHORT'
+                    ? $pendingGroup->count()
+                    : (float)$pendingGroup->sum(fn($r) => (float)($r->total_days ?: 1));
 
                 $summaryCards[] = [
                     'id' => $lt->id,
@@ -246,6 +260,8 @@ class MyUsageRecordsController extends Controller
                     'eligible_label' => $eligibleLabel,
                     'taken_num' => $takenNum,
                     'taken_label' => $takenNum . ' ' . $unit,
+                    'pending_num' => $pendingNum,
+                    'pending_label' => $pendingNum . ' ' . $unit,
                     'balance_num' => $balanceNum,
                     'balance_label' => $balanceNum . ' ' . $unit,
                     'unit' => $unit,
@@ -284,6 +300,11 @@ class MyUsageRecordsController extends Controller
                     $totalDaysTaken += $takenSum;
                 }
 
+                $pendingGroup = $pendingRequestsByType->get($lt->id, collect());
+                $pendingSum = $code === 'SHORT'
+                    ? $pendingGroup->count()
+                    : (float)$pendingGroup->sum(fn($r) => (float)($r->total_days ?: 1));
+
                 $summaryCards[] = [
                     'id' => $lt->id,
                     'name' => $lt->name,
@@ -294,6 +315,8 @@ class MyUsageRecordsController extends Controller
                     'eligible_label' => $allocatedSum . ' ' . $unit,
                     'taken_num' => $takenSum,
                     'taken_label' => $takenSum . ' ' . $unit,
+                    'pending_num' => $pendingSum,
+                    'pending_label' => $pendingSum . ' ' . $unit,
                     'balance_num' => $balanceSum,
                     'balance_label' => $balanceSum . ' ' . $unit,
                     'unit' => $unit,

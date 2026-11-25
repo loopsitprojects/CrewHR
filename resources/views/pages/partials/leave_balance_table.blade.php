@@ -13,11 +13,11 @@
                     <th scope="col" class="py-3.5 px-4 text-right w-[13%]">
                         Taken
                     </th>
+                    <th scope="col" class="py-3.5 px-4 text-right w-[20%]">
+                        Pending Leave Approval
+                    </th>
                     <th scope="col" class="py-3.5 px-4 text-right w-[18%]">
                         Remaining Balance
-                    </th>
-                    <th scope="col" class="py-3.5 px-4 text-right w-[20%]">
-                        Visual Utilization
                     </th>
                 </tr>
             </thead>
@@ -79,24 +79,24 @@
                             @endif
                         </td>
 
-                        <!-- Column 4: REMAINING BALANCE -->
+                        <!-- Column 4: PENDING LEAVE APPROVAL -->
+                        <td class="py-3.5 px-4 text-right">
+                            @if(($card['pending_num'] ?? 0) > 0)
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 tabular-nums">
+                                    {{ $card['pending_label'] }}
+                                </span>
+                            @else
+                                <span class="text-sm font-normal text-slate-400 dark:text-slate-500 tabular-nums">
+                                    0 {{ $card['unit'] }}
+                                </span>
+                            @endif
+                        </td>
+
+                        <!-- Column 5: REMAINING BALANCE -->
                         <td class="py-3.5 px-4 text-right">
                             <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border {{ $badgeClass }} tabular-nums">
                                 {{ $card['balance_label'] }}
                             </span>
-                        </td>
-
-                        <!-- Column 5: VISUAL UTILIZATION -->
-                        <td class="py-3.5 px-4 text-right">
-                            <div class="flex items-center justify-end gap-2.5">
-                                <div class="w-24 sm:w-28 bg-black/[0.05] dark:bg-white/[0.08] h-1.5 rounded-full overflow-hidden">
-                                    <div class="h-full {{ $barColor }} rounded-full transition-all duration-500" 
-                                         style="width: {{ $card['pct_used'] }}%"></div>
-                                </div>
-                                <span class="text-[11px] font-mono font-medium text-slate-500 dark:text-slate-400 w-8 text-right shrink-0 tabular-nums">
-                                    {{ $card['pct_used'] }}%
-                                </span>
-                            </div>
                         </td>
 
                     </tr>
