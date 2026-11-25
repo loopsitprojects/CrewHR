@@ -413,8 +413,8 @@
         </div>
 
         @if($role !== 'Employee')
-        <!-- Filter bar -->
-        <form method="GET" action="{{ route('appraisal.index') }}" class="hidden md:flex items-center gap-2 pb-2">
+        <!-- Filter bar (Roster only) -->
+        <form x-show="activeTab === 'roster'" method="GET" action="{{ route('appraisal.index') }}" class="hidden md:flex items-center gap-2 pb-2">
             @if(isset($cycles) && $cycles->count() > 1)
                 <div class="inline-flex p-0.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 mr-1">
                     @foreach($cycles->take(2) as $cItem)
@@ -637,8 +637,8 @@
                     <table class="w-full text-left text-xs">
                         <thead class="bg-slate-50 dark:bg-slate-800/50 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
                             <tr>
-                                <th class="p-3.5 pl-5">Employee & Designation</th>
-                                <th class="p-3.5">Department</th>
+                                <th class="p-3.5 pl-5">Appraisal Cycle / Quarter</th>
+                                <th class="p-3.5">Due Date</th>
                                 <th class="p-3.5">Workflow Hierarchy</th>
                                 <th class="p-3.5">Evaluation Status</th>
                                 <th class="p-3.5">Score & Band</th>
@@ -657,22 +657,28 @@
                                 <tr>
                                     <td class="p-3.5 pl-5">
                                         <div class="flex items-center gap-3">
-                                            <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shrink-0">
-                                                {{ strtoupper(substr($app->employee->user->name ?? 'EM', 0, 2)) }}
+                                            <div class="w-9 h-9 rounded-xl {{ $app->cycle?->isMidYear() ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400' : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400' }} font-black text-[11px] flex items-center justify-center shrink-0 border border-slate-200/60 dark:border-slate-700/60">
+                                                {{ $app->cycle?->isMidYear() ? 'Q1' : 'Q2' }}
                                             </div>
                                             <div>
                                                 <span class="font-extrabold text-slate-900 dark:text-white block">
-                                                    {{ $app->employee->user->name ?? 'Employee' }}
+                                                    {{ $app->cycle?->name ?? 'Appraisal Cycle' }}
                                                 </span>
                                                 <span class="text-[11px] text-slate-400 font-medium">
-                                                    {{ $app->employee->designation->name ?? 'Designation' }} &bull; {{ $app->employee->employee_id_number ?? 'ID' }}
+                                                    {{ $app->template?->title ?? 'Performance Appraisal' }}
                                                 </span>
                                             </div>
                                         </div>
                                     </td>
 
                                     <td class="p-3.5 font-bold text-slate-700 dark:text-slate-300">
-                                        {{ $app->employee->department->name ?? 'General' }}
+                                        @if($app->self_eval_deadline)
+                                            <span class="block text-xs">{{ \Carbon\Carbon::parse($app->self_eval_deadline)->format('d M Y') }}</span>
+                                        @elseif($app->cycle?->end_date)
+                                            <span class="block text-xs">{{ \Carbon\Carbon::parse($app->cycle->end_date)->format('d M Y') }}</span>
+                                        @else
+                                            <span class="text-slate-400 font-normal">&mdash;</span>
+                                        @endif
                                     </td>
 
                                     <td class="p-3.5">
