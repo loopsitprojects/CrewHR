@@ -60,21 +60,6 @@ class MyUsageRecordsController extends Controller
             }
         }
 
-        // Dropdown Selectable Employees based on Role
-        $selectableEmployees = collect([]);
-        if ($isSuperAdmin || $isHrLead) {
-            $selectableEmployees = Employee::with(['user', 'department', 'designation'])
-                ->get()
-                ->sortBy(fn($e) => $e->user->name ?? '', SORT_NATURAL | SORT_FLAG_CASE)
-                ->values();
-        } elseif ($isManager) {
-            $selectableEmployees = Employee::with(['user', 'department', 'designation'])
-                ->whereIn('id', $managerTeamIds)
-                ->get()
-                ->sortBy(fn($e) => $e->user->name ?? '', SORT_NATURAL | SORT_FLAG_CASE)
-                ->values();
-        }
-
         // Scope Resolution:
         // Employee: strictly 'my'
         // Admin / HR / Manager: default 'my', can switch to 'all'/'team' or choose specific 'employee'
@@ -97,7 +82,8 @@ class MyUsageRecordsController extends Controller
             }
         }
 
-        // Target Employee Selection
+        // Target Employee & Department Selection
+        $departmentId = $request->query('department_id');
         $targetEmployeeId = $request->query('employee_id');
         $targetEmployee = null;
 
@@ -111,18 +97,42 @@ class MyUsageRecordsController extends Controller
             }
         }
 
+        if (!$departmentId && $targetEmployee && $targetEmployee->department_id && ($isSuperAdmin || $isHrLead) && $scope === 'all') {
+            $departmentId = $targetEmployee->department_id;
+        }
+        $selectedDepartment = $departmentId ? Department::find($departmentId) : null;
+
+        // Dropdown Selectable Employees based on Role & Department
+        $selectableEmployees = collect([]);
+        if ($isSuperAdmin || $isHrLead) {
+            $selectableQuery = Employee::with(['user', 'department', 'designation']);
+            if ($departmentId) {
+                $selectableQuery->where('department_id', $departmentId);
+            } elseif ($scope === 'all') {
+                $selectableQuery->whereRaw('1 = 0');
+            }
+            $selectableEmployees = $selectableQuery->get()
+                ->sortBy(fn($e) => $e->user->name ?? '', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values();
+        } elseif ($isManager) {
+            $selectableEmployees = Employee::with(['user', 'department', 'designation'])
+                ->whereIn('id', $managerTeamIds)
+                ->get()
+                ->sortBy(fn($e) => $e->user->name ?? '', SORT_NATURAL | SORT_FLAG_CASE)
+                ->values();
+        }
+
         // Determine which employee IDs are in scope for queries
-        $departmentId = $request->query('department_id');
         if ($scope === 'my') {
             $scopeEmployeeIds = [$loggedEmployee->id ?? 1];
         } elseif ($scope === 'team') {
             $scopeEmployeeIds = $managerTeamIds;
         } else {
-            // 'all'
+            // 'all': Only show employees if a specific department is selected
             if ($departmentId) {
                 $scopeEmployeeIds = Employee::where('department_id', $departmentId)->pluck('id')->toArray();
             } else {
-                $scopeEmployeeIds = Employee::pluck('id')->toArray();
+                $scopeEmployeeIds = [];
             }
         }
 
@@ -550,6 +560,7 @@ class MyUsageRecordsController extends Controller
             'selectableEmployees',
             'departments',
             'departmentId',
+            'selectedDepartment',
             'summaryCards',
             'usageRecords',
             'counts',

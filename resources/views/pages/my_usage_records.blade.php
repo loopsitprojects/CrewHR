@@ -109,7 +109,9 @@
                    class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs transition-all duration-200 ease-out cursor-pointer active:scale-[0.98] {{ $isTeamActive ? 'bg-white dark:bg-white/[0.16] text-slate-900 dark:text-white font-semibold shadow-[0_1px_3px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] border border-slate-200/60 dark:border-white/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium hover:bg-black/[0.03] dark:hover:bg-white/[0.04]' }}">
                     <i data-lucide="users" class="w-3.5 h-3.5 {{ $isTeamActive ? 'text-[#007AFF] dark:text-[#0A84FF]' : 'text-slate-400 dark:text-slate-500' }}"></i>
                     <span>{{ $isManager ? 'My Team Usage' : 'All Employees Usage' }}</span>
-                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums {{ $isTeamActive ? 'bg-slate-100 dark:bg-white/15 text-slate-700 dark:text-slate-200' : 'bg-slate-200/60 dark:bg-white/10 text-slate-500 dark:text-slate-400' }}">{{ $selectableEmployees->count() }}</span>
+                    @if($selectableEmployees->count() > 0)
+                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full tabular-nums {{ $isTeamActive ? 'bg-slate-100 dark:bg-white/15 text-slate-700 dark:text-slate-200' : 'bg-slate-200/60 dark:bg-white/10 text-slate-500 dark:text-slate-400' }}">{{ $selectableEmployees->count() }}</span>
+                    @endif
                 </a>
             </div>
 
@@ -172,12 +174,14 @@
                         
                         @if($isSuperAdmin || $isHrLead)
                         <a href="{{ route('my-usage-records.index', array_filter(['scope' => 'all', 'year' => $year, 'month' => $month, 'department_id' => $departmentId, 'status' => $status])) }}"
-                           class="px-3.5 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between transition-colors {{ $scope === 'all' ? 'bg-blue-500/10' : '' }}">
+                           class="px-3.5 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between transition-colors {{ $scope === 'all' && empty($targetEmployee) ? 'bg-blue-500/10' : '' }}">
                             <div class="flex items-center gap-2">
                                 <i data-lucide="users" class="w-3.5 h-3.5"></i>
-                                <span>All Employees Usage (Overview)</span>
+                                <span>{{ $selectedDepartment ? $selectedDepartment->name . ' Overview' : 'Department Overview' }}</span>
                             </div>
-                            <span class="text-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-300 px-1.5 py-0.2 rounded font-bold tabular-nums">{{ $selectableEmployees->count() }}</span>
+                            @if($selectableEmployees->count() > 0)
+                                <span class="text-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-300 px-1.5 py-0.2 rounded font-bold tabular-nums">{{ $selectableEmployees->count() }}</span>
+                            @endif
                         </a>
                         @endif
 
@@ -208,7 +212,11 @@
                                 </a>
                             </template>
                             <div x-show="filtered.length === 0" class="p-4 text-center text-xs text-slate-400 dark:text-slate-500">
-                                No employee found matching "<span x-text="query" class="font-bold"></span>"
+                                @if(($isSuperAdmin || $isHrLead) && empty($departmentId))
+                                    Please select a department first to inspect employees
+                                @else
+                                    No employee found matching "<span x-text="query" class="font-bold"></span>"
+                                @endif
                             </div>
                         </div>
 
@@ -225,7 +233,7 @@
                         <div class="relative">
                             <select name="department_id" onchange="this.form.submit()"
                                     class="appearance-none [background-image:none]! bg-slate-100/90 dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 py-1.5 pl-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-2xs">
-                                <option value="">All Depts</option>
+                                <option value="" disabled {{ empty($departmentId) ? 'selected' : '' }}>Select Department</option>
                                 @foreach($departments as $dept)
                                     <option value="{{ $dept->id }}" {{ (string)$departmentId === (string)$dept->id ? 'selected' : '' }}>
                                         {{ $dept->name }}
@@ -268,14 +276,32 @@
                     <h2 class="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider">
                         Employee Leave Balances & Quotas
                     </h2>
-                    <span class="text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-full">
-                        {{ count($employeeBalancesList) }} Staff
-                    </span>
+                    @if($selectedDepartment)
+                        <span class="text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-full">
+                            {{ count($employeeBalancesList) }} Staff in {{ $selectedDepartment->name }}
+                        </span>
+                    @elseif($isManager)
+                        <span class="text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-full">
+                            {{ count($employeeBalancesList) }} Staff
+                        </span>
+                    @endif
                 </div>
 
-                <!-- Clean Employee Name Tiles Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                    @forelse($employeeBalancesList as $item)
+                @if(!$isIndividualView && ($isSuperAdmin || $isHrLead) && empty($departmentId))
+                    <!-- Prompt to select a department -->
+                    <div class="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800/80 p-8 sm:p-10 text-center bg-slate-50/50 dark:bg-[#111827]/40">
+                        <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 mx-auto flex items-center justify-center mb-3 border border-blue-200/80 dark:border-blue-800/80">
+                            <i data-lucide="building-2" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Select a Department</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-1">
+                            Please select a department from the dropdown above to view employees in that department.
+                        </p>
+                    </div>
+                @else
+                    <!-- Clean Employee Name Tiles Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                        @forelse($employeeBalancesList as $item)
                         @php
                             $isSelected = !empty($item['is_selected']);
                         @endphp
@@ -329,10 +355,11 @@
                         </div>
                     @empty
                         <div class="col-span-full py-10 text-center text-slate-400 dark:text-slate-500 text-xs">
-                            No employees found in this scope.
+                            No employees found in {{ $selectedDepartment->name ?? 'this department' }}.
                         </div>
                     @endforelse
                 </div>
+                @endif
 
                 <!-- SELECTED EMPLOYEE: TABLE OF USAGE (LEAVE BALANCE & QUOTA SUMMARY) -->
                 @if($targetEmployee)
@@ -762,13 +789,20 @@
             @empty
                 <div class="py-10 text-center space-y-2.5 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
                     <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center mx-auto">
-                        <i data-lucide="file-search" class="w-5 h-5"></i>
+                        <i data-lucide="{{ (($isSuperAdmin || $isHrLead) && $scope === 'all' && empty($departmentId)) ? 'building-2' : 'file-search' }}" class="w-5 h-5"></i>
                     </div>
                     <div class="space-y-1">
-                        <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">No leave records found</h4>
-                        <p class="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                            No leave applications match the selected criteria for this period. Try clearing search filters or selecting another month.
-                        </p>
+                        @if(($isSuperAdmin || $isHrLead) && $scope === 'all' && empty($departmentId))
+                            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">Select a Department</h4>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                                Please select a department from the dropdown above to view leave history.
+                            </p>
+                        @else
+                            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">No leave records found</h4>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                                No leave applications match the selected criteria for this period. Try clearing search filters or selecting another month.
+                            </p>
+                        @endif
                     </div>
                 </div>
             @endforelse

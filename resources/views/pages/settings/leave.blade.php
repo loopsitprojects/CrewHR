@@ -113,19 +113,19 @@
             
             <!-- Calendar Top Navigation & Month Selector -->
             <div class="p-4 sm:p-5 border-b border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-[#152038]">
-                <div class="flex items-center gap-3">
-                    <div class="relative flex items-center gap-1.5">
-                        <select x-model="year" @change="setYear($event.target.value)" class="text-sm sm:text-base font-black text-slate-800 dark:text-white bg-transparent border-none focus:ring-0 p-0 cursor-pointer pr-4">
-                            @for($y = 2024; $y <= 2030; $y++)
-                                <option value="{{ $y }}">{{ $y }}</option>
-                            @endfor
-                        </select>
-                        <select x-model="month" @change="setMonth($event.target.value)" class="text-sm sm:text-base font-black text-slate-800 dark:text-white bg-transparent border-none focus:ring-0 p-0 cursor-pointer pr-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-[#111927] border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3.5 py-1.5 shadow-2xs">
+                        <select x-model="month" @change="setMonth($event.target.value)" class="text-sm font-black text-slate-900 dark:text-white bg-transparent border-none focus:ring-0 p-0 cursor-pointer">
                             <template x-for="(mName, idx) in monthNames" :key="idx">
                                 <option :value="idx + 1" x-text="mName"></option>
                             </template>
                         </select>
-                        <i class="ph ph-caret-down text-xs text-slate-400"></i>
+                        <select x-model="year" @change="setYear($event.target.value)" class="text-sm font-black text-slate-500 dark:text-slate-400 bg-transparent border-none focus:ring-0 p-0 cursor-pointer">
+                            @for($y = 2024; $y <= 2030; $y++)
+                                <option value="{{ $y }}">{{ $y }}</option>
+                            @endfor
+                        </select>
+                        <i class="ph ph-caret-down text-xs text-slate-400 ml-0.5"></i>
                     </div>
                 </div>
 
@@ -144,7 +144,7 @@
             </div>
 
             <!-- Toast Notification Banner -->
-            <div x-show="showToast" x-transition class="bg-teal-600 text-white text-xs font-bold px-4 py-2 flex items-center justify-between" x-cloak>
+            <div x-show="showToast" x-transition class="bg-emerald-600 text-white text-xs font-bold px-4 py-2 flex items-center justify-between" x-cloak>
                 <div class="flex items-center gap-2">
                     <i class="ph ph-check-circle text-base"></i>
                     <span x-text="toastMessage"></span>
@@ -155,69 +155,70 @@
             <!-- Main Calendar Split: Day Types Palette (Left) & Calendar Grid (Right) -->
             <div class="flex flex-col lg:flex-row min-h-[480px]">
                 <!-- Left Sidebar: Day Types Palette -->
-                <div class="w-full lg:w-60 bg-slate-50/70 dark:bg-[#121c32] p-4 border-b lg:border-b-0 lg:border-r border-slate-200/80 dark:border-slate-800 shrink-0 space-y-3">
-                    <div class="flex items-center justify-between gap-1">
+                <div class="w-full lg:w-72 xl:w-80 bg-slate-50/70 dark:bg-[#121c32] p-4 sm:p-5 border-b lg:border-b-0 lg:border-r border-slate-200/80 dark:border-slate-800 shrink-0 space-y-4">
+                    <div class="flex items-center justify-between gap-2 border-b border-slate-200/60 dark:border-slate-800 pb-3">
                         <div>
                             <h3 class="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">Day Types</h3>
                             <p class="text-[10px] font-semibold text-slate-400 mt-0.5">Drag & Drop to Calendar</p>
                         </div>
                         <button type="button" 
                                 @click="openAddDayTypeModal()" 
-                                class="px-2 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-extrabold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
+                                class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-black flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
                                 title="Add New Day Type">
-                            <i class="ph ph-plus text-xs font-bold"></i> Add
+                            <i class="ph ph-plus-circle text-sm"></i>
+                            <span>Add</span>
                         </button>
                     </div>
 
-                    <div class="space-y-2 pt-1">
+                    <div class="space-y-2.5">
                         <template x-for="dt in dayTypes" :key="dt.id || dt.name">
                             <div draggable="true"
                                  @dragstart="startDrag(dt, $event)"
-                                 class="group bg-white dark:bg-[#1a2744] border border-slate-200/90 dark:border-slate-700/80 rounded-xl p-2.5 flex items-center justify-between cursor-grab active:cursor-grabbing hover:shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all select-none relative">
+                                 class="group bg-white dark:bg-[#1a2744] border border-slate-200/90 dark:border-slate-700/80 hover:border-blue-400 dark:hover:border-blue-500 rounded-xl p-3 flex items-center justify-between gap-2.5 cursor-grab active:cursor-grabbing hover:shadow-xs transition-all select-none relative">
                                 <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                                    <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs" :style="`background-color: ${dt.color}`"></span>
-                                    <span class="text-xs font-bold text-slate-700 dark:text-slate-200 truncate" x-text="dt.name"></span>
+                                    <span class="w-3.5 h-3.5 rounded-full shrink-0 shadow-2xs ring-2 ring-white dark:ring-slate-800" :style="`background-color: ${dt.color}`"></span>
+                                    <span class="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug break-words" x-text="dt.name"></span>
                                 </div>
                                 
-                                <div class="flex items-center gap-0.5">
+                                <div class="flex items-center gap-1 shrink-0">
                                     <!-- Edit Day Type -->
                                     <button type="button" 
                                             @click.stop="openEditDayTypeModal(dt)"
-                                            class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-600 transition-all" 
+                                            class="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-600 transition-all" 
                                             title="Edit Day Type">
                                         <i class="ph ph-pencil-simple text-xs"></i>
                                     </button>
                                     <!-- Delete Day Type -->
                                     <button type="button" 
                                             @click.stop="deleteDayType(dt)"
-                                            class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-600 transition-all" 
+                                            class="opacity-0 group-hover:opacity-100 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-600 transition-all" 
                                             title="Delete Day Type">
                                         <i class="ph ph-trash text-xs"></i>
                                     </button>
-                                    <i class="ph ph-dots-six-vertical text-slate-400 text-sm shrink-0 ml-0.5"></i>
+                                    <i class="ph ph-dots-six-vertical text-slate-300 dark:text-slate-600 text-sm shrink-0"></i>
                                 </div>
                             </div>
                         </template>
                     </div>
 
-                    <div class="pt-2 text-[10px] text-slate-400 dark:text-slate-500 font-semibold space-y-1 border-t border-slate-200/60 dark:border-slate-800">
-                        <p>• Drag onto any date to assign.</p>
-                        <p>• Hover day type to edit/delete.</p>
-                        <p>• Click date or (✕) to remove.</p>
+                    <div class="pt-3 text-[10px] text-slate-400 dark:text-slate-500 font-semibold space-y-1.5 border-t border-slate-200/60 dark:border-slate-800">
+                        <p class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full bg-slate-400"></span> Drag onto any date to assign.</p>
+                        <p class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full bg-slate-400"></span> Hover day type to edit or delete.</p>
+                        <p class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full bg-slate-400"></span> Click date or (✕) to remove holiday.</p>
                     </div>
                 </div>
 
                 <!-- Right Area: Monthly Calendar Grid -->
                 <div class="flex-1 flex flex-col overflow-x-auto min-w-0">
-                    <!-- Days Header (Teal Ribbon) -->
-                    <div class="grid grid-cols-7 bg-[#00cba9] text-white text-center text-xs font-black uppercase tracking-wider py-2.5 shrink-0 select-none">
-                        <div>Sun</div>
-                        <div>Mon</div>
-                        <div>Tue</div>
-                        <div>Wed</div>
-                        <div>Thu</div>
-                        <div>Fri</div>
-                        <div>Sat</div>
+                    <!-- Days Header (Clean, elegant ribbon) -->
+                    <div class="grid grid-cols-7 bg-slate-100/90 dark:bg-[#16213b] text-center text-xs font-black uppercase tracking-wider py-3 shrink-0 select-none border-b border-slate-200 dark:border-slate-800">
+                        <div class="text-rose-600 dark:text-rose-400">Sun</div>
+                        <div class="text-slate-700 dark:text-slate-300">Mon</div>
+                        <div class="text-slate-700 dark:text-slate-300">Tue</div>
+                        <div class="text-slate-700 dark:text-slate-300">Wed</div>
+                        <div class="text-slate-700 dark:text-slate-300">Thu</div>
+                        <div class="text-slate-700 dark:text-slate-300">Fri</div>
+                        <div class="text-slate-700 dark:text-slate-300">Sat</div>
                     </div>
 
                     <!-- Day Grid Body -->
@@ -226,20 +227,21 @@
                             <div @dragover.prevent="onDragOver($event)"
                                  @drop.prevent="dropDayType(cell.dateStr, $event)"
                                  @click="openEdit(cell.dateStr)"
-                                 class="min-h-[84px] sm:min-h-[96px] p-2 flex flex-col justify-between transition-colors relative cursor-pointer group"
+                                 class="min-h-[92px] sm:min-h-[105px] p-2 flex flex-col justify-between transition-colors relative cursor-pointer group"
                                  :class="{
-                                     'bg-slate-50/40 dark:bg-slate-900/40 text-slate-300 dark:text-slate-600': !cell.isCurrentMonth,
-                                     'bg-[#7fffd4]/30 dark:bg-cyan-950/40 ring-1 ring-cyan-400 ring-inset': cell.isToday && cell.isCurrentMonth,
+                                     'bg-slate-50/50 dark:bg-slate-900/40 opacity-40': !cell.isCurrentMonth,
+                                     'bg-blue-50/60 dark:bg-blue-950/30 ring-2 ring-blue-500/50 ring-inset': cell.isToday && cell.isCurrentMonth,
                                      'hover:bg-slate-50/80 dark:hover:bg-[#1e2d4d]/60': cell.isCurrentMonth && !cell.isToday
                                  }">
                                 
                                 <!-- Top Row: Date Number -->
                                 <div class="flex items-center justify-between">
-                                    <span class="text-xs font-bold select-none"
+                                    <span class="text-xs font-bold select-none inline-flex items-center justify-center"
                                           :class="{
-                                              'text-rose-400 dark:text-rose-400': cell.isSunday && cell.isCurrentMonth,
-                                              'text-slate-700 dark:text-slate-200 font-extrabold': !cell.isSunday && cell.isCurrentMonth,
-                                              'text-slate-300 dark:text-slate-600': !cell.isCurrentMonth
+                                              'w-6 h-6 rounded-full bg-blue-600 text-white font-black shadow-xs': cell.isToday && cell.isCurrentMonth,
+                                              'text-rose-600 dark:text-rose-400 font-black': cell.isSunday && cell.isCurrentMonth && !cell.isToday,
+                                              'text-slate-800 dark:text-slate-200 font-extrabold': !cell.isSunday && cell.isCurrentMonth && !cell.isToday,
+                                              'text-slate-400 dark:text-slate-600': !cell.isCurrentMonth
                                           }"
                                           x-text="cell.dayNum">
                                     </span>
@@ -248,9 +250,9 @@
                                     <template x-if="getHolidaysForDate(cell.dateStr)">
                                         <button type="button" 
                                                 @click.stop="removeHoliday(cell.dateStr)" 
-                                                class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-600 transition-opacity p-0.5" 
+                                                class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-600 transition-opacity p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/40" 
                                                 title="Reset to Working Day">
-                                            <i class="ph ph-x text-xs"></i>
+                                            <i class="ph ph-x text-xs font-bold"></i>
                                         </button>
                                     </template>
                                 </div>
@@ -258,10 +260,10 @@
                                 <!-- Middle / Bottom: Holiday Badge if assigned -->
                                 <div class="mt-1">
                                     <template x-if="getHolidaysForDate(cell.dateStr)">
-                                        <div class="px-1.5 py-1 rounded-lg text-[10px] font-bold border shadow-2xs flex items-center gap-1 leading-tight line-clamp-2"
+                                        <div class="px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold border shadow-2xs flex items-center gap-1.5 leading-tight"
                                              :style="`background-color: ${getDayTypeColor(getHolidaysForDate(cell.dateStr).category || getHolidaysForDate(cell.dateStr).type).bg}; border-color: ${getDayTypeColor(getHolidaysForDate(cell.dateStr).category || getHolidaysForDate(cell.dateStr).type).border}; color: ${getDayTypeColor(getHolidaysForDate(cell.dateStr).category || getHolidaysForDate(cell.dateStr).type).text}`">
-                                            <span class="w-1.5 h-1.5 rounded-full shrink-0" :style="`background-color: ${getDayTypeColor(getHolidaysForDate(cell.dateStr).category || getHolidaysForDate(cell.dateStr).type).color}`"></span>
-                                            <span class="truncate" x-text="getHolidaysForDate(cell.dateStr).title || getHolidaysForDate(cell.dateStr).category"></span>
+                                            <span class="w-1.5 h-1.5 rounded-full shrink-0 shadow-2xs" :style="`background-color: ${getDayTypeColor(getHolidaysForDate(cell.dateStr).category || getHolidaysForDate(cell.dateStr).type).color}`"></span>
+                                            <span class="truncate" :title="getHolidaysForDate(cell.dateStr).title || getHolidaysForDate(cell.dateStr).category" x-text="getHolidaysForDate(cell.dateStr).title || getHolidaysForDate(cell.dateStr).category"></span>
                                         </div>
                                     </template>
                                 </div>
@@ -276,7 +278,7 @@
                 <div class="bg-white dark:bg-[#152038] w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-5 space-y-4" @click.outside="editModal = false">
                     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                         <div class="flex items-center gap-2">
-                            <i class="ph ph-calendar-plus text-lg text-teal-600 dark:text-teal-400"></i>
+                            <i class="ph ph-calendar-plus text-lg text-blue-600 dark:text-blue-400"></i>
                             <h3 class="text-sm font-black text-slate-900 dark:text-white">Configure Date Holiday</h3>
                         </div>
                         <button type="button" @click="editModal = false" class="text-slate-400 hover:text-slate-600"><i class="ph ph-x text-base"></i></button>
@@ -324,7 +326,7 @@
                         <button type="button" @click="removeHoliday(editForm.date)" class="px-3 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold transition-all">
                             Reset to Working Day
                         </button>
-                        <button type="button" @click="submitEditModal()" class="px-4 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md shadow-teal-500/20 transition-all">
+                        <button type="button" @click="submitEditModal()" class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all">
                             Save Changes
                         </button>
                     </div>
@@ -336,7 +338,7 @@
                 <div class="bg-white dark:bg-[#152038] w-full max-w-sm rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl p-5 space-y-4" @click.outside="addDayTypeModal = false">
                     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                         <div class="flex items-center gap-2">
-                            <i class="ph ph-plus-circle text-lg text-teal-600 dark:text-teal-400"></i>
+                            <i class="ph ph-plus-circle text-lg text-blue-600 dark:text-blue-400"></i>
                             <h3 class="text-sm font-black text-slate-900 dark:text-white">Add New Day Type</h3>
                         </div>
                         <button type="button" @click="addDayTypeModal = false" class="text-slate-400 hover:text-slate-600"><i class="ph ph-x text-base"></i></button>
@@ -373,7 +375,7 @@
 
                     <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                         <button type="button" @click="addDayTypeModal = false" class="px-3 py-1.5 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-bold">Cancel</button>
-                        <button type="button" @click="submitAddDayType()" class="px-4 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md shadow-teal-500/20">Create Day Type</button>
+                        <button type="button" @click="submitAddDayType()" class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20">Create Day Type</button>
                     </div>
                 </div>
             </div>
@@ -516,7 +518,19 @@ function holidayCalendar() {
 
         getDayTypeColor(typeOrCategory) {
             if (!typeOrCategory) return { color: '#64748b', bg: '#f1f5f9', border: '#cbd5e1', text: '#1e293b' };
-            const found = this.dayTypes.find(dt => dt.name.toLowerCase() === typeOrCategory.toLowerCase()) || null;
+            const lower = typeOrCategory.toLowerCase();
+            let found = this.dayTypes.find(dt => dt.name.toLowerCase() === lower);
+            if (!found) {
+                if (lower.includes('poya')) {
+                    found = this.dayTypes.find(dt => dt.name.toLowerCase().includes('poya'));
+                } else if (lower.includes('mercantile')) {
+                    found = this.dayTypes.find(dt => dt.name.toLowerCase().includes('mercantile'));
+                } else if (lower.includes('public')) {
+                    found = this.dayTypes.find(dt => dt.name.toLowerCase().includes('public'));
+                } else if (lower.includes('company') || lower.includes('additional')) {
+                    found = this.dayTypes.find(dt => dt.name.toLowerCase().includes('additional') || dt.name.toLowerCase().includes('company'));
+                }
+            }
             const hex = found ? found.color : '#3b82f6';
             return {
                 color: hex,
