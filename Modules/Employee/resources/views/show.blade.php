@@ -694,57 +694,7 @@
     </div>
     @endif
 
-    <!-- PERFORMANCE APPRAISAL HISTORY (Chronological View) -->
-    <div class="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/90 dark:border-white/[0.08] p-5 sm:p-6 shadow-sm space-y-4 transition-colors">
-        <div class="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-3">
-            <span class="font-extrabold text-slate-900 dark:text-white flex items-center gap-2 text-xs uppercase tracking-wider">
-                <i data-lucide="award" class="w-4 h-4 text-blue-600"></i> Performance Appraisal History
-            </span>
-            <a href="{{ route('appraisal.index') }}" class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
-                View Appraisal Hub &rarr;
-            </a>
-        </div>
 
-        @if($employee->appraisals && $employee->appraisals->isNotEmpty())
-            <div class="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-semibold">
-                @foreach($employee->appraisals->sortByDesc('id') as $histApp)
-                    <div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div>
-                            <div class="font-black text-slate-900 dark:text-white flex items-center gap-2">
-                                <span>{{ $histApp->cycle?->name ?? 'Appraisal Cycle' }}</span>
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ $histApp->status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' }}">
-                                    {{ ucwords(str_replace('_', ' ', $histApp->status)) }}
-                                </span>
-                            </div>
-                            <div class="text-[11px] text-slate-400 font-semibold mt-0.5">
-                                Workflow: {{ $histApp->workflow_type === 'three_tier' ? '3-Tier (Manager + HOD)' : '2-Tier (Direct HOD)' }} &bull; Template: {{ $histApp->template?->title }}
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-3 shrink-0">
-                            @if($histApp->total_weighted_score > 0)
-                                <div class="text-right">
-                                    <span class="text-xs font-black text-slate-900 dark:text-white block">
-                                        {{ number_format($histApp->total_weighted_score, 2) }} / 5.00
-                                    </span>
-                                    <span class="text-[10px] font-extrabold text-blue-600 dark:text-blue-400">
-                                        {{ $histApp->performance_band }}
-                                    </span>
-                                </div>
-                            @endif
-
-                            <a href="{{ route('appraisal.show', $histApp->id) }}" class="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 text-blue-600 dark:text-blue-400 font-bold text-xs flex items-center gap-1 border border-slate-200 dark:border-slate-700 transition-colors">
-                                <span>View</span>
-                                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                            </a>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        @else
-            <p class="text-slate-400 dark:text-slate-500 italic text-xs py-2">No historical performance appraisals recorded for this employee profile yet.</p>
-        @endif
-    </div>
 
 </div>
 @endsection
