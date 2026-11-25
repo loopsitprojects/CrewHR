@@ -45,7 +45,7 @@
         });
     @endphp
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div x-show="{{ $role === 'Employee' ? 'true' : 'activeTab === \'my_appraisal\'' }}" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <!-- Tile 1: Quarterly Reviews -->
         <div class="bg-white dark:bg-[#111927] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/90 dark:border-white/[0.08] space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3.5">
@@ -399,7 +399,7 @@
 
     <!-- TAB 2: My Self-Evaluation (If active employee has an appraisal) -->
     @if($employee)
-    <div x-show="activeTab === 'my_appraisal'" class="space-y-4">
+    <div x-show="false" class="hidden">
         @php
             $selfList = (isset($myAppraisals) && $myAppraisals->isNotEmpty()) 
                 ? $myAppraisals 
