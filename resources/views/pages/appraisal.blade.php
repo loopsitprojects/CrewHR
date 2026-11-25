@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="space-y-6" x-data="{
-    activeTab: '{{ request('tab', 'roster') }}',
+    activeTab: '{{ request('tab', ($role !== 'Employee' && $employee) ? 'my_appraisal' : 'roster') }}',
     showCycleModal: false,
     showReminderModal: false,
     statusFilter: '{{ request('status', '') }}',
