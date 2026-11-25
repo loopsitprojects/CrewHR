@@ -124,6 +124,7 @@ class AppraisalController extends Controller
             $cCompleted = $cAppraisals->where('status', 'completed')->count();
             $cPendingSelf = $cAppraisals->where('status', 'pending_self_eval')->count();
             $cSelfSubmitted = $cTotal - $cPendingSelf;
+            $cSelfRate = $cTotal > 0 ? round(($cSelfSubmitted / $cTotal) * 100) : 0;
             $cManagerDone = $cAppraisals->whereNotIn('status', ['pending_self_eval', 'submitted_self_eval', 'pending_manager_eval'])->count();
             $cRate = $cTotal > 0 ? round(($cCompleted / $cTotal) * 100) : 0;
 
@@ -136,6 +137,7 @@ class AppraisalController extends Controller
                 'completed' => $cCompleted,
                 'pending_self' => $cPendingSelf,
                 'self_submitted' => $cSelfSubmitted,
+                'self_rate' => $cSelfRate,
                 'manager_done' => $cManagerDone,
                 'rate' => $cRate,
                 'quarter_badge' => $cItem->isMidYear() ? 'Quarter 1 • Mid-Year' : 'Quarter 2 • Year-End',
