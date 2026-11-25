@@ -173,6 +173,7 @@ Route::post('/appraisal-templates/{id}/toggle', [AppraisalController::class, 'to
 
 // Cycles Management
 Route::post('/appraisal-cycles', [AppraisalController::class, 'storeCycle'])->name('appraisal.cycles.store');
+Route::post('/appraisal-cycles/{id}/toggle-status', [AppraisalController::class, 'toggleCycleStatus'])->name('appraisal.cycles.toggle-status');
 
 // Letters & E-Signatures
 Route::post('/appraisal/{id}/generate-letter', [AppraisalController::class, 'generateLetter'])->name('appraisal.generate-letter');

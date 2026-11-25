@@ -56,22 +56,24 @@ class AppraisalController extends Controller
     {
         [$user, $employee, $role] = $this->getActorContext();
 
-        // Active Review Cycles for the Financial Year (Both Quarters: Mid-Year and Year-End)
-        $activeCycles = AppraisalCycle::where('status', 'Active')
+        // Both Review Quarters for the Financial Year
+        $financialYear = 'FY 2026/2027';
+        $fyCycles = AppraisalCycle::where('status', '!=', 'Archived')
             ->whereNotNull('financial_year')
             ->whereIn('cycle_type', ['mid_year', 'year_end'])
             ->orderBy('start_date', 'asc')
             ->get();
 
-        if ($activeCycles->isEmpty()) {
-            $activeCycles = AppraisalCycle::where('status', 'Active')
+        if ($fyCycles->isEmpty()) {
+            $fyCycles = AppraisalCycle::where('status', '!=', 'Archived')
                 ->whereIn('cycle_type', ['mid_year', 'year_end'])
                 ->orderBy('start_date', 'asc')
                 ->take(2)
                 ->get();
         }
 
-        foreach ($activeCycles as $ac) {
+        // Only initialize appraisals for Active cycles
+        foreach ($fyCycles->where('status', 'Active') as $ac) {
             self::initializeAppraisalsForActiveEmployees($ac);
         }
 
@@ -86,15 +88,14 @@ class AppraisalController extends Controller
         $cycleId = $request->get('cycle_id');
         $activeCycle = $cycleId ? AppraisalCycle::find($cycleId) : null;
         if (!$activeCycle) {
-            $activeCycle = $activeCycles->firstWhere('cycle_type', 'mid_year')
-                ?? $activeCycles->first()
-                ?? AppraisalCycle::where('status', 'Active')->latest()->first()
-                ?? AppraisalCycle::latest()->first();
+            $activeCycle = $fyCycles->firstWhere('status', 'Active')
+                ?? $fyCycles->firstWhere('cycle_type', 'mid_year')
+                ?? $fyCycles->first();
         }
 
         // Compute Cards Data for Both Quarters
         $cycleCardsData = [];
-        foreach ($activeCycles as $cItem) {
+        foreach ($fyCycles as $cItem) {
             $cQuery = Appraisal::where('cycle_id', $cItem->id);
             if ($role === 'Employee') {
                 $cQuery->where('employee_id', $employee?->id);
@@ -122,6 +123,8 @@ class AppraisalController extends Controller
             $cycleCardsData[] = [
                 'cycle' => $cItem,
                 'is_selected' => ($activeCycle && $activeCycle->id === $cItem->id),
+                'is_active_cycle' => ($cItem->status === 'Active'),
+                'status' => $cItem->status,
                 'total' => $cTotal,
                 'completed' => $cCompleted,
                 'pending_self' => $cPendingSelf,
@@ -1205,6 +1208,28 @@ class AppraisalController extends Controller
         }
 
         return back()->with('success', "Appraisal cycle '{$cycle->name}' created successfully.");
+    }
+
+    /**
+     * Toggle Appraisal Cycle Activation Status (HR Lead & Super Admin only)
+     */
+    public function toggleCycleStatus($id)
+    {
+        [$user, $employee, $role] = $this->getActorContext();
+        if (!in_array($role, ['Super Admin', 'HR Lead'])) {
+            abort(403, 'Unauthorized. Activating or managing appraisal cycles can only be done by HR or Admin.');
+        }
+
+        $cycle = AppraisalCycle::findOrFail($id);
+        $newStatus = ($cycle->status === 'Active') ? 'Upcoming' : 'Active';
+        $cycle->update(['status' => $newStatus]);
+
+        if ($newStatus === 'Active') {
+            self::initializeAppraisalsForActiveEmployees($cycle);
+            return back()->with('success', "Appraisal cycle '{$cycle->name}' has been activated successfully by HR/Admin.");
+        }
+
+        return back()->with('success', "Appraisal cycle '{$cycle->name}' is now set to Upcoming.");
     }
 
     /**

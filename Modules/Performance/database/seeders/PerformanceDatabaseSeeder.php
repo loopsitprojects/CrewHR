@@ -173,7 +173,7 @@ class PerformanceDatabaseSeeder extends Seeder
                 'self_eval_deadline' => '2027-03-01',
                 'manager_eval_deadline' => '2027-03-15',
                 'allow_increments' => true,
-                'status' => 'Active',
+                'status' => 'Upcoming',
                 'description' => 'Covers the performance period from October to March. Focuses on the final performance evaluation, identifying employees for potential promotions and increments. Increment recommendations are considered alongside the company\'s financial performance and approved budget.',
                 'focus_areas' => 'Final performance evaluation, potential promotions, and increment recommendations considered alongside approved company budget.',
             ]

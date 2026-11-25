@@ -208,6 +208,281 @@
             </div>
         </div>
 
+        @php
+            $hasReportingManager = (bool)($appraisal->reporting_manager_id && $appraisal->reportingManager && $appraisal->workflow_type !== 'two_tier' && $appraisal->reporting_manager_id !== $appraisal->hod_id);
+            $appStatus = $appraisal->status;
+
+            if ($hasReportingManager) {
+                // 4 Stages: Self-Evaluation -> Manager Review -> HOD Moderation -> Final Sign-off
+                $s1Done = in_array($appStatus, ['submitted_self_eval', 'pending_manager_eval', 'submitted_manager_eval', 'pending_hod_eval', 'completed']) || !empty($appraisal->self_submitted_at);
+                $s1Active = ($appStatus === 'pending_self_eval');
+
+                $s2Done = in_array($appStatus, ['submitted_manager_eval', 'pending_hod_eval', 'completed']) || !empty($appraisal->manager_submitted_at);
+                $s2Active = in_array($appStatus, ['submitted_self_eval', 'pending_manager_eval']);
+
+                $s3Done = ($appStatus === 'completed') || !empty($appraisal->hod_submitted_at);
+                $s3Active = in_array($appStatus, ['submitted_manager_eval', 'pending_hod_eval']);
+
+                $s4Done = ($appStatus === 'completed');
+                $s4Active = false;
+
+                if ($s4Done) {
+                    $progressPercent = 100;
+                    $currentStageLabel = 'Completed & Finalized';
+                } elseif ($s3Active) {
+                    $progressPercent = 66.6;
+                    $currentStageLabel = '3. HOD Moderation';
+                } elseif ($s2Active) {
+                    $progressPercent = 33.3;
+                    $currentStageLabel = '2. Manager Review';
+                } else {
+                    $progressPercent = 0;
+                    $currentStageLabel = '1. Self-Evaluation';
+                }
+            } else {
+                // 3 Stages: Self-Evaluation -> HOD Review & Moderation -> Final Sign-off
+                $s1Done = in_array($appStatus, ['submitted_self_eval', 'pending_hod_eval', 'completed']) || !empty($appraisal->self_submitted_at);
+                $s1Active = ($appStatus === 'pending_self_eval');
+
+                $s2Done = ($appStatus === 'completed') || !empty($appraisal->hod_submitted_at);
+                $s2Active = in_array($appStatus, ['submitted_self_eval', 'pending_hod_eval', 'submitted_manager_eval', 'pending_manager_eval']);
+
+                $s3Done = ($appStatus === 'completed');
+                $s3Active = false;
+
+                if ($s3Done) {
+                    $progressPercent = 100;
+                    $currentStageLabel = 'Completed & Finalized';
+                } elseif ($s2Active) {
+                    $progressPercent = 50;
+                    $currentStageLabel = '2. HOD Review & Moderation';
+                } else {
+                    $progressPercent = 0;
+                    $currentStageLabel = '1. Self-Evaluation';
+                }
+            }
+        @endphp
+
+        <!-- Progressive Review Stages Milestone Progress Bar -->
+        <div class="relative bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-2.5 border-b border-slate-200/60 dark:border-slate-700/60">
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Progressive Review Workflow</span>
+                    <span class="text-[9px] font-black px-2 py-0.5 rounded-full {{ $hasReportingManager ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/60' : 'bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-900/60' }}">
+                        {{ $hasReportingManager ? '4 Stages (Manager + HOD)' : '3 Stages (Direct HOD)' }}
+                    </span>
+                </div>
+                <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full {{ $appStatus === 'completed' ? 'bg-emerald-500' : 'bg-blue-600 animate-pulse' }}"></span>
+                    <span>Current Stage: <strong class="text-slate-900 dark:text-white">{{ $currentStageLabel }}</strong></span>
+                </div>
+            </div>
+
+            <div class="relative">
+                <!-- Background Connecting Track Line -->
+                <div class="absolute top-4 sm:top-4.5 {{ $hasReportingManager ? 'left-[12.5%] right-[12.5%]' : 'left-[16.67%] right-[16.67%]' }} h-1.5 bg-slate-200/90 dark:bg-slate-700/80 -translate-y-1/2 rounded-full overflow-hidden z-0">
+                    <div class="h-full bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 rounded-full transition-all duration-700 ease-out" 
+                         style="width: {{ $progressPercent }}%"></div>
+                </div>
+
+                @if($hasReportingManager)
+                    <!-- 4 Stages Grid -->
+                    <div class="relative z-10 grid grid-cols-4 gap-2 sm:gap-4">
+                        <!-- 1. Self-Evaluation -->
+                        <div class="flex flex-col items-center text-center">
+                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $s1Done ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' }}">
+                                @if($s1Done)
+                                    <i class="ph-bold ph-check text-xs"></i>
+                                @else
+                                    1
+                                @endif
+                            </div>
+                            <div class="mt-2 space-y-0.5">
+                                <span class="text-xs font-black {{ $s1Active ? 'text-blue-600 dark:text-blue-400' : ($s1Done ? 'text-slate-900 dark:text-white' : 'text-slate-400') }} block">
+                                    Self-Evaluation
+                                </span>
+                                <p class="text-[10px] font-bold {{ $s1Done ? 'text-emerald-600 dark:text-emerald-400' : ($s1Active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400') }}">
+                                    @if($s1Done)
+                                        {{ $appraisal->self_submitted_at ? 'Submitted ' . $appraisal->self_submitted_at->format('d M') : 'Submitted' }}
+                                    @else
+                                        Pending Submission
+                                    @endif
+                                </p>
+                                <p class="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-none">
+                                    {{ $appraisal->employee?->user?->name ?? 'Employee' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 2. Manager Review -->
+                        <div class="flex flex-col items-center text-center">
+                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $s2Done ? 'bg-emerald-500 text-white shadow-emerald-500/30' : ($s2Active ? 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
+                                @if($s2Done)
+                                    <i class="ph-bold ph-check text-xs"></i>
+                                @else
+                                    2
+                                @endif
+                            </div>
+                            <div class="mt-2 space-y-0.5">
+                                <span class="text-xs font-black {{ $s2Active ? 'text-blue-600 dark:text-blue-400' : ($s2Done ? 'text-slate-900 dark:text-white' : 'text-slate-400') }} block">
+                                    Manager Review
+                                </span>
+                                <p class="text-[10px] font-bold {{ $s2Done ? 'text-emerald-600 dark:text-emerald-400' : ($s2Active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400') }}">
+                                    @if($s2Done)
+                                        {{ $appraisal->manager_submitted_at ? 'Reviewed ' . $appraisal->manager_submitted_at->format('d M') : 'Reviewed' }}
+                                    @elseif($s2Active)
+                                        In Review
+                                    @else
+                                        Awaiting Self-Eval
+                                    @endif
+                                </p>
+                                <p class="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-none">
+                                    {{ $appraisal->reportingManager?->user?->name ?? 'Reporting Manager' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 3. HOD Moderation -->
+                        <div class="flex flex-col items-center text-center">
+                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $s3Done ? 'bg-emerald-500 text-white shadow-emerald-500/30' : ($s3Active ? 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
+                                @if($s3Done)
+                                    <i class="ph-bold ph-check text-xs"></i>
+                                @else
+                                    3
+                                @endif
+                            </div>
+                            <div class="mt-2 space-y-0.5">
+                                <span class="text-xs font-black {{ $s3Active ? 'text-blue-600 dark:text-blue-400' : ($s3Done ? 'text-slate-900 dark:text-white' : 'text-slate-400') }} block">
+                                    HOD Moderation
+                                </span>
+                                <p class="text-[10px] font-bold {{ $s3Done ? 'text-emerald-600 dark:text-emerald-400' : ($s3Active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400') }}">
+                                    @if($s3Done)
+                                        {{ $appraisal->hod_submitted_at ? 'Approved ' . $appraisal->hod_submitted_at->format('d M') : 'Approved' }}
+                                    @elseif($s3Active)
+                                        In Moderation
+                                    @else
+                                        Awaiting Manager
+                                    @endif
+                                </p>
+                                <p class="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-none">
+                                    {{ $appraisal->hod?->user?->name ?? 'Head of Department' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 4. Final Sign-off -->
+                        <div class="flex flex-col items-center text-center">
+                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $s4Done ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400' }}">
+                                @if($s4Done)
+                                    <i class="ph-bold ph-check text-xs"></i>
+                                @else
+                                    4
+                                @endif
+                            </div>
+                            <div class="mt-2 space-y-0.5">
+                                <span class="text-xs font-black {{ $s4Done ? 'text-slate-900 dark:text-white' : 'text-slate-400' }} block">
+                                    Final Sign-off
+                                </span>
+                                <p class="text-[10px] font-bold {{ $s4Done ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400' }}">
+                                    @if($s4Done)
+                                        Finalized ({{ number_format($appraisal->total_weighted_score, 2) }}/5.00)
+                                    @else
+                                        Pending Finalization
+                                    @endif
+                                </p>
+                                <p class="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-none">
+                                    HR / Admin
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <!-- 3 Stages Grid (Direct HOD) -->
+                    <div class="relative z-10 grid grid-cols-3 gap-2 sm:gap-4">
+                        <!-- 1. Self-Evaluation -->
+                        <div class="flex flex-col items-center text-center">
+                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $s1Done ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' }}">
+                                @if($s1Done)
+                                    <i class="ph-bold ph-check text-xs"></i>
+                                @else
+                                    1
+                                @endif
+                            </div>
+                            <div class="mt-2 space-y-0.5">
+                                <span class="text-xs font-black {{ $s1Active ? 'text-blue-600 dark:text-blue-400' : ($s1Done ? 'text-slate-900 dark:text-white' : 'text-slate-400') }} block">
+                                    Self-Evaluation
+                                </span>
+                                <p class="text-[10px] font-bold {{ $s1Done ? 'text-emerald-600 dark:text-emerald-400' : ($s1Active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400') }}">
+                                    @if($s1Done)
+                                        {{ $appraisal->self_submitted_at ? 'Submitted ' . $appraisal->self_submitted_at->format('d M') : 'Submitted' }}
+                                    @else
+                                        Pending Submission
+                                    @endif
+                                </p>
+                                <p class="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-none">
+                                    {{ $appraisal->employee?->user?->name ?? 'Employee' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 2. HOD Review & Moderation -->
+                        <div class="flex flex-col items-center text-center">
+                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $s2Done ? 'bg-emerald-500 text-white shadow-emerald-500/30' : ($s2Active ? 'bg-blue-600 text-white shadow-blue-500/30 ring-blue-100 dark:ring-blue-900/40' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400') }}">
+                                @if($s2Done)
+                                    <i class="ph-bold ph-check text-xs"></i>
+                                @else
+                                    2
+                                @endif
+                            </div>
+                            <div class="mt-2 space-y-0.5">
+                                <span class="text-xs font-black {{ $s2Active ? 'text-blue-600 dark:text-blue-400' : ($s2Done ? 'text-slate-900 dark:text-white' : 'text-slate-400') }} block">
+                                    HOD Review & Moderation
+                                </span>
+                                <p class="text-[10px] font-bold {{ $s2Done ? 'text-emerald-600 dark:text-emerald-400' : ($s2Active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400') }}">
+                                    @if($s2Done)
+                                        {{ $appraisal->hod_submitted_at ? 'Approved ' . $appraisal->hod_submitted_at->format('d M') : 'Approved' }}
+                                    @elseif($s2Active)
+                                        In Review
+                                    @else
+                                        Awaiting Self-Eval
+                                    @endif
+                                </p>
+                                <p class="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-none">
+                                    {{ $appraisal->hod?->user?->name ?? 'Head of Department' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 3. Final Sign-off -->
+                        <div class="flex flex-col items-center text-center">
+                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-black transition-all shadow-sm ring-4 ring-slate-50 dark:ring-slate-800 {{ $s3Done ? 'bg-emerald-500 text-white shadow-emerald-500/30' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400' }}">
+                                @if($s3Done)
+                                    <i class="ph-bold ph-check text-xs"></i>
+                                @else
+                                    3
+                                @endif
+                            </div>
+                            <div class="mt-2 space-y-0.5">
+                                <span class="text-xs font-black {{ $s3Done ? 'text-slate-900 dark:text-white' : 'text-slate-400' }} block">
+                                    Final Sign-off
+                                </span>
+                                <p class="text-[10px] font-bold {{ $s3Done ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400' }}">
+                                    @if($s3Done)
+                                        Finalized ({{ number_format($appraisal->total_weighted_score, 2) }}/5.00)
+                                    @else
+                                        Pending Finalization
+                                    @endif
+                                </p>
+                                <p class="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[110px] sm:max-w-none">
+                                    HR / Admin
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+
         <!-- Navigation Tabs -->
         <div class="flex items-center gap-6 border-b border-slate-100 dark:border-slate-800 -mb-5">
             <button @click="activeTab = 'evaluation'" :class="activeTab === 'evaluation' ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-extrabold' : 'border-transparent text-slate-500 font-semibold'" class="pb-3 text-xs border-b-2 transition-all flex items-center gap-2 cursor-pointer">
