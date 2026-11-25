@@ -17,6 +17,9 @@
 
     $shortLeftThisMonth = max(0, 2 - (int)($monthlyShortLeavesUsed ?? 0));
 
+    $activeRole = session('current_role', Auth::user()?->employee?->system_role ?? 'Employee');
+    $canAddHoliday = in_array($activeRole, ['HR Lead', 'Super (Admin)']);
+
     // Get all active leave types from DB, excluding HALF_DAY (which is handled as a half-day toggle checkbox)
     $activeDbLeaveTypes = \Modules\Leave\Models\LeaveType::where('is_active', true)
         ->get()
@@ -651,9 +654,9 @@
          checkHandoverNotes() {
              const hasNotes = Boolean(this.handoverNotes && this.handoverNotes.trim().length > 0);
              if (hasNotes) {
-                 return { pass: true, hasNotes: true, message: 'Reason / Handover notes — details provided.' };
+                 return { pass: true, hasNotes: true, message: 'Reason / Handover notes — provided.' };
              }
-             return { pass: true, hasNotes: false, message: 'Reason / Handover notes — optional (none provided).' };
+             return { pass: false, hasNotes: false, message: 'Reason / Handover notes — mandatory (please provide details).' };
          },
 
          allChecksPass() {
@@ -661,7 +664,8 @@
                     this.checkNoticePeriod().pass &&
                     this.checkBalance().pass &&
                     this.checkConsecutiveDays().pass &&
-                    this.checkCovering().pass;
+                    this.checkCovering().pass &&
+                    this.checkHandoverNotes().pass;
          },
 
          openApplyModal(code, isSpecific = false) {
@@ -1231,23 +1235,12 @@
 
         <!-- Right 1 Col: Action Buttons & Right Rail Cards (Matching Reference Mockup) -->
         <div class="flex flex-col gap-3">
-            <!-- Action Buttons: Solid Primary Accent & Clean Secondary Border -->
-            @php
-                $activeRole = session('current_role', Auth::user()?->employee?->system_role ?? 'Employee');
-                $canAddHoliday = in_array($activeRole, ['HR Lead', 'Super (Admin)']);
-            @endphp
-            <div class="grid {{ $canAddHoliday ? 'grid-cols-2' : 'grid-cols-1' }} gap-2.5 shrink-0">
-                <button @click="openApplyModal(null, false)" class="btn-primary py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer group">
+            <!-- Action Button: Apply Leave -->
+            <div class="shrink-0">
+                <button @click="openApplyModal(null, false)" class="w-full btn-primary py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer group">
                     <i data-lucide="plus" class="w-4 h-4 stroke-[2.5] text-white transition-transform duration-200 group-hover:rotate-90"></i>
                     <span>Apply Leave</span>
                 </button>
-
-                @if($canAddHoliday)
-                <button @click="addCompanyLeaveModal = true" class="btn-secondary py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer group">
-                    <i data-lucide="calendar-plus" class="w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform duration-200 group-hover:scale-110"></i>
-                    <span>Add Holiday</span>
-                </button>
-                @endif
             </div>
 
             <!-- Who's on Leave Card (Shows Today by default, updates when date selected on calendar) -->
@@ -1678,7 +1671,7 @@
                         <!-- Leave Type Selection (Shows respective leave or all leaves) -->
                         <div class="space-y-1.5">
                             <div class="flex items-center justify-between">
-                                <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type</label>
+                                <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Leave Type <span class="text-rose-500 font-black">*</span></label>
                                 <template x-if="restrictedLeaveType">
                                     <button type="button" 
                                             @click="restrictedLeaveType = null" 
@@ -1696,7 +1689,7 @@
                                          :class="selectedLeaveTypeCode === item.code 
                                             ? 'bg-blue-50/80 dark:bg-[#192742] border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/25 dark:ring-blue-400/25 shadow-sm text-blue-950 dark:text-white' 
                                             : 'bg-white hover:bg-slate-50/80 dark:bg-[#131c2d] dark:hover:bg-[#19243a] border-slate-200/90 hover:border-blue-300 dark:border-slate-800 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs'"
-                                         class="px-2.5 py-1.5 rounded-xl border text-left cursor-pointer leave-select-card flex flex-col justify-between min-h-[48px] relative overflow-hidden group">
+                                         class="px-2.5 py-2 rounded-xl border text-left cursor-pointer leave-select-card flex flex-col justify-between min-h-[50px] relative overflow-hidden group">
                                         
                                         <!-- Active indicator check badge -->
                                         <template x-if="selectedLeaveTypeCode === item.code">
@@ -1709,7 +1702,13 @@
                                             <span class="w-2 h-2 rounded-full shrink-0 shadow-xs" :class="item.dotColor"></span>
                                             <span class="text-[11px] font-bold truncate leading-tight" :class="selectedLeaveTypeCode === item.code ? 'text-blue-950 dark:text-blue-100 font-extrabold' : 'text-slate-800 dark:text-slate-200'" x-text="item.name"></span>
                                         </div>
-                                        <span class="text-[10px] font-semibold pl-3.5 truncate leading-tight" :class="selectedLeaveTypeCode === item.code ? 'text-blue-600 dark:text-blue-300 font-bold' : 'text-slate-500 dark:text-slate-400'" x-text="item.subtext"></span>
+
+                                        <!-- Prominent Bold Number of Leaves Text -->
+                                        <div class="pl-3.5 mt-0.5">
+                                            <span class="text-xs sm:text-[13px] font-black tracking-tight leading-tight block truncate" 
+                                                  :class="selectedLeaveTypeCode === item.code ? 'text-blue-600 dark:text-blue-400 font-black' : 'text-slate-800 dark:text-slate-200 font-black'" 
+                                                  x-text="item.subtext"></span>
+                                        </div>
                                     </div>
                                 </template>
                             </div>
@@ -1720,7 +1719,7 @@
                             <div>
                                 <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
                                     <i data-lucide="calendar" class="w-3 h-3 text-slate-400"></i>
-                                    <span>First day</span>
+                                    <span>First day <span class="text-rose-500 font-black">*</span></span>
                                 </label>
                                 <input type="date" name="start_date" x-model="targetStartDate" 
                                        @change="
@@ -1734,7 +1733,7 @@
                             <div>
                                 <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
                                     <i data-lucide="calendar" class="w-3 h-3 text-slate-400"></i>
-                                    <span>Last day</span>
+                                    <span>Last day <span class="text-rose-500 font-black">*</span></span>
                                 </label>
                                 <input type="date" name="end_date" x-model="targetEndDate" 
                                        :disabled="selectedLeaveTypeCode === 'SHORT' || selectedLeaveTypeCode === 'NIGHT_SHIFT_RECOVERY' || isHalfDay"
@@ -1880,12 +1879,12 @@
 
                         <!-- Covering Colleague -->
                         <div class="space-y-1">
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Covering for you</label>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Covering for you <span class="text-rose-500 font-black">*</span></label>
                             <div class="relative">
-                                <select name="covering_employee_id" x-model="coveringEmployeeId"
+                                <select name="covering_employee_id" x-model="coveringEmployeeId" required
                                         @change="coveringEmployeeName = employeesMap[coveringEmployeeId] || ''"
                                         class="w-full appearance-none bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer">
-                                    <option value="" class="bg-white dark:bg-[#141b29] text-slate-400">Choose...</option>
+                                    <option value="" class="bg-white dark:bg-[#141b29] text-slate-400">Choose colleague...</option>
                                     @foreach($allEmployees ?? [] as $empOpt)
                                         <option value="{{ $empOpt->id }}" class="bg-white dark:bg-[#141b29] text-slate-800 dark:text-white">
                                             {{ $empOpt->user->name ?? 'Employee' }} ({{ $empOpt->employee_id_number }})
@@ -1896,14 +1895,13 @@
                             </div>
                         </div>
 
-                        <!-- Single Reason / Handover Notes Field (Optional) -->
+                        <!-- Single Reason / Handover Notes Field (Mandatory) -->
                         <div class="space-y-1">
                             <div class="flex items-center justify-between">
-                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Reason / Handover Notes</label>
-                                <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium lowercase">(optional)</span>
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Reason / Handover Notes <span class="text-rose-500 font-black">*</span></label>
                             </div>
-                            <textarea name="handover_notes" x-model="handoverNotes" rows="2" 
-                                      placeholder="Reason for leave, brief details, live jobs, deadlines, file locations or context for your manager (optional)..."
+                            <textarea name="handover_notes" x-model="handoverNotes" rows="2" required
+                                      placeholder="Reason for leave, brief details, live jobs, deadlines, file locations or context for your manager..."
                                       class="w-full bg-slate-50 dark:bg-[#182030] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-amber-500 dark:focus:border-amber-400 rounded-lg p-2 text-xs font-medium text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-400 resize-none transition-all"></textarea>
                         </div>
 
@@ -1916,12 +1914,6 @@
                             <!-- Policy Check Header -->
                             <div>
                                 <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Policy check</h3>
-                            </div>
-
-                            <!-- Live Summary Card -->
-                            <div class="p-2.5 bg-slate-50 dark:bg-[#182030] border border-slate-200/90 dark:border-slate-800 rounded-xl flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400 animate-pulse"></span>
-                                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 truncate" x-text="formatDateRangeSummary()"></span>
                             </div>
 
                             <!-- Policy Checklist Items (Dynamic Checkmarks & Crosses) -->
@@ -1977,17 +1969,17 @@
                                           x-text="checkCovering().message"></span>
                                 </div>
 
-                                <!-- 6. Reason / Handover Notes (Optional) -->
+                                <!-- 6. Reason / Handover Notes (Mandatory) -->
                                 <div class="flex items-start gap-2">
                                     <span class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 mt-0.5 border"
-                                          :class="checkHandoverNotes().hasNotes 
+                                          :class="checkHandoverNotes().pass 
                                               ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 dark:border-emerald-500/40' 
-                                              : 'bg-slate-500/10 dark:bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30 dark:border-slate-500/40'"
-                                          x-text="checkHandoverNotes().hasNotes ? '✓' : '•'"></span>
+                                              : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30 dark:border-rose-500/40'"
+                                          x-text="checkHandoverNotes().pass ? '✓' : '✕'"></span>
                                     <span class="font-medium leading-snug" 
-                                          :class="checkHandoverNotes().hasNotes 
+                                          :class="checkHandoverNotes().pass 
                                               ? 'text-slate-700 dark:text-slate-300' 
-                                              : 'text-slate-500 dark:text-slate-400'" 
+                                              : 'text-rose-600 dark:text-rose-300 font-semibold'" 
                                           x-text="checkHandoverNotes().message"></span>
                                 </div>
 

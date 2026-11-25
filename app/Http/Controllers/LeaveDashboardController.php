@@ -516,12 +516,15 @@ class LeaveDashboardController extends Controller
             'leave_type_id' => 'required|exists:leave_types,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
+            'handover_notes' => 'required|string',
             'reason' => 'nullable|string',
-            'handover_notes' => 'nullable|string',
             'anything_else' => 'nullable|string',
             'medical_certificate_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5012',
             'project_client_name' => 'nullable|string|max:255',
-            'covering_employee_id' => 'nullable|exists:employees,id',
+            'covering_employee_id' => 'required|exists:employees,id',
+        ], [
+            'covering_employee_id.required' => 'Please select a covering colleague for your leave.',
+            'handover_notes.required' => 'Reason / Handover notes are required.',
         ]);
 
         $employee = $this->getActiveEmployee();
