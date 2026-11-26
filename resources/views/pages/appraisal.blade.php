@@ -23,6 +23,24 @@
         ? $myAppraisals
         : $appraisals->where('employee_id', $employee?->id);
 
+    // Sort chronologically by urgency/active status:
+    // 1. Active review cycles first (e.g. FY 2026/2027 Mid-Year Performance Review)
+    // 2. Earliest deadline / due date first
+    $selfList = $selfList->sort(function($a, $b) {
+        $aActive = $a->cycle?->status === 'Active' ? 0 : 1;
+        $bActive = $b->cycle?->status === 'Active' ? 0 : 1;
+        if ($aActive !== $bActive) return $aActive <=> $bActive;
+
+        $aDue = $a->self_eval_deadline 
+            ? \Carbon\Carbon::parse($a->self_eval_deadline)->timestamp 
+            : ($a->cycle?->end_date ? \Carbon\Carbon::parse($a->cycle->end_date)->timestamp : PHP_INT_MAX);
+        $bDue = $b->self_eval_deadline 
+            ? \Carbon\Carbon::parse($b->self_eval_deadline)->timestamp 
+            : ($b->cycle?->end_date ? \Carbon\Carbon::parse($b->cycle->end_date)->timestamp : PHP_INT_MAX);
+
+        return $aDue <=> $bDue;
+    })->values();
+
     $quarterlySelf = $selfList->filter(fn($app) => $app->cycle?->isMidYear());
     $biAnnualSelf = $selfList->filter(fn($app) => !$app->cycle?->isMidYear());
 
@@ -236,40 +254,26 @@
     <!-- VIEW 2: DEDICATED CATEGORY PAGE (Shown when selectedCategory is set)      -->
     <!-- ========================================================================= -->
     <div x-show="selectedCategory" x-cloak class="space-y-6">
-        <!-- Top Navigation Bar: Back to Categories, Title, Category Switcher -->
+        <!-- Top Navigation Bar: Back to Categories, Title, Clean Cycle Indicator -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-3 flex-wrap">
-                <button type="button" @click="closeCategory()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+                <button type="button" @click="closeCategory()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/60 transition-colors cursor-pointer">
                     <i class="ph ph-arrow-left font-bold"></i>
                     <span>All Categories</span>
                 </button>
                 <span class="text-slate-300 dark:text-slate-700">/</span>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-xl font-black text-slate-900 dark:text-white" x-text="selectedCategory === 'quarterly' ? 'Quarterly Reviews' : 'Bi-Annual Reviews'"></h1>
-                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
-                          x-text="selectedCategory === 'quarterly' ? 'Quarter 1 • Mid-Year' : 'Quarter 2 • Year-End'"></span>
-                </div>
+                <h1 class="text-xl font-black text-slate-900 dark:text-white" x-text="selectedCategory === 'quarterly' ? 'Quarterly Reviews' : 'Bi-Annual Reviews'"></h1>
             </div>
 
-            <div class="flex flex-wrap items-center gap-3">
-                <!-- Direct Switcher Pill (Quarterly <-> Bi-Annual) -->
-                <div class="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
-                    <button type="button" @click="openCategory('quarterly')"
-                            :class="selectedCategory === 'quarterly' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium'"
-                            class="px-3 py-1 rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer">
-                        <i class="ph ph-calendar-check"></i>
-                        <span>Quarterly ({{ $quarterlyTileCount }})</span>
-                    </button>
-                    <button type="button" @click="openCategory('biannual')"
-                            :class="selectedCategory === 'biannual' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium'"
-                            class="px-3 py-1 rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer">
-                        <i class="ph ph-chart-line-up"></i>
-                        <span>Bi-Annual ({{ $biAnnualTileCount }})</span>
-                    </button>
+            <div class="flex flex-wrap items-center gap-2.5">
+                <!-- Clean, Neutral Cycle Indicator -->
+                <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/60">
+                    <i class="ph ph-calendar text-slate-400 text-sm"></i>
+                    <span>{{ $quarterlyCycle?->financial_year ?? $biAnnualCycle?->financial_year ?? 'FY 2026/2027' }}</span>
                 </div>
 
                 @if(in_array($role, ['Super Admin', 'HR Lead']))
-                <button @click="showCycleModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all shrink-0 cursor-pointer">
+                <button @click="showCycleModal = true" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all shrink-0 cursor-pointer">
                     <i class="ph ph-plus-circle text-base"></i>
                     <span>New Cycle</span>
                 </button>
@@ -334,7 +338,7 @@
 
         <!-- Category Navigation Tabs -->
         <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-6 -mb-px">
                 @if($role === 'Employee')
                     <button @click="activeTab = 'my_appraisal'" :class="activeTab === 'my_appraisal' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                         <i class="ph ph-clipboard-text text-sm"></i>
@@ -400,32 +404,42 @@
                     <p class="text-xs text-slate-400 max-w-sm mx-auto">You do not currently have any performance evaluations assigned to you across active review tracks.</p>
                 </div>
             @else
-                <!-- Filter Bar: Year & Month Range + Track & Status -->
-                <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <!-- Filter Bar: Compact Single-Row Layout -->
+                <div class="bg-white dark:bg-[#0f1623] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xs">
+                    <!-- Top Bar: Title, Count, Subtle Reset -->
+                    <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-100 dark:border-slate-800/60">
                         <div class="flex items-center gap-2">
-                            <div class="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-sm font-bold">
-                                <i class="ph ph-funnel"></i>
-                            </div>
-                            <span class="text-xs font-bold text-slate-900 dark:text-white">Filter My Appraisals</span>
-                            <span class="text-[11px] font-semibold text-slate-400" x-text="'(Showing ' + filteredSelfCount + ' of ' + selfApps.length + ')'"></span>
+                            <i class="ph ph-funnel text-slate-400 text-xs"></i>
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Filter My Appraisals</span>
+                            <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500" x-text="'(Showing ' + filteredSelfCount + ' of ' + selfApps.length + ')'"></span>
                         </div>
 
-                        <!-- Reset Filters Action -->
+                        <!-- Subtle Reset Button -->
                         <button type="button"
                                 x-show="hasActiveSelfFilters"
+                                x-cloak
                                 @click="resetSelfFilters()"
-                                class="text-xs font-bold text-rose-500 hover:text-rose-600 dark:text-rose-400 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/40 transition-colors cursor-pointer self-start sm:self-auto">
-                            <i class="ph ph-arrow-counter-clockwise text-sm"></i>
-                            <span>Clear Filters</span>
+                                class="text-[11px] font-semibold text-slate-400 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer">
+                            <i class="ph ph-arrow-counter-clockwise text-xs"></i>
+                            <span>Reset</span>
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 pt-1">
-                        <!-- 1. Year Filter -->
-                        <div>
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Year</label>
-                            <select x-model="selfYearFilter" class="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 text-slate-800 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-blue-500/20">
+                    <!-- 6 Filter Inputs in Tight Balanced Row (Search first on the left) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
+                        <!-- 1. Search Bar (Left, wider) -->
+                        <div class="sm:col-span-2 lg:col-span-3">
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Search</label>
+                            <div class="relative">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                                <input type="text" x-model="selfSearch" placeholder="Cycle name, manager..." class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl pl-8 pr-2.5 py-1.5 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                            </div>
+                        </div>
+
+                        <!-- 2. Year Filter -->
+                        <div class="lg:col-span-1">
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Year</label>
+                            <select x-model="selfYearFilter" class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                 <option value="">All Years</option>
                                 @foreach($distinctYears as $yr)
                                     <option value="{{ $yr }}">{{ $yr }}</option>
@@ -433,10 +447,10 @@
                             </select>
                         </div>
 
-                        <!-- 2. Month Range: From -->
-                        <div>
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">From Month</label>
-                            <select x-model="selfMonthFrom" class="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 text-slate-800 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-blue-500/20">
+                        <!-- 3. From Month -->
+                        <div class="lg:col-span-2">
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">From Month</label>
+                            <select x-model="selfMonthFrom" class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                 <option value="">All (Start)</option>
                                 <option value="1">Jan (01)</option>
                                 <option value="2">Feb (02)</option>
@@ -453,10 +467,10 @@
                             </select>
                         </div>
 
-                        <!-- 3. Month Range: To -->
-                        <div>
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">To Month</label>
-                            <select x-model="selfMonthTo" class="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 text-slate-800 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-blue-500/20">
+                        <!-- 4. To Month -->
+                        <div class="lg:col-span-2">
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">To Month</label>
+                            <select x-model="selfMonthTo" class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                 <option value="">All (End)</option>
                                 <option value="1">Jan (01)</option>
                                 <option value="2">Feb (02)</option>
@@ -473,10 +487,10 @@
                             </select>
                         </div>
 
-                        <!-- 4. Review Track -->
-                        <div>
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Review Track</label>
-                            <select x-model="selfTrackFilter" class="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 text-slate-800 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-blue-500/20">
+                        <!-- 5. Review Track -->
+                        <div class="lg:col-span-2">
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Review Track</label>
+                            <select x-model="selfTrackFilter" class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                 <option value="">All Tracks</option>
                                 <option value="mid_year">Quarter 1 &bull; Mid-Year</option>
                                 <option value="year_end">Quarter 2 &bull; Year-End</option>
@@ -484,41 +498,32 @@
                             </select>
                         </div>
 
-                        <!-- 5. Evaluation Status -->
-                        <div>
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Status</label>
-                            <select x-model="selfStatusFilter" class="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-2 text-slate-800 dark:text-slate-200 font-semibold focus:ring-2 focus:ring-blue-500/20">
+                        <!-- 6. Evaluation Status -->
+                        <div class="lg:col-span-2">
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Status</label>
+                            <select x-model="selfStatusFilter" class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                 <option value="">All Statuses</option>
                                 <option value="pending_self_eval">Pending Self-Eval</option>
                                 <option value="in_review">In Review (Manager/HOD)</option>
                                 <option value="completed">Finalized</option>
                             </select>
                         </div>
-
-                        <!-- 6. Search Bar -->
-                        <div>
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Search</label>
-                            <div class="relative">
-                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                                <input type="text" x-model="selfSearch" placeholder="Cycle name, manager..." class="w-full text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-2.5 py-2 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-blue-500/20">
-                            </div>
-                        </div>
                     </div>
                 </div>
 
                 <!-- Unified Appraisals Table for Individual -->
-                <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                <div class="bg-white dark:bg-[#0f1623] border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-xs">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
-                            <thead class="bg-slate-50 dark:bg-slate-800/50 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
+                            <thead class="bg-slate-50/80 dark:bg-[#0b1019] text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80">
                                 <tr>
-                                    <th class="p-3.5 pl-5">Review Cycle &amp; Track</th>
-                                    <th class="p-3.5">Review Window &amp; Period</th>
-                                    <th class="p-3.5">Workflow Evaluators</th>
-                                    <th class="p-3.5">Evaluation Status</th>
-                                    <th class="p-3.5">Score &amp; Band</th>
-                                    <th class="p-3.5">Due Date</th>
-                                    <th class="p-3.5 pr-5 text-right">Actions</th>
+                                    <th class="py-3 px-4 pl-5">Review Cycle &amp; Track</th>
+                                    <th class="py-3 px-3">Review Window &amp; Period</th>
+                                    <th class="py-3 px-3">Workflow Evaluators</th>
+                                    <th class="py-3 px-3">Evaluation Status</th>
+                                    <th class="py-3 px-3">Score &amp; Band</th>
+                                    <th class="py-3 px-3">Due Date</th>
+                                    <th class="py-3 px-4 pr-5 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80">
@@ -530,44 +535,78 @@
                                         $trackType = $meta['track'] ?? 'annual';
                                         $searchString = $meta['search'] ?? '';
 
-                                        $cStart = $app->cycle?->start_date ? \Carbon\Carbon::parse($app->cycle->start_date) : null;
-                                        $cEnd = $app->cycle?->end_date ? \Carbon\Carbon::parse($app->cycle->end_date) : null;
+                                        $cStart = $app->cycle?->start_date ? \Carbon\Carbon::parse($app->cycle->start_date)->startOfDay() : null;
+                                        $cEnd = $app->cycle?->end_date ? \Carbon\Carbon::parse($app->cycle->end_date)->startOfDay() : null;
                                         $pStart = $app->cycle?->performance_period_start ? \Carbon\Carbon::parse($app->cycle->performance_period_start) : null;
                                         $pEnd = $app->cycle?->performance_period_end ? \Carbon\Carbon::parse($app->cycle->performance_period_end) : null;
+
+                                        $dueDate = $app->self_eval_deadline ? \Carbon\Carbon::parse($app->self_eval_deadline)->startOfDay() : ($cEnd ?: null);
+                                        $today = \Carbon\Carbon::now()->startOfDay();
+
+                                        $dueRelativeText = '';
+                                        $dueRelativeClass = 'text-slate-400 dark:text-slate-500';
+
+                                        if ($app->status === 'completed') {
+                                            $dueRelativeText = 'Finalized';
+                                        } elseif ($cStart && $cStart->isFuture()) {
+                                            $dueRelativeText = 'Opens ' . $cStart->format('d M Y');
+                                            $dueRelativeClass = 'text-slate-400 dark:text-slate-400 font-medium';
+                                        } elseif ($dueDate) {
+                                            if ($dueDate->isPast()) {
+                                                $days = (int) $dueDate->diffInDays($today);
+                                                $dueRelativeText = $days === 0 ? 'Overdue today' : ($days === 1 ? 'Overdue by 1 day' : "Overdue by {$days} days");
+                                                $dueRelativeClass = 'text-rose-500/90 dark:text-rose-400/90 font-medium';
+                                            } elseif ($dueDate->isToday()) {
+                                                $dueRelativeText = 'Due today';
+                                                $dueRelativeClass = 'text-amber-500 dark:text-amber-400 font-medium';
+                                            } else {
+                                                $days = (int) $today->diffInDays($dueDate);
+                                                $dueRelativeText = $days === 1 ? 'Due tomorrow' : "Due in {$days} days";
+                                                $dueRelativeClass = 'text-amber-500/90 dark:text-amber-400/90 font-medium';
+                                            }
+                                        } else {
+                                            $dueRelativeText = 'No deadline';
+                                        }
+
+                                        $isPrimaryAction = ($app->cycle?->status === 'Active' || ($dueDate && $dueDate->isPast())) && $app->status === 'pending_self_eval';
                                     @endphp
-                                    <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
+                                    <tr class="hover:bg-slate-50/70 dark:hover:bg-[#161f30] transition-colors"
                                         x-show="matchesSelfAppraisal({{ json_encode($appYears) }}, {{ json_encode($appMonths) }}, '{{ $trackType }}', '{{ $app->status }}', '{{ addslashes($searchString) }}')">
                                         
                                         <!-- 1. Review Cycle & Track -->
-                                        <td class="p-3.5 pl-5">
+                                        <td class="py-3.5 px-4 pl-5">
                                             <div class="space-y-1">
                                                 <div class="flex items-center gap-2 flex-wrap">
-                                                    <a href="{{ route('appraisal.show', $app->id) }}" class="font-extrabold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 text-xs sm:text-sm block transition-colors">
+                                                    <a href="{{ route('appraisal.show', $app->id) }}" class="font-bold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 text-xs sm:text-sm block transition-colors">
                                                         {{ $app->cycle?->name ?? 'Performance Review' }}
                                                     </a>
                                                     @if($app->cycle?->status === 'Active')
-                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
-                                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-[#10b981] shrink-0"></span>
+                                                            <span>Active</span>
                                                         </span>
                                                     @endif
                                                 </div>
-                                                <div class="flex items-center gap-1.5 flex-wrap text-[11px]">
+                                                <div class="flex items-center gap-1.5 flex-wrap text-[11px] pt-0.5">
                                                     @if($app->cycle?->isMidYear())
-                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/50">
-                                                            <i class="ph ph-calendar-check"></i> Quarter 1 &bull; Mid-Year
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                                            <i class="ph ph-calendar-check text-slate-400"></i>
+                                                            <span>Quarter 1 &bull; Mid-Year</span>
                                                         </span>
                                                     @elseif($app->cycle?->cycle_type === 'year_end')
-                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-200/50 dark:border-purple-800/50">
-                                                            <i class="ph ph-chart-line-up"></i> Quarter 2 &bull; Year-End
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                                            <i class="ph ph-chart-line-up text-slate-400"></i>
+                                                            <span>Quarter 2 &bull; Year-End</span>
                                                         </span>
                                                     @else
-                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                                                            <i class="ph ph-calendar"></i> Annual Review
+                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                                            <i class="ph ph-calendar text-slate-400"></i>
+                                                            <span>Annual Review</span>
                                                         </span>
                                                     @endif
 
                                                     @if($app->cycle?->financial_year)
-                                                        <span class="px-2 py-0.5 rounded-md font-semibold bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                                                        <span class="px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.03] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80">
                                                             {{ $app->cycle->financial_year }}
                                                         </span>
                                                     @endif
@@ -576,13 +615,13 @@
                                         </td>
 
                                         <!-- 2. Performance Period & Dates -->
-                                        <td class="p-3.5">
+                                        <td class="py-3.5 px-3">
                                             <div class="space-y-0.5">
-                                                <div class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1 text-[11px]">
+                                                <div class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1 text-[11px]">
                                                     <i class="ph ph-clock text-slate-400 text-xs"></i>
                                                     <span>{{ $app->cycle?->performance_period ?: ($app->cycle?->isMidYear() ? 'April to September' : ($pStart && $pEnd ? $pStart->format('M Y') . ' – ' . $pEnd->format('M Y') : 'Full Period')) }}</span>
                                                 </div>
-                                                <div class="text-[10px] text-slate-400 font-medium">
+                                                <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                                                     @if($cStart && $cEnd)
                                                         <span>Window: {{ $cStart->format('d M') }} – {{ $cEnd->format('d M Y') }}</span>
                                                     @else
@@ -593,88 +632,102 @@
                                         </td>
 
                                         <!-- 3. Workflow Evaluators -->
-                                        <td class="p-3.5">
-                                            <div class="space-y-0.5 text-[11px]">
+                                        <td class="py-3.5 px-3">
+                                            <div class="space-y-1 text-[11px]">
                                                 @if($app->reportingManager)
-                                                    <div class="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-300">
-                                                        <span class="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-[9px] font-black">MGR</span>
+                                                    <div class="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                                                        <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 text-[9px] font-bold border border-slate-200 dark:border-slate-700/60">MGR</span>
                                                         <span>{{ $app->reportingManager->user->name ?? 'Manager' }}</span>
                                                     </div>
                                                 @endif
                                                 @if($app->hod)
-                                                    <div class="flex items-center gap-1.5 font-bold text-indigo-600 dark:text-indigo-400">
-                                                        <span class="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 text-[9px] font-black border border-indigo-200/50 dark:border-indigo-800/50">HOD</span>
+                                                    <div class="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                                                        <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 text-[9px] font-bold border border-slate-200 dark:border-slate-700/60">HOD</span>
                                                         <span>{{ $app->hod->user->name ?? 'HOD' }}</span>
                                                     </div>
                                                 @endif
                                                 @if(!$app->reportingManager && !$app->hod)
-                                                    <span class="text-slate-400 italic text-[11px]">Self Direct</span>
+                                                    <span class="text-slate-400 dark:text-slate-500 italic text-[11px]">Self Direct</span>
                                                 @endif
                                             </div>
                                         </td>
 
                                         <!-- 4. Evaluation Status -->
-                                        <td class="p-3.5">
+                                        <td class="py-3.5 px-3">
                                             @if($app->status === 'completed')
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Finalized
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-[#10b981] shrink-0"></span>
+                                                    <span>Finalized</span>
                                                 </span>
                                             @elseif($app->status === 'pending_self_eval')
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 shadow-xs">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Pending Self-Eval
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-[#d97706] shrink-0"></span>
+                                                    <span>Pending Self-Eval</span>
                                                 </span>
                                             @elseif($app->status === 'pending_manager_eval' || $app->status === 'submitted_self_eval')
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-700/60 shadow-xs">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Manager Review
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400 shrink-0"></span>
+                                                    <span>Manager Review</span>
                                                 </span>
                                             @elseif($app->status === 'pending_hod_eval' || $app->status === 'submitted_manager_eval')
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700/60 shadow-xs">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> HOD Review
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 shrink-0"></span>
+                                                    <span>HOD Review</span>
                                                 </span>
                                             @else
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                                                    In Review
+                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>
+                                                    <span>In Review</span>
                                                 </span>
                                             @endif
                                         </td>
 
                                         <!-- 5. Score & Band -->
-                                        <td class="p-3.5">
+                                        <td class="py-3.5 px-3">
                                             @if($app->total_weighted_score > 0)
-                                                <div class="space-y-1">
-                                                    <div class="font-black text-slate-900 dark:text-white flex items-center gap-1 text-xs">
+                                                <div class="space-y-0.5">
+                                                    <div class="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1 text-xs">
                                                         <span>{{ number_format($app->total_weighted_score, 2) }}</span>
-                                                        <span class="text-[10px] text-slate-400 font-normal">/ 5.00</span>
+                                                        <span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">/ 5.00</span>
                                                     </div>
                                                     @if($app->performance_band)
-                                                        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                                        <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
                                                             {{ $app->performance_band }}
                                                         </span>
                                                     @endif
                                                 </div>
                                             @else
-                                                <span class="text-slate-400 text-xs font-semibold">—</span>
+                                                <span class="text-slate-400 dark:text-slate-500 text-xs font-normal">—</span>
                                             @endif
                                         </td>
 
                                         <!-- 6. Due Date -->
-                                        <td class="p-3.5">
+                                        <td class="py-3.5 px-3">
                                             <div class="space-y-0.5">
                                                 <span class="font-bold text-slate-800 dark:text-slate-200 block text-xs">
-                                                    {{ $app->self_eval_deadline ? \Carbon\Carbon::parse($app->self_eval_deadline)->format('d M Y') : ($app->cycle?->end_date ? \Carbon\Carbon::parse($app->cycle->end_date)->format('d M Y') : '—') }}
+                                                    {{ $dueDate ? $dueDate->format('d M Y') : '—' }}
                                                 </span>
-                                                <span class="text-[10px] text-slate-400 block font-medium">
-                                                    {{ $app->status === 'pending_self_eval' ? 'Self-Eval Deadline' : ($app->status === 'completed' ? 'Finalized' : 'Review Deadline') }}
+                                                <span class="text-[10px] block {{ $dueRelativeClass }}">
+                                                    {{ $dueRelativeText }}
                                                 </span>
                                             </div>
                                         </td>
 
                                         <!-- 7. Actions -->
-                                        <td class="p-3.5 pr-5 text-right">
-                                            <a href="{{ route('appraisal.show', $app->id) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded-xl font-bold transition-all text-xs inline-flex items-center gap-1.5 shadow-sm shadow-blue-500/20 cursor-pointer">
-                                                <span>{{ $app->status === 'pending_self_eval' ? 'Complete Form' : 'Open Sheet' }}</span>
-                                                <i class="ph ph-arrow-square-out text-xs"></i>
-                                            </a>
+                                        <td class="py-3.5 px-4 pr-5 text-right">
+                                            <div class="flex items-center justify-end">
+                                                @if($isPrimaryAction)
+                                                    <a href="{{ route('appraisal.show', $app->id) }}" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+                                                        <span>Complete Form</span>
+                                                        <i class="ph ph-arrow-square-out text-xs"></i>
+                                                    </a>
+                                                @else
+                                                    <a href="{{ route('appraisal.show', $app->id) }}" class="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-300 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-600 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+                                                        <span>{{ $app->cycle?->status === 'Upcoming' ? 'View Form' : ($app->status === 'pending_self_eval' ? 'Complete Form' : 'View Form') }}</span>
+                                                        <i class="ph ph-arrow-square-out text-xs"></i>
+                                                    </a>
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach
