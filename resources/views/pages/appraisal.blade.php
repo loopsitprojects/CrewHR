@@ -114,12 +114,15 @@
     $distinctYears = $selfYearsList->unique()->values();
 @endphp
 
+<script id="self-apps-meta-data" type="application/json">
+    {!! json_encode($selfAppsMeta ?? []) !!}
+</script>
+
 <div class="space-y-6" x-data="appraisalPageData({
     activeTab: '{{ request('tab', ($role !== 'Employee' && $employee) ? 'my_appraisal' : 'roster') }}',
     selectedCategory: '{{ request('category', '') }}' || null,
     statusFilter: '{{ request('status', '') }}',
-    deptFilter: '{{ request('department_id', '') }}',
-    selfApps: @json($selfAppsMeta)
+    deptFilter: '{{ request('department_id', '') }}'
 })">
 
     <!-- ========================================================================= -->
@@ -1361,6 +1364,21 @@ function cyclePresetForm() {
 }
 
 function appraisalPageData(config) {
+    let selfAppsData = config.selfApps;
+    if (!selfAppsData || !Array.isArray(selfAppsData)) {
+        const el = document.getElementById('self-apps-meta-data');
+        if (el && el.textContent) {
+            try {
+                selfAppsData = JSON.parse(el.textContent);
+            } catch (e) {
+                console.error("Failed to parse self-apps-meta-data", e);
+                selfAppsData = [];
+            }
+        } else {
+            selfAppsData = [];
+        }
+    }
+
     return {
         activeTab: config.activeTab || 'my_appraisal',
         selectedCategory: config.selectedCategory || null,
@@ -1371,7 +1389,7 @@ function appraisalPageData(config) {
         searchFilter: '',
 
         // Individual Self-Evaluation Dynamic Filters
-        selfApps: config.selfApps || [],
+        selfApps: selfAppsData,
         selfYearFilter: '',
         selfMonthFrom: '',
         selfMonthTo: '',
