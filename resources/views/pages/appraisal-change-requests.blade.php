@@ -30,7 +30,7 @@
     <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
         @if($requests->isEmpty())
             <div class="p-12 text-center space-y-3">
-                <div class="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 mx-auto flex items-center justify-center text-2xl">
+                <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center text-2xl">
                     <i class="ph ph-shield-check"></i>
                 </div>
                 <h3 class="text-sm font-bold text-slate-900 dark:text-white">No Pending Change Requests</h3>
@@ -101,7 +101,7 @@
                                                 <span>Approve & Unlock</span>
                                             </button>
 
-                                            <button @click="selectedRequest = {{ $req->id }}; actionType = 'reject'; activeModal = true;" class="bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 border border-rose-200 dark:border-rose-900 px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer">
+                                            <button @click="selectedRequest = {{ $req->id }}; actionType = 'reject'; activeModal = true;" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer">
                                                 <i class="ph ph-x"></i>
                                                 <span>Decline</span>
                                             </button>
