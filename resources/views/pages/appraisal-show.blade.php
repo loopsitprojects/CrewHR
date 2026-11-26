@@ -1,6 +1,9 @@
 @extends('layouts.app', ['title' => 'Loops HR - Performance Appraisal Evaluation', 'breadcrumb' => 'Appraisal Evaluation'])
 
 @section('content')
+@php
+    $appStatus = $appraisal->status;
+@endphp
 <div class="space-y-6" x-data="{
     activeTab: 'evaluation',
     showChangeRequestModal: false,
@@ -44,21 +47,14 @@
     }
 }">
 
-    <!-- Status & Policy Banners -->
+    <!-- Status & Policy Indicators -->
     @if($isAdminOrHr)
-        <div class="p-4 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/90 dark:border-indigo-800/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 text-base shadow-sm">
-                    <i class="ph ph-shield-check"></i>
-                </div>
-                <div>
-                    <span class="font-black text-indigo-950 dark:text-indigo-200 block">Administrator Unrestricted Access</span>
-                    <span class="text-indigo-700/80 dark:text-indigo-300/80 font-medium">You have full override authority. You can edit criteria scores, ratings, comments, and adjust deadlines across all stages regardless of lock state.</span>
-                </div>
+        <div class="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium text-[11px]">
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400"></span>
+                <span>Admin override active</span>
             </div>
-            <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-200/60 dark:bg-indigo-900/60 text-indigo-900 dark:text-indigo-200 self-start sm:self-auto shrink-0">
-                Full Access
-            </span>
+            <span class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Super Admin</span>
         </div>
     @endif
 
@@ -122,39 +118,41 @@
     @endif
 
     <!-- Employee & Appraisal Header Banner -->
-    <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-            <div class="flex items-center gap-4">
-                <div class="w-13 h-13 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-lg flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+    <div class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-base flex items-center justify-center shadow-xs shrink-0">
                     {{ strtoupper(substr($appraisal->employee?->user?->name ?? 'E', 0, 2)) }}
                 </div>
                 <div>
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <h1 class="text-xl font-black text-slate-900 dark:text-white">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-lg font-black text-slate-900 dark:text-white">
                             {{ $appraisal->employee?->user?->name ?? 'Staff Employee' }}
                         </h1>
-                        <span class="text-xs font-bold text-slate-400">
-                            ({{ $appraisal->employee?->employee_id_number ?? 'EMP-00' }})
+                        <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                            {{ $appraisal->employee?->employee_id_number ?? 'EMP-00' }}
                         </span>
-                        <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full 
-                            {{ $appraisal->status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300' }}">
-                            {{ ucwords(str_replace('_', ' ', $appraisal->status)) }}
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                            <span class="w-1.5 h-1.5 rounded-full {{ $appraisal->status === 'completed' ? 'bg-emerald-500 dark:bg-[#10b981]' : ($appStatus === 'pending_self_eval' ? 'bg-amber-500 dark:bg-[#d97706]' : 'bg-blue-500 dark:bg-blue-400') }} shrink-0"></span>
+                            <span>{{ ucwords(str_replace('_', ' ', $appraisal->status)) }}</span>
                         </span>
                         @if($appraisal->status !== 'completed')
                             @if($appraisal->is_override_unlocked && $appraisal->unlocked_until && now()->lte($appraisal->unlocked_until))
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-300 flex items-center gap-1">
-                                    <i class="ph ph-lock-key-open text-xs"></i> Extension Active
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                    <i class="ph ph-lock-key-open text-xs text-emerald-400"></i>
+                                    <span>Extension Active</span>
                                 </span>
                             @elseif($isEmployeeOverdue || $isManagerOverdue || $appraisal->is_locked)
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 flex items-center gap-1 border border-rose-200 dark:border-rose-800">
-                                    <i class="ph ph-lock text-xs"></i> Locked
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
+                                    <i class="ph ph-lock text-xs text-rose-400"></i>
+                                    <span>Locked</span>
                                 </span>
                             @endif
                         @endif
                     </div>
                     
                     <!-- Clean Subtitle Metadata -->
-                    <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
+                    <div class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-2">
                         <span>{{ $appraisal->employee?->designation?->name ?? 'Staff' }}</span>
                         <span>&bull;</span>
                         <span>{{ $appraisal->employee?->department?->name ?? 'General' }}</span>
@@ -172,37 +170,39 @@
                 </div>
             </div>
 
-            <!-- Score Summary & Actions -->
-            <div class="flex flex-wrap items-center gap-3 shrink-0">
-                <!-- Score Pill -->
-                <div class="px-3.5 py-2 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 text-right">
-                    <div class="text-sm sm:text-base font-black text-slate-900 dark:text-white flex items-baseline justify-end gap-1">
+            <!-- Score Summary & Actions (Cleanly Aligned on Horizontal Plane) -->
+            <div class="flex flex-wrap items-center gap-2.5 shrink-0 justify-end">
+                <!-- Score Pill (Without Duplicate 'Pending Evaluation' badge) -->
+                <div class="px-3 py-1.5 bg-slate-50 dark:bg-slate-800/70 rounded-xl border border-slate-200/80 dark:border-slate-700/60 text-right flex items-center gap-2">
+                    <div class="text-sm font-black text-slate-900 dark:text-white flex items-baseline justify-end gap-1 leading-none">
                         <span x-text="calculatedScore.toFixed(2)">{{ number_format($appraisal->total_weighted_score, 2) }}</span>
                         <span class="text-[11px] text-slate-400">/ 5.00</span>
                     </div>
-                    <span :class="calculatedBand.color" class="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-black border" x-text="calculatedBand.badge">
-                        {{ $appraisal->performance_band ?: 'Pending Evaluation' }}
-                    </span>
+                    <template x-if="calculatedScore > 0">
+                        <span :class="calculatedBand.color" class="px-1.5 py-0.5 rounded text-[9px] font-bold border" x-text="calculatedBand.badge">
+                            {{ $appraisal->performance_band }}
+                        </span>
+                    </template>
                 </div>
 
-                <!-- Action buttons -->
+                <!-- Action buttons: Muted Outlined/Ghost Buttons -->
                 @if($canRequestChange)
-                    <button @click="showChangeRequestModal = true" class="bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-3 py-2 rounded-xl font-bold transition-all text-xs flex items-center gap-1.5 cursor-pointer">
-                        <i class="ph ph-arrow-counter-clockwise"></i>
+                    <button type="button" @click="showChangeRequestModal = true" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-600 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
+                        <i class="ph ph-arrow-counter-clockwise text-xs text-slate-400"></i>
                         <span>Request Change</span>
                     </button>
                 @endif
 
                 @if($canUnlock)
-                    <button @click="showUnlockModal = true" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-xl font-bold transition-all text-xs flex items-center gap-1.5 shadow-sm cursor-pointer">
-                        <i class="ph ph-lock-key-open"></i>
+                    <button type="button" @click="showUnlockModal = true" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-600 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
+                        <i class="ph ph-lock-key-open text-xs text-slate-400"></i>
                         <span>Unlock</span>
                     </button>
                 @endif
 
-                <!-- Back button -->
-                <a href="{{ route('appraisal.index') }}" onclick="handleModuleBack(event, '{{ route('appraisal.index') }}')" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold flex items-center gap-1 cursor-pointer">
-                    <i class="ph ph-arrow-left"></i>
+                <!-- Back to Roster button -->
+                <a href="{{ route('appraisal.index') }}" onclick="handleModuleBack(event, '{{ route('appraisal.index') }}')" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-600 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
+                    <i class="ph ph-arrow-left text-xs text-slate-400"></i>
                     <span>Roster</span>
                 </a>
             </div>
@@ -264,18 +264,9 @@
         @endphp
 
         <!-- Progressive Review Stages Milestone Progress Bar -->
-        <div class="relative bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-2.5 border-b border-slate-200/60 dark:border-slate-700/60">
-                <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Progressive Review Workflow</span>
-                    <span class="text-[9px] font-black px-2 py-0.5 rounded-full {{ $hasReportingManager ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/60' : 'bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-900/60' }}">
-                        {{ $hasReportingManager ? '4 Stages (Manager + HOD)' : '3 Stages (Direct HOD)' }}
-                    </span>
-                </div>
-                <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full {{ $appStatus === 'completed' ? 'bg-emerald-500' : 'bg-blue-600 animate-pulse' }}"></span>
-                    <span>Current Stage: <strong class="text-slate-900 dark:text-white">{{ $currentStageLabel }}</strong></span>
-                </div>
+        <div class="relative bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5">
+            <div class="mb-4 pb-2 border-b border-slate-200/50 dark:border-slate-700/50">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Progressive Review Workflow</span>
             </div>
 
             <div class="relative">
@@ -522,20 +513,19 @@
             @csrf
 
             <!-- Criteria Scoring Table -->
-            <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
-                <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-xs">
+                <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     <div>
-                        <h2 class="text-sm font-black text-slate-900 dark:text-white">Performance Criteria & Competency Ratings</h2>
-                        <p class="text-xs text-slate-400">Score each criteria on a 1 to 5 scale with required qualitative feedback.</p>
+                        <h2 class="text-sm font-bold text-slate-900 dark:text-white">Performance Criteria &amp; Competency Ratings</h2>
                     </div>
-                    <span class="text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl">
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 px-2.5 py-1 rounded-xl">
                         Template: {{ $appraisal->template?->title }}
                     </span>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-50 dark:bg-slate-800/50 text-[11px] font-black uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
+                        <thead class="bg-slate-50/80 dark:bg-[#0b1019] text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80">
                             <tr>
                                 <th class="p-4 pl-6 w-1/4">Evaluation Criteria</th>
                                 <th class="p-4 text-center w-20">Weightage</th>
@@ -543,9 +533,9 @@
                                 <th class="p-4 w-1/3 pr-6">Manager / HOD Final Review</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80">
                             @foreach($appraisal->criteriaScores as $idx => $criterion)
-                                <tr class="hover:bg-slate-50/40 dark:hover:bg-slate-800/30 transition-colors">
+                                <tr class="hover:bg-slate-50/40 dark:hover:bg-[#161f30]/40 transition-colors">
                                     <!-- Criteria info -->
                                     <td class="p-4 pl-6 align-top">
                                         <div class="font-extrabold text-slate-900 dark:text-white text-xs">
@@ -560,7 +550,7 @@
 
                                     <!-- Weightage -->
                                     <td class="p-4 align-top text-center">
-                                        <span class="inline-block px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-extrabold text-xs">
+                                        <span class="inline-block px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 font-semibold text-xs">
                                             {{ number_format($criterion->weightage, 0) }}%
                                         </span>
                                     </td>
@@ -568,7 +558,7 @@
                                     <!-- Employee Self-Evaluation -->
                                     <td class="p-4 align-top space-y-2">
                                         <div>
-                                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Self-Rating (1-5)</label>
+                                            <label class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Rating (1-5)</label>
                                             <select name="scores[{{ $criterion->id }}][self_rating]" 
                                                     x-on:change="
                                                         let item = scores.find(s => s.id == {{ $criterion->id }});
@@ -586,7 +576,7 @@
                                         </div>
 
                                         <div>
-                                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Employee Comments</label>
+                                            <label class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Comments</label>
                                             <textarea name="scores[{{ $criterion->id }}][self_comments]" 
                                                       rows="2" 
                                                       {{ ($canEditSelf) ? '' : 'readonly' }}
@@ -601,7 +591,7 @@
                                     <!-- Manager / HOD Final Review -->
                                     <td class="p-4 pr-6 align-top space-y-2">
                                         <div>
-                                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Final Rating (1-5)</label>
+                                            <label class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Rating (1-5)</label>
                                             <select name="scores[{{ $criterion->id }}][manager_rating]" 
                                                     x-on:change="
                                                         let item = scores.find(s => s.id == {{ $criterion->id }});
@@ -619,7 +609,7 @@
                                         </div>
 
                                         <div>
-                                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Manager / HOD Comments</label>
+                                            <label class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Comments</label>
                                             <textarea name="scores[{{ $criterion->id }}][manager_comments]" 
                                                       rows="2" 
                                                       {{ ($canEditManager || $canEditHod) ? '' : 'readonly' }}
@@ -636,84 +626,80 @@
                     </table>
                 </div>
 
-                <!-- Live Score Calculation Footer -->
-                <div class="p-6 bg-slate-50/80 dark:bg-slate-800/40 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <!-- Live Score Calculation Footer (Without Math Formula) -->
+                <div class="p-5 sm:p-6 bg-slate-50/80 dark:bg-[#0b1019] border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <span class="text-[11px] font-black uppercase text-slate-400">Total Computed Weighted Score</span>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Total Computed Weighted Score</span>
                         <div class="flex items-center gap-3 mt-1">
                             <span class="text-3xl font-black text-slate-900 dark:text-white" x-text="calculatedScore.toFixed(2)">
                                 {{ number_format($appraisal->total_weighted_score, 2) }}
                             </span>
                             <span class="text-sm font-semibold text-slate-400">/ 5.00</span>
-                            <span :class="calculatedBand.color" class="px-3 py-1 rounded-full text-xs font-black border" x-text="calculatedBand.badge">
+                            <span :class="calculatedBand.color" class="px-2.5 py-0.5 rounded-full text-xs font-bold border" x-text="calculatedBand.badge">
                                 {{ $appraisal->performance_band ?: 'Pending Evaluation' }}
                             </span>
                         </div>
-                    </div>
-
-                    <div class="text-right text-[11px] text-slate-400 font-semibold max-w-xs">
-                        Formula: $\text{Weighted Score} = \sum (\text{Rating} \times \frac{\text{Weightage}}{100})$. Automatically updated.
                     </div>
                 </div>
             </div>
 
             <!-- General Overall Comments & Feedback Section -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-2">
-                    <label class="block text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                        <span>Employee General Self-Reflection</span>
-                        <span class="text-[10px] text-slate-400 font-normal">Self Assessment</span>
+                <div class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-2">
+                    <label class="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Employee General Self-Reflection
                     </label>
                     <textarea name="general_employee_comments" rows="3" {{ $canEditSelf ? '' : 'readonly' }} @input="autoExpand($el)" @focus="autoExpand($el)" x-init="$nextTick(() => autoExpand($el))" placeholder="Highlights of achievements, career aspirations, and support needed..." class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white p-3 read-only:bg-slate-50/40 resize-none overflow-hidden leading-relaxed min-h-[50px]">{{ $appraisal->general_employee_comments }}</textarea>
                 </div>
 
-                <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-2">
-                    <label class="block text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                        <span>Manager / HOD General Feedback</span>
-                        <span class="text-[10px] text-slate-400 font-normal">Leadership Review</span>
+                <div class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-2">
+                    <label class="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Manager / HOD General Feedback
                     </label>
                     <textarea name="general_manager_comments" rows="3" {{ ($canEditManager || $canEditHod) ? '' : 'readonly' }} @input="autoExpand($el)" @focus="autoExpand($el)" x-init="$nextTick(() => autoExpand($el))" placeholder="Summary of overall strengths, areas for development, and leadership review..." class="auto-expand w-full border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50/80 dark:bg-slate-800/60 text-slate-900 dark:text-white p-3 read-only:bg-slate-50/40 resize-none overflow-hidden leading-relaxed min-h-[50px]">{{ $appraisal->general_manager_comments }}</textarea>
                 </div>
             </div>
 
-            <!-- Action Buttons Bar -->
-            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
-                <div>
-                    @if(!$appraisal->is_locked || in_array($role, ['Super Admin', 'HR Lead']))
-                        <button type="submit" class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-300 px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-2">
-                            <i class="ph ph-floppy-disk text-base text-blue-500"></i>
-                            <span>Save Draft Scores</span>
-                        </button>
-                    @endif
-                </div>
+            <!-- Sticky Bottom Action Bar -->
+            <div class="sticky bottom-0 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3.5 bg-white dark:bg-[#111927] border-t border-slate-200/80 dark:border-slate-800/90 shadow-lg mt-6">
+                <div class="flex flex-wrap items-center justify-between gap-3 max-w-7xl mx-auto">
+                    <div>
+                        @if(!$appraisal->is_locked || in_array($role, ['Super Admin', 'HR Lead']))
+                            <button type="submit" class="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-floppy-disk text-base text-slate-400"></i>
+                                <span>Save Draft Scores</span>
+                            </button>
+                        @endif
+                    </div>
 
-                <div class="flex items-center gap-2.5">
-                    @if($canEditSelf)
-                        <button type="button" 
-                                onclick="if(confirm('Are you sure you want to submit your self-evaluation? The form will lock and forward to your manager/HOD.')) { document.getElementById('evaluationForm').action = '{{ route('appraisal.submit-self', $appraisal->id) }}'; document.getElementById('evaluationForm').submit(); }"
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer">
-                            <i class="ph ph-paper-plane-tilt text-base"></i>
-                            <span>Submit Self-Evaluation</span>
-                        </button>
-                    @endif
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        @if($canEditSelf)
+                            <button type="button" 
+                                    onclick="if(confirm('Are you sure you want to submit your self-evaluation? The form will lock and forward to your manager/HOD.')) { document.getElementById('evaluationForm').action = '{{ route('appraisal.submit-self', $appraisal->id) }}'; document.getElementById('evaluationForm').submit(); }"
+                                    class="{{ $appStatus === 'pending_self_eval' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs font-semibold' : 'border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 font-medium' }} px-5 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-paper-plane-tilt text-sm"></i>
+                                <span>Submit Self-Evaluation</span>
+                            </button>
+                        @endif
 
-                    @if($canEditManager)
-                        <button type="button" 
-                                onclick="if(confirm('Submit manager evaluation? This will forward the evaluation to HOD for final approval.')) { document.getElementById('evaluationForm').action = '{{ route('appraisal.submit-manager', $appraisal->id) }}'; document.getElementById('evaluationForm').submit(); }"
-                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-indigo-500/20 transition-all flex items-center gap-2 cursor-pointer">
-                            <i class="ph ph-check-square-offset text-base"></i>
-                            <span>Submit Manager Review</span>
-                        </button>
-                    @endif
+                        @if($canEditManager)
+                            <button type="button" 
+                                    onclick="if(confirm('Submit manager evaluation? This will forward the evaluation to HOD for final approval.')) { document.getElementById('evaluationForm').action = '{{ route('appraisal.submit-manager', $appraisal->id) }}'; document.getElementById('evaluationForm').submit(); }"
+                                    class="{{ in_array($appStatus, ['submitted_self_eval', 'pending_manager_eval']) ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs font-semibold' : 'border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 font-medium' }} px-5 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-check-square-offset text-sm"></i>
+                                <span>Submit Review</span>
+                            </button>
+                        @endif
 
-                    @if($canEditHod)
-                        <button type="button" 
-                                onclick="if(confirm('Finalize appraisal? This will complete the performance evaluation and record final score.')) { document.getElementById('evaluationForm').action = '{{ route('appraisal.submit-hod', $appraisal->id) }}'; document.getElementById('evaluationForm').submit(); }"
-                                class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 transition-all flex items-center gap-2 cursor-pointer">
-                            <i class="ph ph-seal-check text-base"></i>
-                            <span>Finalize & Submit HOD Approval</span>
-                        </button>
-                    @endif
+                        @if($canEditHod)
+                            <button type="button" 
+                                    onclick="if(confirm('Finalize appraisal? This will complete the performance evaluation and record final score.')) { document.getElementById('evaluationForm').action = '{{ route('appraisal.submit-hod', $appraisal->id) }}'; document.getElementById('evaluationForm').submit(); }"
+                                    class="{{ in_array($appStatus, ['submitted_manager_eval', 'pending_hod_eval']) ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs font-semibold' : 'border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 font-medium' }} px-5 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="ph ph-seal-check text-sm"></i>
+                                <span>Approve &amp; Finalize</span>
+                            </button>
+                        @endif
+                    </div>
                 </div>
             </div>
         </form>
