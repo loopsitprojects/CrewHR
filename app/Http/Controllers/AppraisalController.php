@@ -158,8 +158,13 @@ class AppraisalController extends Controller
             'changeRequests'
         ]);
 
-        if ($activeCycle) {
-            $query->where('cycle_id', $activeCycle->id);
+        $selectedCategory = $request->get('category');
+        if ($selectedCategory === 'quarterly') {
+            $query->whereHas('cycle', fn($q) => $q->where('cycle_type', 'mid_year'));
+        } elseif ($selectedCategory === 'biannual') {
+            $query->whereHas('cycle', fn($q) => $q->where('cycle_type', 'year_end'));
+        } elseif ($request->filled('cycle_id')) {
+            $query->where('cycle_id', $request->get('cycle_id'));
         }
 
         // Apply Role Restrictions
