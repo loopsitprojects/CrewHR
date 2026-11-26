@@ -114,111 +114,13 @@
     $distinctYears = $selfYearsList->unique()->values();
 @endphp
 
-<div class="space-y-6" x-data="{
+<div class="space-y-6" x-data="appraisalPageData({
     activeTab: '{{ request('tab', ($role !== 'Employee' && $employee) ? 'my_appraisal' : 'roster') }}',
     selectedCategory: '{{ request('category', '') }}' || null,
-    showCycleModal: false,
-    showReminderModal: false,
     statusFilter: '{{ request('status', '') }}',
     deptFilter: '{{ request('department_id', '') }}',
-    searchFilter: '',
-
-    // Individual Self-Evaluation Dynamic Filters
-    selfApps: @json($selfAppsMeta),
-    selfYearFilter: '',
-    selfMonthFrom: '',
-    selfMonthTo: '',
-    selfTrackFilter: '',
-    selfStatusFilter: '',
-    selfSearch: '',
-
-    get hasActiveSelfFilters() {
-        return !!(this.selfYearFilter || this.selfMonthFrom || this.selfMonthTo || this.selfTrackFilter || this.selfStatusFilter || this.selfSearch);
-    },
-
-    resetSelfFilters() {
-        this.selfYearFilter = '';
-        this.selfMonthFrom = '';
-        this.selfMonthTo = '';
-        this.selfTrackFilter = '';
-        this.selfStatusFilter = '';
-        this.selfSearch = '';
-    },
-
-    filterSelfYear(appYears) {
-        if (!this.selfYearFilter) return true;
-        return appYears.some(y => String(y).toLowerCase().includes(this.selfYearFilter.toLowerCase()));
-    },
-
-    filterSelfMonth(appMonths) {
-        if (!this.selfMonthFrom && !this.selfMonthTo) return true;
-        const from = this.selfMonthFrom ? parseInt(this.selfMonthFrom) : null;
-        const to = this.selfMonthTo ? parseInt(this.selfMonthTo) : null;
-
-        if (from && to) {
-            let targetMonths = [];
-            if (from <= to) {
-                for (let m = from; m <= to; m++) targetMonths.push(m);
-            } else {
-                for (let m = from; m <= 12; m++) targetMonths.push(m);
-                for (let m = 1; m <= to; m++) targetMonths.push(m);
-            }
-            return appMonths.some(m => targetMonths.includes(m));
-        }
-        if (from) return appMonths.some(m => m >= from);
-        if (to) return appMonths.some(m => m <= to);
-        return true;
-    },
-
-    filterSelfTrack(trackType) {
-        if (!this.selfTrackFilter) return true;
-        return trackType === this.selfTrackFilter;
-    },
-
-    filterSelfStatus(status) {
-        if (!this.selfStatusFilter) return true;
-        if (this.selfStatusFilter === 'completed') return status === 'completed';
-        if (this.selfStatusFilter === 'pending_self_eval') return status === 'pending_self_eval';
-        if (this.selfStatusFilter === 'in_review') return status !== 'completed' && status !== 'pending_self_eval';
-        return true;
-    },
-
-    filterSelfSearch(searchStr) {
-        if (!this.selfSearch.trim()) return true;
-        return searchStr.toLowerCase().includes(this.selfSearch.trim().toLowerCase());
-    },
-
-    matchesSelfAppraisal(appYears, appMonths, trackType, status, searchStr) {
-        return this.filterSelfYear(appYears)
-            && this.filterSelfMonth(appMonths)
-            && this.filterSelfTrack(trackType)
-            && this.filterSelfStatus(status)
-            && this.filterSelfSearch(searchStr);
-    },
-
-    get filteredSelfCount() {
-        return this.selfApps.filter(app =>
-            this.filterSelfYear(app.years) &&
-            this.filterSelfMonth(app.months) &&
-            this.filterSelfTrack(app.track) &&
-            this.filterSelfStatus(app.status) &&
-            this.filterSelfSearch(app.search)
-        ).length;
-    },
-
-    openCategory(cat) {
-        this.selectedCategory = cat;
-        const url = new URL(window.location.href);
-        url.searchParams.set('category', cat);
-        window.history.replaceState({}, '', url);
-    },
-    closeCategory() {
-        this.selectedCategory = null;
-        const url = new URL(window.location.href);
-        url.searchParams.delete('category');
-        window.history.replaceState({}, '', url);
-    }
-}">
+    selfApps: @json($selfAppsMeta)
+})">
 
     <!-- ========================================================================= -->
     <!-- VIEW 1: CATEGORIES OVERVIEW / HUB (Shown when selectedCategory is null)   -->
@@ -1454,6 +1356,116 @@ function cyclePresetForm() {
                 this.managerEvalDeadline = nextYear + '-03-15';
                 this.description = 'Covers the performance period from October to March. Focuses on the final performance evaluation, identifying employees for potential promotions and increments. Increment recommendations will be considered alongside the company\'s financial performance and approved budget.';
             }
+        }
+    };
+}
+
+function appraisalPageData(config) {
+    return {
+        activeTab: config.activeTab || 'my_appraisal',
+        selectedCategory: config.selectedCategory || null,
+        showCycleModal: false,
+        showReminderModal: false,
+        statusFilter: config.statusFilter || '',
+        deptFilter: config.deptFilter || '',
+        searchFilter: '',
+
+        // Individual Self-Evaluation Dynamic Filters
+        selfApps: config.selfApps || [],
+        selfYearFilter: '',
+        selfMonthFrom: '',
+        selfMonthTo: '',
+        selfTrackFilter: '',
+        selfStatusFilter: '',
+        selfSearch: '',
+
+        get hasActiveSelfFilters() {
+            return !!(this.selfYearFilter || this.selfMonthFrom || this.selfMonthTo || this.selfTrackFilter || this.selfStatusFilter || this.selfSearch);
+        },
+
+        resetSelfFilters() {
+            this.selfYearFilter = '';
+            this.selfMonthFrom = '';
+            this.selfMonthTo = '';
+            this.selfTrackFilter = '';
+            this.selfStatusFilter = '';
+            this.selfSearch = '';
+        },
+
+        filterSelfYear(appYears) {
+            if (!this.selfYearFilter) return true;
+            return appYears.some(function(y) {
+                return String(y).toLowerCase().includes(this.selfYearFilter.toLowerCase());
+            }.bind(this));
+        },
+
+        filterSelfMonth(appMonths) {
+            if (!this.selfMonthFrom && !this.selfMonthTo) return true;
+            const from = this.selfMonthFrom ? parseInt(this.selfMonthFrom) : null;
+            const to = this.selfMonthTo ? parseInt(this.selfMonthTo) : null;
+
+            if (from && to) {
+                let targetMonths = [];
+                if (from <= to) {
+                    for (let m = from; m <= to; m++) targetMonths.push(m);
+                } else {
+                    for (let m = from; m <= 12; m++) targetMonths.push(m);
+                    for (let m = 1; m <= to; m++) targetMonths.push(m);
+                }
+                return appMonths.some(function(m) { return targetMonths.includes(m); });
+            }
+            if (from) return appMonths.some(function(m) { return m >= from; });
+            if (to) return appMonths.some(function(m) { return m <= to; });
+            return true;
+        },
+
+        filterSelfTrack(trackType) {
+            if (!this.selfTrackFilter) return true;
+            return trackType === this.selfTrackFilter;
+        },
+
+        filterSelfStatus(status) {
+            if (!this.selfStatusFilter) return true;
+            if (this.selfStatusFilter === 'completed') return status === 'completed';
+            if (this.selfStatusFilter === 'pending_self_eval') return status === 'pending_self_eval';
+            if (this.selfStatusFilter === 'in_review') return status !== 'completed' && status !== 'pending_self_eval';
+            return true;
+        },
+
+        filterSelfSearch(searchStr) {
+            if (!this.selfSearch.trim()) return true;
+            return searchStr.toLowerCase().includes(this.selfSearch.trim().toLowerCase());
+        },
+
+        matchesSelfAppraisal(appYears, appMonths, trackType, status, searchStr) {
+            return this.filterSelfYear(appYears)
+                && this.filterSelfMonth(appMonths)
+                && this.filterSelfTrack(trackType)
+                && this.filterSelfStatus(status)
+                && this.filterSelfSearch(searchStr);
+        },
+
+        get filteredSelfCount() {
+            return this.selfApps.filter(function(app) {
+                return this.filterSelfYear(app.years) &&
+                    this.filterSelfMonth(app.months) &&
+                    this.filterSelfTrack(app.track) &&
+                    this.filterSelfStatus(app.status) &&
+                    this.filterSelfSearch(app.search);
+            }.bind(this)).length;
+        },
+
+        openCategory(cat) {
+            this.selectedCategory = cat;
+            const url = new URL(window.location.href);
+            url.searchParams.set('category', cat);
+            window.history.replaceState({}, '', url);
+        },
+        closeCategory() {
+            this.selectedCategory = null;
+            const url = new URL(window.location.href);
+            url.searchParams.delete('category');
+            window.history.replaceState({}, '', url);
         }
     };
 }
