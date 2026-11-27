@@ -130,6 +130,13 @@
     }
 
     $distinctYears = $selfYearsList->unique()->values();
+
+    $defaultTab = ($role === 'Employee') ? 'my_appraisal' : ($employee ? 'my_appraisal' : 'roster');
+    $tabParam = request('tab');
+    if ($role === 'Employee' && !in_array($tabParam, ['my_appraisal', 'my_changes'])) {
+        $tabParam = null;
+    }
+    $initialActiveTab = $tabParam ?: $defaultTab;
 @endphp
 
 <script id="self-apps-meta-data" type="application/json">
@@ -137,7 +144,7 @@
 </script>
 
 <div class="space-y-6" x-data="appraisalPageData({
-    activeTab: '{{ request('tab', ($role !== 'Employee' && $employee) ? 'my_appraisal' : 'roster') }}',
+    activeTab: '{{ $initialActiveTab }}',
     selectedCategory: '{{ request('category', '') }}' || null,
     statusFilter: '{{ request('status', '') }}',
     deptFilter: '{{ request('department_id', '') }}'
@@ -405,7 +412,7 @@
                 </div>
             @else
                 <!-- Filter Bar: Compact Single-Row Layout -->
-                <div class="bg-white dark:bg-[#0f1623] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xs">
+                <div class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xs">
                     <!-- Top Bar: Title, Count, Subtle Reset -->
                     <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-100 dark:border-slate-800/60">
                         <div class="flex items-center gap-2">
@@ -512,10 +519,10 @@
                 </div>
 
                 <!-- Unified Appraisals Table for Individual -->
-                <div class="bg-white dark:bg-[#0f1623] border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-xs">
+                <div class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-xs">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
-                            <thead class="bg-slate-50/80 dark:bg-[#0b1019] text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80">
+                            <thead class="bg-slate-50/80 dark:bg-slate-900/60 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80">
                                 <tr>
                                     <th class="py-3 px-4 pl-5">Review Cycle &amp; Track</th>
                                     <th class="py-3 px-3">Review Window &amp; Period</th>
@@ -1528,6 +1535,9 @@ function appraisalPageData(config) {
 
         openCategory(cat) {
             this.selectedCategory = cat;
+            if (!this.activeTab || ('{{ $role }}' === 'Employee' && this.activeTab !== 'my_changes')) {
+                this.activeTab = 'my_appraisal';
+            }
             const url = new URL(window.location.href);
             url.searchParams.set('category', cat);
             window.history.replaceState({}, '', url);
