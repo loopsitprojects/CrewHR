@@ -41,8 +41,8 @@
         return $aDue <=> $bDue;
     })->values();
 
-    $quarterlySelf = $selfList->filter(fn($app) => $app->cycle?->isMidYear());
-    $biAnnualSelf = $selfList->filter(fn($app) => !$app->cycle?->isMidYear());
+    $quarterlySelf = $selfList->filter(fn($app) => $app->cycle?->isMidYear())->values();
+    $biAnnualSelf = $selfList->filter(fn($app) => !$app->cycle?->isMidYear())->values();
 
     // Partition letters
     $quarterlyLetters = $letters->filter(fn($l) => $l->appraisal?->cycle?->isMidYear());
@@ -349,7 +349,7 @@
                 @if($role === 'Employee')
                     <button @click="activeTab = 'my_appraisal'" :class="activeTab === 'my_appraisal' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                         <i class="ph ph-clipboard-text text-sm"></i>
-                        <span>My Appraisals (<span x-text="selfApps.length"></span>)</span>
+                        <span>My Appraisals (<span x-text="selectedCategory === 'quarterly' ? '{{ $quarterlySelf->count() }}' : (selectedCategory === 'biannual' ? '{{ $biAnnualSelf->count() }}' : '{{ $selfList->count() }}')"></span>)</span>
                     </button>
                     <button @click="activeTab = 'my_changes'" :class="activeTab === 'my_changes' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                         <i class="ph ph-clock-counter-clockwise text-sm"></i>
@@ -359,7 +359,7 @@
                     @if($employee)
                         <button @click="activeTab = 'my_appraisal'" :class="activeTab === 'my_appraisal' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'" class="pb-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer">
                             <i class="ph ph-user text-sm"></i>
-                            <span>My Self-Evaluation (<span x-text="selfApps.length"></span>)</span>
+                            <span>My Self-Evaluation (<span x-text="selectedCategory === 'quarterly' ? '{{ $quarterlySelf->count() }}' : (selectedCategory === 'biannual' ? '{{ $biAnnualSelf->count() }}' : '{{ $selfList->count() }}')"></span>)</span>
                         </button>
                     @endif
 
@@ -399,607 +399,76 @@
         </div>
 
         <!-- ========================================================= -->
-        <!-- TAB CONTENT: MY SELF-EVALUATION (All Appraisals of Individual) -->
+        <!-- TAB CONTENT: MY SELF-EVALUATION (Partitioned by Track)    -->
         <!-- ========================================================= -->
         <div x-show="activeTab === 'my_appraisal'" class="space-y-6">
-            @if($selfList->isEmpty())
-                <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
-                    <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center text-2xl">
-                        <i class="ph ph-clipboard-text"></i>
-                    </div>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">No Self-Evaluations Assigned</h3>
-                    <p class="text-xs text-slate-400 max-w-sm mx-auto">You do not currently have any performance evaluations assigned to you across active review tracks.</p>
+
+            <!-- 1. QUARTERLY TRACK VIEW -->
+            <template x-if="selectedCategory === 'quarterly'">
+                <div class="space-y-6">
+                    @if($quarterlySelf->isEmpty())
+                        <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
+                            <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center text-2xl">
+                                <i class="ph ph-calendar-check"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">No Quarterly Appraisals Assigned</h3>
+                            <p class="text-xs text-slate-400 max-w-sm mx-auto">You do not currently have any self-evaluations assigned in the quarterly review track.</p>
+                        </div>
+                    @else
+                        @php
+                            $qRecent = $quarterlySelf->first();
+                            $qOther = $quarterlySelf->slice(1);
+                        @endphp
+
+                        <!-- Active / Recent Quarterly Review -->
+                        @include('pages.partials.appraisal-self-card', ['app' => $qRecent, 'sectionTitle' => 'Active Appraisal'])
+
+                        <!-- Other Quarterly Cycles (if any) -->
+                        @if($qOther->isNotEmpty())
+                            <div class="space-y-3 pt-2">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                    Other Quarterly Cycles ({{ $qOther->count() }})
+                                </h3>
+                                @include('pages.partials.appraisal-self-table', ['apps' => $qOther])
+                            </div>
+                        @endif
+                    @endif
                 </div>
-            @else
-                @php
-                    $recentApp = $selfList->first();
-                    $otherSelfList = $selfList->slice(1);
+            </template>
 
-                    // Metadata for recentApp
-                    $recentMeta = collect($selfAppsMeta)->firstWhere('id', $recentApp->id) ?? [];
-                    $recentYears = $recentMeta['years'] ?? [];
-                    $recentMonths = $recentMeta['months'] ?? [];
-                    $recentTrack = $recentMeta['track'] ?? 'annual';
-                    $recentSearch = $recentMeta['search'] ?? '';
-
-                    $rCStart = $recentApp->cycle?->start_date ? \Carbon\Carbon::parse($recentApp->cycle->start_date)->startOfDay() : null;
-                    $rCEnd = $recentApp->cycle?->end_date ? \Carbon\Carbon::parse($recentApp->cycle->end_date)->startOfDay() : null;
-                    $rPStart = $recentApp->cycle?->performance_period_start ? \Carbon\Carbon::parse($recentApp->cycle->performance_period_start) : null;
-                    $rPEnd = $recentApp->cycle?->performance_period_end ? \Carbon\Carbon::parse($recentApp->cycle->performance_period_end) : null;
-
-                    $rDueDate = $recentApp->self_eval_deadline ? \Carbon\Carbon::parse($recentApp->self_eval_deadline)->startOfDay() : ($rCEnd ?: null);
-                    $today = \Carbon\Carbon::now()->startOfDay();
-
-                    $rDueRelativeText = '';
-                    $rDueRelativeClass = 'text-slate-400 dark:text-slate-500';
-
-                    if ($recentApp->status === 'completed') {
-                        $rDueRelativeText = 'Finalized';
-                    } elseif ($rCStart && $rCStart->isFuture()) {
-                        $rDueRelativeText = 'Opens ' . $rCStart->format('d M Y');
-                        $rDueRelativeClass = 'text-slate-400 dark:text-slate-400 font-medium';
-                    } elseif ($rDueDate) {
-                        if ($rDueDate->isPast()) {
-                            $days = (int) $rDueDate->diffInDays($today);
-                            $rDueRelativeText = $days === 0 ? 'Overdue today' : ($days === 1 ? 'Overdue by 1 day' : "Overdue by {$days} days");
-                            $rDueRelativeClass = 'text-rose-500/90 dark:text-rose-400/90 font-medium';
-                        } elseif ($rDueDate->isToday()) {
-                            $rDueRelativeText = 'Due today';
-                            $rDueRelativeClass = 'text-amber-500 dark:text-amber-400 font-medium';
-                        } else {
-                            $days = (int) $today->diffInDays($rDueDate);
-                            $rDueRelativeText = $days === 1 ? 'Due tomorrow' : "Due in {$days} days";
-                            $rDueRelativeClass = 'text-amber-500/90 dark:text-amber-400/90 font-medium';
-                        }
-                    } else {
-                        $rDueRelativeText = 'No deadline';
-                    }
-
-                    $rIsPrimaryAction = ($recentApp->cycle?->status === 'Active' || ($rDueDate && $rDueDate->isPast())) && $recentApp->status === 'pending_self_eval';
-                @endphp
-
-                <!-- ========================================================= -->
-                <!-- 1. RECENT APPRAISAL (Shown On Top and Separate)          -->
-                <!-- ========================================================= -->
-                <div x-show="matchesSelfAppraisal({{ json_encode($recentYears) }}, {{ json_encode($recentMonths) }}, '{{ $recentTrack }}', '{{ $recentApp->status }}', '{{ addslashes($recentSearch) }}')" class="space-y-2.5">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Recent Appraisal</h3>
+            <!-- 2. BI-ANNUAL & YEAR-END TRACK VIEW -->
+            <template x-if="selectedCategory === 'biannual'">
+                <div class="space-y-6">
+                    @if($biAnnualSelf->isEmpty())
+                        <div class="bg-white dark:bg-[#111927] border border-slate-200/90 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
+                            <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center text-2xl">
+                                <i class="ph ph-chart-line-up"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">No Bi-Annual Appraisals Assigned</h3>
+                            <p class="text-xs text-slate-400 max-w-sm mx-auto">You do not currently have any self-evaluations assigned in the bi-annual &amp; year-end review track.</p>
                         </div>
-                        <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500">Latest Review Cycle</span>
-                    </div>
+                    @else
+                        @php
+                            $bRecent = $biAnnualSelf->first();
+                            $bOther = $biAnnualSelf->slice(1);
+                        @endphp
 
-                    <div class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                            <div class="space-y-1.5">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <a href="{{ route('appraisal.show', $recentApp->id) }}" class="font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 text-sm sm:text-base transition-colors">
-                                        {{ $recentApp->cycle?->name ?? 'Performance Review' }}
-                                    </a>
-                                    @if($recentApp->cycle?->status === 'Active')
-                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-[#10b981] shrink-0"></span>
-                                            <span>Active</span>
-                                        </span>
-                                    @endif
-                                </div>
-                                <div class="flex items-center gap-2 flex-wrap text-xs text-slate-500 dark:text-slate-400">
-                                    @if($recentApp->cycle?->isMidYear())
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 text-[11px]">
-                                            <i class="ph ph-calendar-check text-slate-400"></i>
-                                            <span>Quarter 1 &bull; Mid-Year</span>
-                                        </span>
-                                    @elseif($recentApp->cycle?->cycle_type === 'year_end')
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 text-[11px]">
-                                            <i class="ph ph-chart-line-up text-slate-400"></i>
-                                            <span>Quarter 2 &bull; Year-End</span>
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 text-[11px]">
-                                            <i class="ph ph-calendar text-slate-400"></i>
-                                            <span>Annual Review</span>
-                                        </span>
-                                    @endif
+                        <!-- Recent Bi-Annual Review -->
+                        @include('pages.partials.appraisal-self-card', ['app' => $bRecent, 'sectionTitle' => 'Recent Appraisal'])
 
-                                    @if($recentApp->cycle?->financial_year)
-                                        <span class="px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.03] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 text-[11px]">
-                                            {{ $recentApp->cycle->financial_year }}
-                                        </span>
-                                    @endif
-
-                                    <span class="text-slate-300 dark:text-slate-700">&bull;</span>
-                                    <span class="font-medium text-slate-700 dark:text-slate-300 text-[11px] flex items-center gap-1">
-                                        <i class="ph ph-clock text-slate-400 text-xs"></i>
-                                        <span>Period: {{ $recentApp->cycle?->performance_period ?: ($recentApp->cycle?->isMidYear() ? 'April to September' : ($rPStart && $rPEnd ? $rPStart->format('M Y') . ' – ' . $rPEnd->format('M Y') : 'Full Period')) }}</span>
-                                    </span>
-
-                                    @if($rCStart && $rCEnd)
-                                        <span class="text-slate-300 dark:text-slate-700">&bull;</span>
-                                        <span class="text-[11px] text-slate-400 dark:text-slate-500">
-                                            Window: {{ $rCStart->format('d M') }} – {{ $rCEnd->format('d M Y') }}
-                                        </span>
-                                    @endif
-                                </div>
+                        <!-- Other Bi-Annual Cycles (if any) -->
+                        @if($bOther->isNotEmpty())
+                            <div class="space-y-3 pt-2">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                    Other Bi-Annual Cycles ({{ $bOther->count() }})
+                                </h3>
+                                @include('pages.partials.appraisal-self-table', ['apps' => $bOther])
                             </div>
-
-                            <div class="shrink-0">
-                                @if($rIsPrimaryAction)
-                                    <a href="{{ route('appraisal.show', $recentApp->id) }}" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer">
-                                        <span>Complete Form</span>
-                                        <i class="ph ph-arrow-square-out text-xs"></i>
-                                    </a>
-                                @else
-                                    <a href="{{ route('appraisal.show', $recentApp->id) }}" class="px-4 py-2 rounded-xl text-xs font-medium border border-slate-300 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-600 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all inline-flex items-center gap-1.5 cursor-pointer">
-                                        <span>{{ $recentApp->cycle?->status === 'Upcoming' ? 'View Form' : ($recentApp->status === 'pending_self_eval' ? 'Complete Form' : 'View Form') }}</span>
-                                        <i class="ph ph-arrow-square-out text-xs"></i>
-                                    </a>
-                                @endif
-                            </div>
-                        </div>
-
-                        <!-- 4 Summary Metrics in Hairline Row -->
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
-                            <!-- 1. Workflow Evaluators -->
-                            <div>
-                                <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Workflow Evaluators</span>
-                                <div class="space-y-0.5 text-[11px]">
-                                    @if($recentApp->reportingManager)
-                                        <div class="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                                            <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 text-[9px] font-bold border border-slate-200 dark:border-slate-700/60">MGR</span>
-                                            <span>{{ $recentApp->reportingManager->user->name ?? 'Manager' }}</span>
-                                        </div>
-                                    @endif
-                                    @if($recentApp->hod)
-                                        <div class="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                                            <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 text-[9px] font-bold border border-slate-200 dark:border-slate-700/60">HOD</span>
-                                            <span>{{ $recentApp->hod->user->name ?? 'HOD' }}</span>
-                                        </div>
-                                    @endif
-                                    @if(!$recentApp->reportingManager && !$recentApp->hod)
-                                        <span class="text-slate-400 dark:text-slate-500 italic text-[11px]">Self Direct</span>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <!-- 2. Evaluation Status -->
-                            <div>
-                                <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Evaluation Status</span>
-                                @if($recentApp->status === 'completed')
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-[#10b981] shrink-0"></span>
-                                        <span>Finalized</span>
-                                    </span>
-                                @elseif($recentApp->status === 'pending_self_eval')
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-[#d97706] shrink-0"></span>
-                                        <span>Pending Self-Eval</span>
-                                    </span>
-                                @elseif($recentApp->status === 'pending_manager_eval' || $recentApp->status === 'submitted_self_eval')
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400 shrink-0"></span>
-                                        <span>Manager Review</span>
-                                    </span>
-                                @elseif($recentApp->status === 'pending_hod_eval' || $recentApp->status === 'submitted_manager_eval')
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 shrink-0"></span>
-                                        <span>HOD Review</span>
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>
-                                        <span>In Review</span>
-                                    </span>
-                                @endif
-                            </div>
-
-                            <!-- 3. Due Date -->
-                            <div>
-                                <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Due Date</span>
-                                <span class="font-bold text-slate-800 dark:text-slate-200 block text-xs">
-                                    {{ $rDueDate ? $rDueDate->format('d M Y') : '—' }}
-                                </span>
-                                <span class="text-[10px] block {{ $rDueRelativeClass }}">
-                                    {{ $rDueRelativeText }}
-                                </span>
-                            </div>
-
-                            <!-- 4. Score & Band -->
-                            <div>
-                                <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Score &amp; Band</span>
-                                @if($recentApp->total_weighted_score > 0)
-                                    <div class="space-y-0.5">
-                                        <div class="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1 text-xs">
-                                            <span>{{ number_format($recentApp->total_weighted_score, 2) }}</span>
-                                            <span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">/ 5.00</span>
-                                        </div>
-                                        @if($recentApp->performance_band)
-                                            <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                {{ $recentApp->performance_band }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                @else
-                                    <span class="text-slate-400 dark:text-slate-500 text-xs font-normal">—</span>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
+                        @endif
+                    @endif
                 </div>
+            </template>
 
-                <!-- ========================================================= -->
-                <!-- 2. ALL APPRAISAL CYCLES & HISTORY (Separate Section)      -->
-                <!-- ========================================================= -->
-                <div class="space-y-3.5 pt-2">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                                Other Appraisal Cycles &amp; History
-                            </h3>
-                            <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                                ({{ $otherSelfList->count() }} {{ Str::plural('Cycle', $otherSelfList->count()) }})
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Filter Bar: Compact Single-Row Layout -->
-                    <div class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xs">
-                        <!-- Top Bar: Title, Count, Subtle Reset -->
-                        <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-slate-100 dark:border-slate-800/60">
-                            <div class="flex items-center gap-2">
-                                <i class="ph ph-funnel text-slate-400 text-xs"></i>
-                                <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Filter Appraisals</span>
-                                <span class="text-[11px] font-medium text-slate-400 dark:text-slate-500" x-text="'(Showing ' + filteredSelfCount + ' of ' + selfApps.length + ')'"></span>
-                            </div>
-
-                            <!-- Subtle Reset Button -->
-                            <button type="button"
-                                x-show="hasActiveSelfFilters"
-                                x-cloak
-                                @click="resetSelfFilters()"
-                                class="text-[11px] font-semibold text-slate-400 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer">
-                            <i class="ph ph-arrow-counter-clockwise text-xs"></i>
-                            <span>Reset</span>
-                        </button>
-                    </div>
-
-                    <!-- 6 Filter Inputs in Tight Balanced Row (Search first on the left) -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
-                        <!-- 1. Search Bar (Left, wider) -->
-                        <div class="sm:col-span-2 lg:col-span-3">
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Search</label>
-                            <div class="relative">
-                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                                <input type="text" x-model="selfSearch" placeholder="Cycle name, manager..." class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl pl-8 pr-2.5 py-1.5 text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                            </div>
-                        </div>
-
-                        <!-- 2. Year Filter -->
-                        <div class="lg:col-span-1">
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Year</label>
-                            <select x-model="selfYearFilter" class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                <option value="">All Years</option>
-                                @foreach($distinctYears as $yr)
-                                    <option value="{{ $yr }}">{{ $yr }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- 3. From Month -->
-                        <div class="lg:col-span-2">
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">From Month</label>
-                            <select x-model="selfMonthFrom" class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                <option value="">All (Start)</option>
-                                <option value="1">Jan (01)</option>
-                                <option value="2">Feb (02)</option>
-                                <option value="3">Mar (03)</option>
-                                <option value="4">Apr (04)</option>
-                                <option value="5">May (05)</option>
-                                <option value="6">Jun (06)</option>
-                                <option value="7">Jul (07)</option>
-                                <option value="8">Aug (08)</option>
-                                <option value="9">Sep (09)</option>
-                                <option value="10">Oct (10)</option>
-                                <option value="11">Nov (11)</option>
-                                <option value="12">Dec (12)</option>
-                            </select>
-                        </div>
-
-                        <!-- 4. To Month -->
-                        <div class="lg:col-span-2">
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">To Month</label>
-                            <select x-model="selfMonthTo" class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                <option value="">All (End)</option>
-                                <option value="1">Jan (01)</option>
-                                <option value="2">Feb (02)</option>
-                                <option value="3">Mar (03)</option>
-                                <option value="4">Apr (04)</option>
-                                <option value="5">May (05)</option>
-                                <option value="6">Jun (06)</option>
-                                <option value="7">Jul (07)</option>
-                                <option value="8">Aug (08)</option>
-                                <option value="9">Sep (09)</option>
-                                <option value="10">Oct (10)</option>
-                                <option value="11">Nov (11)</option>
-                                <option value="12">Dec (12)</option>
-                            </select>
-                        </div>
-
-                        <!-- 5. Review Track -->
-                        <div class="lg:col-span-2">
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Review Track</label>
-                            <select x-model="selfTrackFilter" class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                <option value="">All Tracks</option>
-                                <option value="mid_year">Quarter 1 &bull; Mid-Year</option>
-                                <option value="year_end">Quarter 2 &bull; Year-End</option>
-                                <option value="annual">Annual / Other</option>
-                            </select>
-                        </div>
-
-                        <!-- 6. Evaluation Status -->
-                        <div class="lg:col-span-2">
-                            <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Status</label>
-                            <select x-model="selfStatusFilter" class="w-full text-xs bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                <option value="">All Statuses</option>
-                                <option value="pending_self_eval">Pending Self-Eval</option>
-                                <option value="in_review">In Review (Manager/HOD)</option>
-                                <option value="completed">Finalized</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Unified Appraisals Table for Individual -->
-                <div class="bg-white dark:bg-[#111927] border border-slate-200 dark:border-slate-800/80 rounded-2xl overflow-hidden shadow-xs">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs">
-                            <thead class="bg-slate-50/80 dark:bg-slate-900/60 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800/80">
-                                <tr>
-                                    <th class="py-3 px-4 pl-5">Review Cycle &amp; Track</th>
-                                    <th class="py-3 px-3">Review Window &amp; Period</th>
-                                    <th class="py-3 px-3">Workflow Evaluators</th>
-                                    <th class="py-3 px-3">Evaluation Status</th>
-                                    <th class="py-3 px-3">Score &amp; Band</th>
-                                    <th class="py-3 px-3">Due Date</th>
-                                    <th class="py-3 px-4 pr-5 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/80">
-                                @if($otherSelfList->isEmpty())
-                                    <tr>
-                                        <td colspan="7" class="py-8 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
-                                            No other appraisal cycles found.
-                                        </td>
-                                    </tr>
-                                @else
-                                    @foreach($otherSelfList as $app)
-                                    @php
-                                        $meta = collect($selfAppsMeta)->firstWhere('id', $app->id) ?? [];
-                                        $appYears = $meta['years'] ?? [];
-                                        $appMonths = $meta['months'] ?? [];
-                                        $trackType = $meta['track'] ?? 'annual';
-                                        $searchString = $meta['search'] ?? '';
-
-                                        $cStart = $app->cycle?->start_date ? \Carbon\Carbon::parse($app->cycle->start_date)->startOfDay() : null;
-                                        $cEnd = $app->cycle?->end_date ? \Carbon\Carbon::parse($app->cycle->end_date)->startOfDay() : null;
-                                        $pStart = $app->cycle?->performance_period_start ? \Carbon\Carbon::parse($app->cycle->performance_period_start) : null;
-                                        $pEnd = $app->cycle?->performance_period_end ? \Carbon\Carbon::parse($app->cycle->performance_period_end) : null;
-
-                                        $dueDate = $app->self_eval_deadline ? \Carbon\Carbon::parse($app->self_eval_deadline)->startOfDay() : ($cEnd ?: null);
-                                        $today = \Carbon\Carbon::now()->startOfDay();
-
-                                        $dueRelativeText = '';
-                                        $dueRelativeClass = 'text-slate-400 dark:text-slate-500';
-
-                                        if ($app->status === 'completed') {
-                                            $dueRelativeText = 'Finalized';
-                                        } elseif ($cStart && $cStart->isFuture()) {
-                                            $dueRelativeText = 'Opens ' . $cStart->format('d M Y');
-                                            $dueRelativeClass = 'text-slate-400 dark:text-slate-400 font-medium';
-                                        } elseif ($dueDate) {
-                                            if ($dueDate->isPast()) {
-                                                $days = (int) $dueDate->diffInDays($today);
-                                                $dueRelativeText = $days === 0 ? 'Overdue today' : ($days === 1 ? 'Overdue by 1 day' : "Overdue by {$days} days");
-                                                $dueRelativeClass = 'text-rose-500/90 dark:text-rose-400/90 font-medium';
-                                            } elseif ($dueDate->isToday()) {
-                                                $dueRelativeText = 'Due today';
-                                                $dueRelativeClass = 'text-amber-500 dark:text-amber-400 font-medium';
-                                            } else {
-                                                $days = (int) $today->diffInDays($dueDate);
-                                                $dueRelativeText = $days === 1 ? 'Due tomorrow' : "Due in {$days} days";
-                                                $dueRelativeClass = 'text-amber-500/90 dark:text-amber-400/90 font-medium';
-                                            }
-                                        } else {
-                                            $dueRelativeText = 'No deadline';
-                                        }
-
-                                        $isPrimaryAction = ($app->cycle?->status === 'Active' || ($dueDate && $dueDate->isPast())) && $app->status === 'pending_self_eval';
-                                    @endphp
-                                    <tr class="hover:bg-slate-50/70 dark:hover:bg-[#161f30] transition-colors"
-                                        x-show="matchesSelfAppraisal({{ json_encode($appYears) }}, {{ json_encode($appMonths) }}, '{{ $trackType }}', '{{ $app->status }}', '{{ addslashes($searchString) }}')">
-                                        
-                                        <!-- 1. Review Cycle & Track -->
-                                        <td class="py-3.5 px-4 pl-5">
-                                            <div class="space-y-1">
-                                                <div class="flex items-center gap-2 flex-wrap">
-                                                    <a href="{{ route('appraisal.show', $app->id) }}" class="font-bold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 text-xs sm:text-sm block transition-colors">
-                                                        {{ $app->cycle?->name ?? 'Performance Review' }}
-                                                    </a>
-                                                    @if($app->cycle?->status === 'Active')
-                                                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-[#10b981] shrink-0"></span>
-                                                            <span>Active</span>
-                                                        </span>
-                                                    @endif
-                                                </div>
-                                                <div class="flex items-center gap-1.5 flex-wrap text-[11px] pt-0.5">
-                                                    @if($app->cycle?->isMidYear())
-                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                            <i class="ph ph-calendar-check text-slate-400"></i>
-                                                            <span>Quarter 1 &bull; Mid-Year</span>
-                                                        </span>
-                                                    @elseif($app->cycle?->cycle_type === 'year_end')
-                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                            <i class="ph ph-chart-line-up text-slate-400"></i>
-                                                            <span>Quarter 2 &bull; Year-End</span>
-                                                        </span>
-                                                    @else
-                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                            <i class="ph ph-calendar text-slate-400"></i>
-                                                            <span>Annual Review</span>
-                                                        </span>
-                                                    @endif
-
-                                                    @if($app->cycle?->financial_year)
-                                                        <span class="px-2 py-0.5 rounded-md font-medium bg-slate-100 dark:bg-white/[0.03] text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80">
-                                                            {{ $app->cycle->financial_year }}
-                                                        </span>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        <!-- 2. Performance Period & Dates -->
-                                        <td class="py-3.5 px-3">
-                                            <div class="space-y-0.5">
-                                                <div class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1 text-[11px]">
-                                                    <i class="ph ph-clock text-slate-400 text-xs"></i>
-                                                    <span>{{ $app->cycle?->performance_period ?: ($app->cycle?->isMidYear() ? 'April to September' : ($pStart && $pEnd ? $pStart->format('M Y') . ' – ' . $pEnd->format('M Y') : 'Full Period')) }}</span>
-                                                </div>
-                                                <div class="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                                                    @if($cStart && $cEnd)
-                                                        <span>Window: {{ $cStart->format('d M') }} – {{ $cEnd->format('d M Y') }}</span>
-                                                    @else
-                                                        <span>Window: Active</span>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        <!-- 3. Workflow Evaluators -->
-                                        <td class="py-3.5 px-3">
-                                            <div class="space-y-1 text-[11px]">
-                                                @if($app->reportingManager)
-                                                    <div class="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                                                        <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 text-[9px] font-bold border border-slate-200 dark:border-slate-700/60">MGR</span>
-                                                        <span>{{ $app->reportingManager->user->name ?? 'Manager' }}</span>
-                                                    </div>
-                                                @endif
-                                                @if($app->hod)
-                                                    <div class="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-                                                        <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 text-[9px] font-bold border border-slate-200 dark:border-slate-700/60">HOD</span>
-                                                        <span>{{ $app->hod->user->name ?? 'HOD' }}</span>
-                                                    </div>
-                                                @endif
-                                                @if(!$app->reportingManager && !$app->hod)
-                                                    <span class="text-slate-400 dark:text-slate-500 italic text-[11px]">Self Direct</span>
-                                                @endif
-                                            </div>
-                                        </td>
-
-                                        <!-- 4. Evaluation Status -->
-                                        <td class="py-3.5 px-3">
-                                            @if($app->status === 'completed')
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-[#10b981] shrink-0"></span>
-                                                    <span>Finalized</span>
-                                                </span>
-                                            @elseif($app->status === 'pending_self_eval')
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-[#d97706] shrink-0"></span>
-                                                    <span>Pending Self-Eval</span>
-                                                </span>
-                                            @elseif($app->status === 'pending_manager_eval' || $app->status === 'submitted_self_eval')
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400 shrink-0"></span>
-                                                    <span>Manager Review</span>
-                                                </span>
-                                            @elseif($app->status === 'pending_hod_eval' || $app->status === 'submitted_manager_eval')
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 shrink-0"></span>
-                                                    <span>HOD Review</span>
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>
-                                                    <span>In Review</span>
-                                                </span>
-                                            @endif
-                                        </td>
-
-                                        <!-- 5. Score & Band -->
-                                        <td class="py-3.5 px-3">
-                                            @if($app->total_weighted_score > 0)
-                                                <div class="space-y-0.5">
-                                                    <div class="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1 text-xs">
-                                                        <span>{{ number_format($app->total_weighted_score, 2) }}</span>
-                                                        <span class="text-[10px] text-slate-400 dark:text-slate-500 font-normal">/ 5.00</span>
-                                                    </div>
-                                                    @if($app->performance_band)
-                                                        <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
-                                                            {{ $app->performance_band }}
-                                                        </span>
-                                                    @endif
-                                                </div>
-                                            @else
-                                                <span class="text-slate-400 dark:text-slate-500 text-xs font-normal">—</span>
-                                            @endif
-                                        </td>
-
-                                        <!-- 6. Due Date -->
-                                        <td class="py-3.5 px-3">
-                                            <div class="space-y-0.5">
-                                                <span class="font-bold text-slate-800 dark:text-slate-200 block text-xs">
-                                                    {{ $dueDate ? $dueDate->format('d M Y') : '—' }}
-                                                </span>
-                                                <span class="text-[10px] block {{ $dueRelativeClass }}">
-                                                    {{ $dueRelativeText }}
-                                                </span>
-                                            </div>
-                                        </td>
-
-                                        <!-- 7. Actions -->
-                                        <td class="py-3.5 px-4 pr-5 text-right">
-                                            <div class="flex items-center justify-end">
-                                                @if($isPrimaryAction)
-                                                    <a href="{{ route('appraisal.show', $app->id) }}" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer shrink-0">
-                                                        <span>Complete Form</span>
-                                                        <i class="ph ph-arrow-square-out text-xs"></i>
-                                                    </a>
-                                                @else
-                                                    <a href="{{ route('appraisal.show', $app->id) }}" class="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-300 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-600 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all inline-flex items-center gap-1.5 cursor-pointer shrink-0">
-                                                        <span>{{ $app->cycle?->status === 'Upcoming' ? 'View Form' : ($app->status === 'pending_self_eval' ? 'Complete Form' : 'View Form') }}</span>
-                                                        <i class="ph ph-arrow-square-out text-xs"></i>
-                                                    </a>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            @endif
-
-                                <!-- Empty State when filters yield 0 results -->
-                                <tr x-show="filteredSelfCount === 0">
-                                    <td colspan="7" class="p-10 text-center">
-                                        <div class="space-y-2">
-                                            <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center text-lg">
-                                                <i class="ph ph-funnel-x"></i>
-                                            </div>
-                                            <p class="text-xs font-bold text-slate-800 dark:text-slate-200">No appraisals match the selected filters</p>
-                                            <p class="text-[11px] text-slate-400">Try adjusting your year, month range, or review track filters.</p>
-                                            <button type="button" @click="resetSelfFilters()" class="inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline pt-1 cursor-pointer">
-                                                <i class="ph ph-arrow-counter-clockwise"></i>
-                                                <span>Reset All Filters</span>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            @endif
         </div>
 
         <!-- ========================================================= -->
